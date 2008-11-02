@@ -662,7 +662,7 @@ XdmcpBlockHandler(
 	return;
     millisToGo = timeOutTime - GetTimeInMillis();
     if ((int) millisToGo < 0)
-	millisToGo = 0;
+	millisToGo = 1;
     AdjustWaitForDelay (wt, millisToGo);
 }
 
@@ -706,10 +706,10 @@ XdmcpWakeupHandler(
 	    else if (state == XDM_RUN_SESSION)
 		keepaliveDormancy = defaultKeepaliveDormancy;
 	}
-	if (XFD_ANYSET(&AllClients) && state == XDM_RUN_SESSION)
+	if (0)
 	    timeOutTime = GetTimeInMillis() +  keepaliveDormancy * 1000;
     }
-    else if (timeOutTime && (int) (GetTimeInMillis() - timeOutTime) >= 0)
+    else if (0)
     {
     	if (state == XDM_RUN_SESSION)
     	{
