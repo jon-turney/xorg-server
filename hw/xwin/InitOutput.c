@@ -659,6 +659,7 @@ winFixupPaths (void)
     if (!g_fLogFileChanged) {
         static char buffer[MAX_PATH];
         DWORD size = GetTempPath(sizeof(buffer), buffer);
+#define LOGFILE_FORMAT "Xming.%d.log"
         if (size && size < sizeof(buffer))
         {
             snprintf(buffer + size, sizeof(buffer) - size, 
@@ -677,6 +678,19 @@ winFixupPaths (void)
         XkbBaseDirectory = xkbbasedir;
 	XkbBinDirectory = basedir;
     }
+#endif /* XKB */
+#else
+      /* If logfile name wasn't explicitly set, base it off the display number */
+    if (!g_fLogFileChanged)
+      {
+	static char buffer[MAX_PATH];
+#define LOGFILE_FORMAT "/tmp/Xwin.%s.log"
+	snprintf(buffer, sizeof(buffer),
+		 LOGFILE_FORMAT, display);
+	buffer[sizeof(buffer)-1] = 0;
+	g_pszLogFile = buffer;
+	winMsg (X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
+      }
 #endif /* RELOCATE_PROJECTROOT */
 }
 

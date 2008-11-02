@@ -56,7 +56,6 @@ extern int			g_iLogVerbose;
 extern const char *		g_pszLogFile;
 #ifdef RELOCATE_PROJECTROOT
 extern Bool			g_fLogFileChanged;
-#endif
 extern Bool			g_fXdmcpEnabled;
 extern Bool			g_fAuthEnabled;
 extern char *			g_pszCommandLine;
@@ -1396,9 +1395,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
     {
       CHECK_ARGS (1);
       g_pszLogFile = argv[++i];
-#ifdef RELOCATE_PROJECTROOT
       g_fLogFileChanged = TRUE;
-#endif
       return 2;
     }
 
