@@ -125,6 +125,11 @@ __stdcall unsigned long GetTickCount(void);
 #endif
 
 Bool noTestExtensions;
+
+#if defined(SIGVTALRM) && !defined(__CYGWIN__)
+#define SMART_SCHEDULE_POSSIBLE
+#endif
+
 #ifdef COMPOSITE
 Bool noCompositeExtension = FALSE;
 #endif
@@ -536,8 +541,10 @@ void UseMsg(void)
     ErrorF("+xinerama              Enable XINERAMA extension\n");
     ErrorF("-xinerama              Disable XINERAMA extension\n");
 #endif
+#ifdef SMART_SCHEDULE_POSSIBLE
     ErrorF("-dumbSched             Disable smart scheduling, enable old behavior\n");
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
+#endif
     ErrorF("+extension name        Enable extension\n");
     ErrorF("-extension name        Disable extension\n");
 #ifdef XDMCP
@@ -1176,11 +1183,6 @@ XNFstrdup(const char *s)
     strcpy(sd, s);
     return sd;
 }
-
-
-#ifdef SIGVTALRM
-#define SMART_SCHEDULE_POSSIBLE
-#endif
 
 #ifdef SMART_SCHEDULE_POSSIBLE
 #define SMART_SCHEDULE_SIGNAL		SIGALRM
