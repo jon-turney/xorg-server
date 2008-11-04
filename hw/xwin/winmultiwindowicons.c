@@ -53,10 +53,18 @@ extern HICON		g_hSmallIconX;
  * Prototypes for local functions
  */
 
-static void
-winScaleXBitmapToWindows (int iconSize, int effBPP,
-			  PixmapPtr pixmap, unsigned char *image);
+/* static void */
 
+static void
+winScaleIconToWindows (int iconSize,
+		       int effBPP,
+		       unsigned char *iconData,
+		       unsigned short width,
+		       unsigned short height,
+		       int xStride,
+		       int effXBPP,
+		       int effXDepth,
+		       unsigned char *image);
 
 /*
  * Scale an X icon bitmap into a Windoze icon bitmap
@@ -87,10 +95,8 @@ winScaleXBitmapToWindows (int iconSize,
   if (pixmap->drawable.depth == 15)
     effXDepth = 16;
 
-  /* Need 16-bit aligned rows for DDBitmaps */
-  stride = ((iconSize * effBPP + 15) & (~15)) / 8;
   xStride = PixmapBytePad (pixmap->drawable.width, pixmap->drawable.depth);
-  if (stride == 0 || xStride == 0)
+  if (xStride == 0)
     {
       ErrorF ("winScaleXBitmapToWindows - stride or xStride is zero.  "
 	      "Bailing.\n");
@@ -111,9 +117,51 @@ winScaleXBitmapToWindows (int iconSize,
 	      pixmap->drawable.width, pixmap->drawable.height,
 	      ZPixmap, 0xffffffff, iconData);
 
+  winScaleIconToWindows(iconSize, effBPP,
+			iconData,
+			pixmap->drawable.width, pixmap->drawable.height,
+			xStride, effXBPP, effXDepth,
+			image);
+
+  free (iconData);
+}
+
+/*
+ * Scale a drawable into a Windoze icon bitmap
+ */
+
+static void
+winScaleIconToWindows (int iconSize,
+		       int effBPP,
+		       unsigned char *iconData,
+		       unsigned short width,
+		       unsigned short height,
+		       int xStride,
+		       int effXBPP,
+		       int effXDepth,
+		       unsigned char *image)
+{
+  int			row, column;
+  unsigned char		*outPtr;
+  int			stride;
+  float                 factX, factY;
+  int			posX, posY;
+  unsigned char		*ptr;
+  unsigned int		zero;
+  unsigned int		color;
+
+  /* Need 16-bit aligned rows for DDBitmaps */
+  stride = ((iconSize * effBPP + 15) & (~15)) / 8;
+  if (stride == 0)
+    {
+      ErrorF ("winScaleXBitmapToWindows - stride or xStride is zero.  "
+	      "Bailing.\n");
+      return;
+    }
+
   /* Keep aspect ratio */
-  factX = ((float)pixmap->drawable.width) / ((float)iconSize);
-  factY = ((float)pixmap->drawable.height) / ((float)iconSize);
+  factX = ((float)width) / ((float)iconSize);
+  factY = ((float)height) / ((float)iconSize);
   if (factX > factY)
     factY = factX;
   else
@@ -136,8 +184,8 @@ winScaleXBitmapToWindows (int iconSize,
 	      ptr += posX / 8;
 	      
 	      /* Out of X icon bounds, leave space blank */
-	      if (posX >= pixmap->drawable.width
-		  || posY >= pixmap->drawable.height)
+	      if (posX >= width
+		  || posY >= height)
 		ptr = (unsigned char *) &zero;
 	      
 	      if ((*ptr) & (1 << (posX & 7)))
@@ -182,8 +230,8 @@ winScaleXBitmapToWindows (int iconSize,
 	      ptr += posX * (effXBPP / 8);
 
 	      /* Out of X icon bounds, leave space blank */
-	      if (posX >= pixmap->drawable.width
-		  || posY >= pixmap->drawable.height)
+	      if (posX >= width
+		  || posY >= height)
 		ptr = (unsigned char *) &zero;
 	      color = (((*ptr) << 16)
 		       + ((*(ptr + 1)) << 8)
@@ -225,8 +273,8 @@ winScaleXBitmapToWindows (int iconSize,
 	      ptr += posX * (effXBPP / 8);
 	
 	      /* Out of X icon bounds, leave space blank */
-	      if (posX >= pixmap->drawable.width
-		  || posY >= pixmap->drawable.height)
+	      if (posX >= width
+		  || posY >= height)
 		ptr = (unsigned char *) &zero;
 	      color = ((*ptr) << 8) + (*(ptr + 1));
 	      switch (effBPP)
@@ -380,6 +428,32 @@ NetWMToWinIcon(int bpp, uint32_t *icon)
     return NetWMToWinIconThreshold(icon);
 }
 
+=======
+  hdcMem = CreateCompatibleDC(NULL);
+  ii.hbmColor = CreateDIBSection(hdcMem,(BITMAPINFO*)&bmh,
+				 DIB_RGB_COLORS,(void**)(&DIB_pixels),NULL,0);
+  ii.hbmMask = CreateBitmap(width,height,1,1,NULL);
+  // XXX: if the Windows version we are running supports alpha in icons, this
+  // we are supposed to use an empty, mononchrome bitmap for the mask...
+  // for downlevel Windows support we probably need to do something fancier,
+  // convert alpha channel to a mask?
+
+  /* Rows are in reverse order */
+  for (row=0; row<height; row++) {
+    memcpy(&DIB_pixels[row*width], &pixels[(height-row-1)*width], width*4);
+  }
+
+  result = CreateIconIndirect(&ii);
+
+  DeleteDC(hdcMem);
+  DeleteObject(ii.hbmColor);
+  DeleteObject(ii.hbmMask);
+
+/*   ErrorF ("NetIcon To WinBitmap: %d x %d = %p\n",icon[0],icon[1],result); */
+  return result;
+}
+
+>>>>>>> Add _NET_WM_ICON icon support
 static pointer
 GetWindowProp(WindowPtr pWin, Atom name, long int *size_return)
 {
@@ -410,7 +484,7 @@ GetWindowProp(WindowPtr pWin, Atom name, long int *size_return)
 HICON
 winXIconToHICON (WindowPtr pWin, int iconSize)
 {
-  unsigned char		*mask, *image, *imageMask;
+  unsigned char		*mask, *image;
   unsigned char		*dst, *src;
   PixmapPtr		iconPtr;
   PixmapPtr		maskPtr;
@@ -488,23 +562,74 @@ winXIconToHICON (WindowPtr pWin, int iconSize)
   dixLookupResourceByType((pointer) &maskPtr, hints.icon_mask, RT_PIXMAP,
 				NullClient, DixUnknownAccess);
 
-  if (maskPtr) 
+  /* Try to get _NET_WM_ICON icons first */
+  icon_data = GetWindowProp(pWin, _XA_NET_WM_ICON, &size);
+  if (icon_data)
     {
-      winScaleXBitmapToWindows (iconSize, 1, maskPtr, mask);
-      
-      winScaleXBitmapToWindows (iconSize, effBPP, maskPtr, imageMask);
-      
-      /* Now we need to set all bits of the icon which are not masked */
-      /* on to 0 because Color is really an XOR, not an OR function */
-      dst = image;
-      src = imageMask;
+      for(icon = icon_data;
+	  icon < &icon_data[size] && *icon;
+	  icon = &icon[icon[0]*icon[1]+2])
+	{
+/* 	  ErrorF("Window %x: found %d x %d NetIcon\n",(int)pWin,icon[0],icon[1]); */
 
-      for (i = 0; i < (stride * iconSize); i++)
-	if ((*(src++)))
-	  *(dst++) = 0;
-	else
-	  dst++;
+	  if ((icon[0] >= iconSize) && (icon[1] >= iconSize))
+	    {
+	      image = malloc (stride * iconSize);
+
+	      /* Default to a completely black mask */
+	      mask = calloc (maskStride, iconSize);
+	      // XXX: TBD: proper treatment of alpha channel...
+
+	      winScaleNetWMIconToWindows(iconSize, effBPP, icon, image);
+	      net_wm_icon_found = TRUE;
+	      break;
+	    }
+	}
+/*       ErrorF("Window %x: no %d x %d NetIcon\n",(int)pWin,iconSize,iconSize); */
     }
+
+  /* XXX: or should we always prefer a _NET_WM_ICON, scaling it up if neccessary? ?*/
+
+  if (!net_wm_icon_found)
+    {
+      unsigned char *imageMask;
+
+      winMultiWindowGetWMHints (pWin, &hints);
+/*       ErrorF("winXIconToHICON: pWin %x icon_pixmap hint %d\n", pWin, hints.icon_pixmap, iconPtr); */
+      if (!hints.icon_pixmap) return NULL;
+
+      iconPtr = (PixmapPtr) LookupIDByType (hints.icon_pixmap, RT_PIXMAP);
+/*       ErrorF("winXIconToHICON: pWin %x iconPtr %x\n", pWin, hints.icon_pixmap, iconPtr); */
+
+      if (!iconPtr) return NULL;
+
+      image = malloc (stride * iconSize);
+      imageMask = malloc (stride * iconSize);
+      /* Default to a completely black mask */
+      mask = calloc (maskStride, iconSize);
+
+      winScaleXBitmapToWindows (iconSize, effBPP, iconPtr, image);
+      maskPtr = (PixmapPtr) LookupIDByType (hints.icon_mask, RT_PIXMAP);
+
+      if (maskPtr)
+	{
+	  winScaleXBitmapToWindows (iconSize, 1, maskPtr, mask);
+
+	  winScaleXBitmapToWindows (iconSize, effBPP, maskPtr, imageMask);
+
+	  /* Now we need to set all bits of the icon which are not masked */
+	  /* on to 0 because Color is really an XOR, not an OR function */
+	  dst = image;
+	  src = imageMask;
+
+	  for (i = 0; i < (stride * iconSize); i++)
+	    if ((*(src++)))
+	      *(dst++) = 0;
+	    else
+	      dst++;
+	}
+      free (imageMask);
+     }
   
   ii.fIcon = TRUE;
   ii.xHotspot = 0; /* ignored */
@@ -526,15 +651,13 @@ winXIconToHICON (WindowPtr pWin, int iconSize)
   /* Free X mask and bitmap */
   free (mask);
   free (image);
-  free (imageMask);
 
   return hIcon;
 }
 
 
-
 /*
- * Change the Windows window icon 
+ * Change the Windows window icon
  */
 
 #ifdef XWIN_MULTIWINDOW
