@@ -461,7 +461,7 @@ GetWindowProp(WindowPtr pWin, Atom name, long int *size_return)
   struct _Property	*prop;
 
   if (!pWin || !name) {
-    ErrorF ("GetWindowProp - pWin or name was NULL\n");
+    winDebug("GetWindowProp - pWin or name was NULL\n");
     return 0;
   }
   pwin = (struct _Window*) pWin;
