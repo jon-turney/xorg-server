@@ -190,7 +190,7 @@ winKeybdProc (DeviceIntPtr pDeviceInt, int iState)
 
       // immediately copy the state of this keyboard device to the VCK
       // (which otherwise happens lazily after the first keypress)
-      CopyKeyClass(pDeviceInt, inputInfo.keyboard);
+      SwitchCoreKeyboard(pDeviceInt);
       break;
 
     case DEVICE_CLOSE:
