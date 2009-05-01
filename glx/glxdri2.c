@@ -132,17 +132,6 @@ __glXDRIdrawableCopySubBuffer(__GLXdrawable *drawable,
 		   DRI2BufferFrontLeft, DRI2BufferBackLeft);
 }
 
-static GLboolean
-__glXDRIdrawableSwapBuffers(__GLXdrawable *drawable)
-{
-    __GLXDRIdrawable *private = (__GLXDRIdrawable *) drawable;
-
-    __glXDRIdrawableCopySubBuffer(drawable, 0, 0,
-				  private->width, private->height);
-
-    return TRUE;
-}
-
 static void
 __glXDRIdrawableWaitX(__GLXdrawable *drawable)
 {
@@ -175,6 +164,33 @@ __glXDRIdrawableWaitGL(__GLXdrawable *drawable)
 
     DRI2CopyRegion(drawable->pDraw, &region,
 		   DRI2BufferFrontLeft, DRI2BufferFakeFrontLeft);
+}
+
+static GLboolean
+__glXDRIdrawableSwapBuffers(__GLXdrawable *drawable)
+{
+    __GLXDRIdrawable *priv = (__GLXDRIdrawable *) drawable;
+    __GLXDRIscreen *screen = priv->screen;
+    DRI2BufferPtr *buffers;
+    int i, count;
+
+    buffers = DRI2SwapBuffers(drawable->pDraw, &count);
+    if (!buffers)
+	return FALSE;
+
+    for (i = 0; i < count; i++) {
+	priv->buffers[i].attachment = buffers[i]->attachment;
+	priv->buffers[i].name = buffers[i]->name;
+	priv->buffers[i].pitch = buffers[i]->pitch;
+	priv->buffers[i].cpp = buffers[i]->cpp;
+	priv->buffers[i].flags = buffers[i]->flags;
+    }
+
+    priv->count = count;
+
+    (*screen->dri2->setBuffers)(priv->driDrawable, priv->buffers, count);
+
+    return TRUE;
 }
 
 static int
