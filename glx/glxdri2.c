@@ -70,6 +70,7 @@ struct __GLXDRIscreen {
 
     const __DRIcoreExtension *core;
     const __DRIdri2Extension *dri2;
+    const __DRI2flushExtension *flush;
     const __DRIcopySubBufferExtension *copySubBuffer;
     const __DRIswapControlExtension *swapControl;
     const __DRItexBufferExtension *texBuffer;
@@ -171,24 +172,10 @@ __glXDRIdrawableSwapBuffers(__GLXdrawable *drawable)
 {
     __GLXDRIdrawable *priv = (__GLXDRIdrawable *) drawable;
     __GLXDRIscreen *screen = priv->screen;
-    DRI2BufferPtr *buffers;
-    int i, count;
+    int count;
 
-    buffers = DRI2SwapBuffers(drawable->pDraw, &count);
-    if (!buffers)
-	return FALSE;
-
-    for (i = 0; i < count; i++) {
-	priv->buffers[i].attachment = buffers[i]->attachment;
-	priv->buffers[i].name = buffers[i]->name;
-	priv->buffers[i].pitch = buffers[i]->pitch;
-	priv->buffers[i].cpp = buffers[i]->cpp;
-	priv->buffers[i].flags = buffers[i]->flags;
-    }
-
-    priv->count = count;
-
-    (*screen->dri2->setBuffers)(priv->driDrawable, priv->buffers, count);
+    DRI2SwapBuffers(drawable->pDraw, &count);
+    (*screen->flush->flushInvalidate)(priv->driDrawable);
 
     return TRUE;
 }
@@ -649,6 +636,10 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
         if (strcmp(extensions[i]->name, __DRI_DRI2) == 0 &&
 	    extensions[i]->version >= __DRI_DRI2_VERSION) {
 		screen->dri2 = (const __DRIdri2Extension *) extensions[i];
+	}
+	if (strcmp(extensions[i]->name, __DRI2_FLUSH) == 0 &&
+	    extensions[i]->version >= __DRI2_FLUSH_VERSION) {
+		screen->flush = (__DRI2flushExtension *) extensions[i];
 	}
     }
 

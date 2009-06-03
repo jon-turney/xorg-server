@@ -325,37 +325,16 @@ static int
 ProcDRI2SwapBuffers(ClientPtr client)
 {
     REQUEST(xDRI2SwapBuffersReq);
-    xDRI2SwapBuffersReply rep;
     DrawablePtr pDrawable;
-    DRI2BufferPtr *buffers;
-    xDRI2Buffer buffer;
     int status;
-    int i, count;
+    int count;
 
     REQUEST_SIZE_MATCH(xDRI2SwapBuffersReq);
 
     if (!validDrawable(client, stuff->drawable, &pDrawable, &status))
 	return status;
 
-    buffers = DRI2SwapBuffers(pDrawable, &count);
-    if (!buffers) {
-	return BadAlloc;
-    }
-
-    rep.type = X_Reply;
-    rep.length = count * sizeof(xDRI2Buffer) / 4;
-    rep.count = count;
-    rep.sequenceNumber = client->sequence;
-    WriteToClient(client, sizeof(xDRI2GetBuffersReply), &rep);
-
-    for (i = 0; i < count; i++) {
-	buffer.attachment = buffers[i]->attachment;
-	buffer.name = buffers[i]->name;
-	buffer.pitch = buffers[i]->pitch;
-	buffer.cpp = buffers[i]->cpp;
-	buffer.flags = buffers[i]->flags;
-	WriteToClient(client, sizeof(xDRI2Buffer), &buffer);
-    }
+    DRI2SwapBuffers(pDrawable, &count);
 
     return client->noClientException;
 }
