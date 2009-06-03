@@ -55,9 +55,9 @@ typedef void		(*DRI2CopyRegionProcPtr)(DrawablePtr pDraw,
 						 RegionPtr pRegion,
 						 DRI2BufferPtr pDestBuffer,
 						 DRI2BufferPtr pSrcBuffer);
-typedef DRI2BufferPtr 	*(*DRI2SwapBuffersProcPtr)(DrawablePtr pDraw,
-						  DRI2BufferPtr *buffers,
-						  int count);
+typedef Bool		(*DRI2SwapBuffersProcPtr)(DrawablePtr pDraw,
+						  DRI2BufferPtr pFrontBuffer,
+						  DRI2BufferPtr pBackBuffer);
 
 typedef void		(*DRI2WaitProcPtr)(WindowPtr pWin,
 					   unsigned int sequence);
@@ -146,6 +146,6 @@ extern _X_EXPORT DRI2BufferPtr *DRI2GetBuffersWithFormat(DrawablePtr pDraw,
 	int *width, int *height, unsigned int *attachments, int count,
 	int *out_count);
 
-extern _X_EXPORT DRI2BufferPtr *DRI2SwapBuffers(DrawablePtr pDraw, int *count);
+extern _X_EXPORT Bool DRI2SwapBuffers(DrawablePtr pDraw);
 
 #endif

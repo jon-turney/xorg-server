@@ -327,14 +327,14 @@ ProcDRI2SwapBuffers(ClientPtr client)
     REQUEST(xDRI2SwapBuffersReq);
     DrawablePtr pDrawable;
     int status;
-    int count;
 
     REQUEST_SIZE_MATCH(xDRI2SwapBuffersReq);
 
     if (!validDrawable(client, stuff->drawable, &pDrawable, &status))
 	return status;
 
-    DRI2SwapBuffers(pDrawable, &count);
+    if (!DRI2SwapBuffers(pDrawable))
+	return BadAlloc;
 
     return client->noClientException;
 }

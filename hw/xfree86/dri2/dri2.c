@@ -329,57 +329,44 @@ DRI2CopyRegion(DrawablePtr pDraw, RegionPtr pRegion,
     return Success;
 }
 
-DRI2BufferPtr *
-DRI2SwapBuffers(DrawablePtr pDraw, int *reply_count)
+Bool
+DRI2SwapBuffers(DrawablePtr pDraw)
 {
     DRI2ScreenPtr   ds = DRI2GetScreen(pDraw->pScreen);
     DRI2DrawablePtr pPriv;
-    DRI2BufferPtr   *buffers;
-    int             i;
+    DRI2BufferPtr   pDestBuffer, pSrcBuffer;
+    int		    i;
 
     pPriv = DRI2GetDrawable(pDraw);
     if (pPriv == NULL)
-	return NULL;
+	return FALSE;
 
-    if (!ds->SwapBuffers)
-	goto copy;
-
-    buffers = (*ds->SwapBuffers)(pDraw, pPriv->buffers, pPriv->bufferCount);
-    if (!buffers)
-	goto copy;
-
-    for (i = 0; i < pPriv->bufferCount; i++) {
-	(*ds->DestroyBuffer)(pDraw, pPriv->buffers[i]);
-	pPriv->buffers[i] = buffers[i];
-    }
-
-    xfree(buffers);
-
-    *reply_count = pPriv->bufferCount;
-
-    return pPriv->buffers;
-
-copy:
-    /* Fall back to a copy */
+    pDestBuffer = NULL;
+    pSrcBuffer = NULL;
+    for (i = 0; i < pPriv->bufferCount; i++)
     {
+	if (pPriv->buffers[i]->attachment == DRI2BufferFrontLeft)
+	    pDestBuffer = pPriv->buffers[i];
+	if (pPriv->buffers[i]->attachment == DRI2BufferBackLeft)
+	    pSrcBuffer = pPriv->buffers[i];
+    }
+    if (pSrcBuffer == NULL || pDestBuffer == NULL)
+	return FALSE;
+
+    if (!(*ds->SwapBuffers)(pDraw, pDestBuffer, pSrcBuffer)) {
 	BoxRec box;
 	RegionRec region;
-	int ret;
 
 	box.x1 = 0;
 	box.y1 = 0;
 	box.x2 = pDraw->width;
 	box.y2 = pDraw->height;
-	REGION_INIT(pDraw->pScreen, &region, &box, 0);
-	ret = DRI2CopyRegion(pDraw, &region, DRI2BufferFrontLeft,
-			     DRI2BufferBackLeft);
-	if (ret != Success) {
-	    *reply_count = 0;
-	    return NULL;
-	}
-	*reply_count = pPriv->bufferCount;
-	return pPriv->buffers;
+	REGION_INIT(drawable->pDraw->pScreen, &region, &box, 0);
+	if (DRI2CopyRegion(pDraw, &region, DRI2BufferFrontLeft, DRI2BufferBackLeft) != Success)
+	    return FALSE;
     }
+
+    return TRUE;
 }
 
 void

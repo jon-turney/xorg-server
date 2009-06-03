@@ -172,9 +172,10 @@ __glXDRIdrawableSwapBuffers(__GLXdrawable *drawable)
 {
     __GLXDRIdrawable *priv = (__GLXDRIdrawable *) drawable;
     __GLXDRIscreen *screen = priv->screen;
-    int count;
 
-    DRI2SwapBuffers(drawable->pDraw, &count);
+    if (!DRI2SwapBuffers(drawable->pDraw))
+	return FALSE;
+
     (*screen->flush->flushInvalidate)(priv->driDrawable);
 
     return TRUE;
