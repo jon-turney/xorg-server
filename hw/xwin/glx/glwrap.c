@@ -27,12 +27,11 @@
             ErrorF("glwrap: resolved \"%s\"\n", symbol); \
     } \
     if (proc == NULL) { \
-        __glXErrorCallBack(NULL, 0); \
+        __glXErrorCallBack(0); \
         return retval; \
     }
 #define RESOLVE(procname, symbol) RESOLVE_RET(procname, symbol,)
-        
-        
+
 /*
  * GL_ARB_imaging
  */
@@ -105,6 +104,7 @@ GLAPI void GLAPIENTRY glGetColorTableParameteriv( GLenum target, GLenum pname,
     proc(target, pname, params);
 }
 
+#if 0
 GLAPI void GLAPIENTRY glBlendEquation( GLenum mode )
 {
     RESOLVE(PFNGLBLENDEQUATIONPROC, "glBlendEquation");
@@ -117,6 +117,7 @@ GLAPI void GLAPIENTRY glBlendColor( GLclampf red, GLclampf green,
     RESOLVE(PFNGLBLENDCOLORPROC, "glBlendColor");
     proc(red, green, blue, alpha);
 }
+#endif
 
 GLAPI void GLAPIENTRY glHistogram( GLenum target, GLsizei width,
 				   GLenum internalformat, GLboolean sink )

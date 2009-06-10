@@ -14,7 +14,10 @@ endif
 
 if XWIN_GLX_WINDOWS
 SRCS_GLX_WINDOWS = \
-	winpriv.c
+	winpriv.c \
+	glx/glwindows.h \
+	glx/glwrap.c \
+	glx/indirect.c
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 endif
 
@@ -165,19 +168,13 @@ AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -DBUILD_DATE=$(BUILD_DATE) \
-            -DXFree86Server
+            -DXFree86Server \
+            -I$(top_srcdir)/glx
 
 dist_man1_MANS = XWin.man
 dist_man5_MANS = XWinrc.man
 
-GLX_EXTRAS = \
-	glx/ChangeLog \
-	glx/glwindows.h \
-	glx/glwrap.c \
-	glx/indirect.c
-
 EXTRA_DIST = \
-	$(GLX_EXTRAS) \
 	_usr_X11R6_lib_X11_system.XWinrc \
 	X-boxed.ico \
 	X.ico \
