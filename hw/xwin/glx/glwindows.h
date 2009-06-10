@@ -31,6 +31,7 @@ typedef struct {
     unsigned dumpPFD : 1;
     unsigned dumpHWND : 1;
     unsigned dumpDC : 1;
+    unsigned enableStereo : 1;
 } glWinDebugSettingsRec, *glWinDebugSettingsPtr;
 extern glWinDebugSettingsRec glWinDebugSettings;
 

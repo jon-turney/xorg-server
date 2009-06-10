@@ -63,7 +63,7 @@
 /* ggs: needed to call back to glx with visual configs */
 extern void GlxSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs, void **configprivs);
 
-glWinDebugSettingsRec glWinDebugSettings = { 1, 0, 0, 0, 0};
+glWinDebugSettingsRec glWinDebugSettings = { 0, 0, 0, 0, 0, 0};
 
 static void glWinInitDebugSettings(void) 
 {
@@ -88,6 +88,10 @@ static void glWinInitDebugSettings(void)
     envptr = getenv("GLWIN_DUMP_DC");
     if (envptr != NULL)
         glWinDebugSettings.dumpDC = (atoi(envptr) == 1);
+
+    envptr = getenv("GLWIN_ENABLE_STEREO");
+    if (envptr != NULL)
+	glWinDebugSettings.enableStereo = (atoi(envptr) == 1);
 }
 
 static char errorbuffer[1024];
@@ -159,6 +163,7 @@ static __GLXscreenInfo __glDDXScreenInfo = {
     NULL,                 /* Set up pVisualPriv in probe */
     0,                    /* Set up numVisuals in probe */
     0,                    /* Set up numUsableVisuals in probe */
+    NULL,                 /* GLextensions is overwritten by __glXScreenInit */
     "Vendor String",      /* GLXvendor is overwritten by __glXScreenInit */
     "Version String",     /* GLXversion is overwritten by __glXScreenInit */
     "Extensions String",  /* GLXextensions is overwritten by __glXScreenInit */
@@ -672,7 +677,7 @@ static int makeFormat(__GLcontextModes *mode, PIXELFORMATDESCRIPTOR *pfdret)
       0,                     /* shift bit ignored */
       0,                     /* no accumulation buffer */
       0, 0, 0, 0,            /* accum bits ignored */
-      0,                     /* 32-bit z-buffer */
+      32,                    /* 32-bit z-buffer */
       0,                     /* no stencil buffer */
       0,                     /* no auxiliary buffer */
       PFD_MAIN_PLANE,        /* main layer */
@@ -893,7 +898,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
     if (glxPriv) {
         __GLXcontext *gx;
         __GLcontext *gc;
-        GLWIN_DEBUG_MSG("glWinUnealizeWindow is GL drawable!\n");
+        GLWIN_DEBUG_MSG("glWinUnrealizeWindow is GL drawable!\n");
 
         /* GL contexts bound to this window for drawing */
         for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
@@ -916,19 +921,21 @@ glWinUnrealizeWindow(WindowPtr pWin)
 }
 
 
-/*
- * In the case the driver has no GLX visuals we'll use these.
- * [0] = RGB, double buffered
- * [1] = RGB, double buffered, stencil, accum
- */
 /* Originally copied from Mesa */
 
 static int                 numConfigs     = 0;
 static __GLXvisualConfig  *visualConfigs  = NULL;
 static void              **visualPrivates = NULL;
 
-#define NUM_FALLBACK_CONFIGS 2
+/*
+ * In the case the driver defines no GLX visuals we'll use these.
+ * Note that for TrueColor and DirectColor visuals, bufferSize is the
+ * sum of redSize, greenSize, blueSize and alphaSize, which may be larger
+ * than the nplanes/rootDepth of the server's X11 visuals
+ */
+#define NUM_FALLBACK_CONFIGS 5
 static __GLXvisualConfig FallbackConfigs[NUM_FALLBACK_CONFIGS] = {
+  /* [0] = RGB, double buffered, Z */
   {
     -1,                 /* vid */
     -1,                 /* class */
@@ -943,11 +950,12 @@ static __GLXvisualConfig FallbackConfigs[NUM_FALLBACK_CONFIGS] = {
     0,                  /* stencilSize */
     0,                  /* auxBuffers */
     0,                  /* level */
-    GLX_NONE_EXT,       /* visualRating */
-    0,                  /* transparentPixel */
+    GLX_NONE,           /* visualRating */
+    GLX_NONE,           /* transparentPixel */
     0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
     0                   /* transparentIndex */
   },
+  /* [1] = RGB, double buffered, Z, stencil, accum */
   {
     -1,                 /* vid */
     -1,                 /* class */
@@ -962,11 +970,71 @@ static __GLXvisualConfig FallbackConfigs[NUM_FALLBACK_CONFIGS] = {
     8,                  /* stencilSize */
     0,                  /* auxBuffers */
     0,                  /* level */
-    GLX_NONE_EXT,       /* visualRating */
-    0,                  /* transparentPixel */
+    GLX_NONE,           /* visualRating */
+    GLX_NONE,           /* transparentPixel */
     0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
     0                   /* transparentIndex */
-  }
+  },
+  /* [2] = RGB+Alpha, double buffered, Z, stencil, accum */
+  {
+    -1,                 /* vid */
+    -1,                 /* class */
+    True,               /* rgba */
+    -1, -1, -1, 8,      /* rgba sizes */
+    -1, -1, -1, -1,     /* rgba masks */
+    16, 16, 16, 16,     /* rgba accum sizes */
+    True,               /* doubleBuffer */
+    False,              /* stereo */
+    -1,                 /* bufferSize */
+    16,                 /* depthSize */
+    8,                  /* stencilSize */
+    0,                  /* auxBuffers */
+    0,                  /* level */
+    GLX_NONE,           /* visualRating */
+    GLX_NONE,           /* transparentPixel */
+    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
+    0                   /* transparentIndex */
+  },
+  /* [3] = RGB+Alpha, single buffered, Z, stencil, accum */
+  {
+    -1,                 /* vid */
+    -1,                 /* class */
+    True,               /* rgba */
+    -1, -1, -1, 8,      /* rgba sizes */
+    -1, -1, -1, -1,     /* rgba masks */
+    16, 16, 16, 16,     /* rgba accum sizes */
+    False,              /* doubleBuffer */
+    False,              /* stereo */
+    -1,                 /* bufferSize */
+    16,                 /* depthSize */
+    8,                  /* stencilSize */
+    0,                  /* auxBuffers */
+    0,                  /* level */
+    GLX_NONE,           /* visualRating */
+    GLX_NONE,           /* transparentPixel */
+    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
+    0                   /* transparentIndex */
+  },
+  /* [4] = CI, double buffered, Z */
+  {
+    -1,                 /* vid */
+    -1,                 /* class */
+    False,              /* rgba? (false = color index) */
+    -1, -1, -1, 0,      /* rgba sizes */
+    -1, -1, -1, 0,      /* rgba masks */
+     0,  0,  0, 0,      /* rgba accum sizes */
+    True,               /* doubleBuffer */
+    False,              /* stereo */
+    -1,                 /* bufferSize */
+    16,                 /* depthSize */
+    0,                  /* stencilSize */
+    0,                  /* auxBuffers */
+    0,                  /* level */
+    GLX_NONE,           /* visualRating */
+    GLX_NONE,           /* transparentPixel */
+    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
+    0                   /* transparentIndex */
+  },
 };
 
 static __GLXvisualConfig NullConfig = {
@@ -1013,7 +1081,7 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
     VisualPtr pVisual = *visualp;
     VisualPtr pVisualNew = NULL;
     VisualID *orig_vid = NULL;
-    __GLcontextModes *modes = NULL;
+    __GLcontextModes *modes;
     __GLXvisualConfig *pNewVisualConfigs = NULL;
     void **glXVisualPriv;
     void **pNewVisualPriv;
@@ -1029,15 +1097,15 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
 
     /* Alloc space for the list of new GLX visuals */
     pNewVisualConfigs = (__GLXvisualConfig *)
-                     __glXMalloc(numNewConfigs * sizeof(__GLXvisualConfig));
+                     malloc(numNewConfigs * sizeof(__GLXvisualConfig));
     if (!pNewVisualConfigs) {
         return FALSE;
     }
 
     /* Alloc space for the list of new GLX visual privates */
-    pNewVisualPriv = (void **) __glXMalloc(numNewConfigs * sizeof(void *));
+    pNewVisualPriv = (void **) malloc(numNewConfigs * sizeof(void *));
     if (!pNewVisualPriv) {
-        __glXFree(pNewVisualConfigs);
+        free(pNewVisualConfigs);
         return FALSE;
     }
 
@@ -1071,15 +1139,9 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
     /* Count the total number of visuals to compute */
     numNewVisuals = 0;
     for (i = 0; i < numVisuals; i++) {
-        int count;
-
-        count = ((pVisual[i].class == TrueColor
-                  || pVisual[i].class == DirectColor)
-                 ? numRGBconfigs : numCIconfigs);
-        if (count == 0)
-            count = 1;                  /* preserve the existing visual */
-
-        numNewVisuals += count;
+        numNewVisuals +=
+            (pVisual[i].class == TrueColor || pVisual[i].class == DirectColor)
+            ? numRGBconfigs : numCIconfigs;
     }
 
     /* Reset variables for use with the next screen/driver's visual configs */
@@ -1087,40 +1149,40 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
     numConfigs = 0;
 
     /* Alloc temp space for the list of orig VisualIDs for each new visual */
-    orig_vid = (VisualID *)__glXMalloc(numNewVisuals * sizeof(VisualID));
+    orig_vid = (VisualID *)malloc(numNewVisuals * sizeof(VisualID));
     if (!orig_vid) {
-        __glXFree(pNewVisualPriv);
-        __glXFree(pNewVisualConfigs);
+        free(pNewVisualPriv);
+        free(pNewVisualConfigs);
         return FALSE;
     }
 
     /* Alloc space for the list of glXVisuals */
     modes = _gl_context_modes_create(numNewVisuals, sizeof(__GLcontextModes));
     if (modes == NULL) {
-        __glXFree(orig_vid);
-        __glXFree(pNewVisualPriv);
-        __glXFree(pNewVisualConfigs);
+        free(orig_vid);
+        free(pNewVisualPriv);
+        free(pNewVisualConfigs);
         return FALSE;
     }
 
     /* Alloc space for the list of glXVisualPrivates */
-    glXVisualPriv = (void **)__glXMalloc(numNewVisuals * sizeof(void *));
+    glXVisualPriv = (void **)malloc(numNewVisuals * sizeof(void *));
     if (!glXVisualPriv) {
         _gl_context_modes_destroy( modes );
-        __glXFree(orig_vid);
-        __glXFree(pNewVisualPriv);
-        __glXFree(pNewVisualConfigs);
+        free(orig_vid);
+        free(pNewVisualPriv);
+        free(pNewVisualConfigs);
         return FALSE;
     }
 
     /* Alloc space for the new list of the X server's visuals */
-    pVisualNew = (VisualPtr)__glXMalloc(numNewVisuals * sizeof(VisualRec));
+    pVisualNew = (VisualPtr)malloc(numNewVisuals * sizeof(VisualRec));
     if (!pVisualNew) {
-        __glXFree(glXVisualPriv);
+        free(glXVisualPriv);
         _gl_context_modes_destroy( modes );
-        __glXFree(orig_vid);
-        __glXFree(pNewVisualPriv);
-        __glXFree(pNewVisualConfigs);
+        free(orig_vid);
+        free(pNewVisualPriv);
+        free(pNewVisualConfigs);
         return FALSE;
     }
 
@@ -1180,6 +1242,8 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
             /* Initialize the glXVisual */
             _gl_copy_visual_to_context_mode( modes, & pNewVisualConfigs[k] );
             modes->visualID = pVisualNew[j].vid;
+	    if (modes->fbconfigID == GLX_DONT_CARE)
+		modes->fbconfigID = modes->visualID;
 
             /*
              * If the class is -1, then assume the X visual information
@@ -1230,7 +1294,7 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
                     numVids++;
 
         /* Allocate a new list of VisualIDs for this depth */
-        pVids = (VisualID *)__glXMalloc(numVids * sizeof(VisualID));
+        pVids = (VisualID *)malloc(numVids * sizeof(VisualID));
 
         /* Initialize the new list of VisualIDs for this depth */
         for (j = 0; j < pdepth[i].numVids; j++)
@@ -1239,7 +1303,7 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
                     pVids[n++] = pVisualNew[k].vid;
 
         /* Update this depth's list of VisualIDs */
-        __glXFree(pdepth[i].vids);
+        free(pdepth[i].vids);
         pdepth[i].vids = pVids;
         pdepth[i].numVids = numVids;
     }
@@ -1249,16 +1313,16 @@ static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
     *visualp = pVisualNew;
 
     /* Free the old list of the X server's visuals */
-    __glXFree(pVisual);
+    free(pVisual);
 
     /* Clean up temporary allocations */
-    __glXFree(orig_vid);
-    __glXFree(pNewVisualPriv);
-    __glXFree(pNewVisualConfigs);
+    free(orig_vid);
+    free(pNewVisualPriv);
+    free(pNewVisualConfigs);
 
     /* Free the private list created by DDX HW driver */
     if (visualPrivates)
-        xfree(visualPrivates);
+        free(visualPrivates);
     visualPrivates = NULL;
 
     return TRUE;
@@ -1277,7 +1341,7 @@ static void fixup_visuals(int screen)
     for (modes = pScr->modes; modes != NULL; modes = modes->next ) {
         const int vis_class = _gl_convert_to_x_visual_type( modes->visualType );
         const int nplanes = (modes->rgbBits - modes->alphaBits);
-        VisualPtr pVis = pScreen->visuals;
+        const VisualPtr pVis = pScreen->visuals;
 
         /* Find a visual that matches the GLX visual's class and size */
         for (j = 0; j < pScreen->numVisuals; j++) {
@@ -1307,8 +1371,8 @@ static void init_screen_visuals(int screen)
 
     GLWIN_DEBUG_MSG("init_screen_visuals\n");
 
-    used = (int *)__glXMalloc(pScreen->numVisuals * sizeof(int));
-    __glXMemset(used, 0, pScreen->numVisuals * sizeof(int));
+    used = (int *)malloc(pScreen->numVisuals * sizeof(int));
+    memset(used, 0, pScreen->numVisuals * sizeof(int));
 
     i = 0;
     for ( modes = glWinScreens[screen].modes
@@ -1327,27 +1391,6 @@ static void init_screen_visuals(int screen)
                 pVis[j].blueMask  == modes->blueMask &&
                 !used[j]) {
 
-#if 0
-                /* Create the XMesa visual */
-                pXMesaVisual[i] =
-                    XMesaCreateVisual(pScreen,
-                                      pVis,
-                                      modes->rgbMode,
-                                      (modes->alphaBits > 0),
-                                      modes->doubleBufferMode,
-                                      modes->stereoMode,
-                                      GL_TRUE, /* ximage_flag */
-                                      modes->depthBits,
-                                      modes->stencilBits,
-                                      modes->accumRedBits,
-                                      modes->accumGreenBits,
-                                      modes->accumBlueBits,
-                                      modes->accumAlphaBits,
-                                      modes->samples,
-                                      modes->level,
-                                      modes->visualRating);
-#endif
-                
                 /* Set the VisualID */
                 modes->visualID = pVis[j].vid;
 
@@ -1372,9 +1415,7 @@ static void init_screen_visuals(int screen)
         
     }
 
-    __glXFree(used);
-
-    /* glWinScreens[screen].xm_vis = pXMesaVisual; */
+    free(used);
 }
 
 static Bool glWinScreenProbe(int screen)
@@ -1428,6 +1469,7 @@ static GLboolean glWinSwapBuffers(__GLXdrawablePrivate *glxPriv)
   /* swap buffers on only *one* of the contexts
    * (e.g. the last one for drawing)
    */
+    if (!glxPriv->drawGlxc) return GL_TRUE; /* Colin: do same as gc == NULL and so prevent a bad dereference */
     __GLcontext *gc = (__GLcontext *)glxPriv->drawGlxc->gc;
     HDC dc;
     BOOL ret;
@@ -1496,20 +1538,22 @@ glWinInitVisualConfigs(void)
     __GLXvisualConfig  *lclVisualConfigs  = NULL;
     void              **lclVisualPrivates = NULL;
 
-    int depth, aux, buffers, stencil, accum;
+    int stereo, depth, aux, buffers, stencil, accum;
     int i = 0;
 
-    GLWIN_DEBUG_MSG("glWinInitVisualConfigs ");
+    GLWIN_DEBUG_MSG("glWinInitVisualConfigs\n");
         
     /* count num configs:
+        2 stereo (on, off) (optional)
         2 Z buffer (0, 24 bit)
         2 AUX buffer (0, 2)
         2 buffers (single, double)
         2 stencil (0, 8 bit)
         2 accum (0, 64 bit)
-        = 32 configs */
+        = 64 configs with stereo, or 32 without */
 
-    lclNumConfigs = 2 * 2 * 2 * 2 * 2; /* 32 */
+    if (glWinDebugSettings.enableStereo) lclNumConfigs = 2 * 2 * 2 * 2 * 2 * 2; /* 64 */
+    else                                 lclNumConfigs = 2 * 2 * 2 * 2 * 2; /* 32 */
 
     /* alloc */
     lclVisualConfigs = xcalloc(sizeof(__GLXvisualConfig), lclNumConfigs);
@@ -1518,54 +1562,55 @@ glWinInitVisualConfigs(void)
     /* fill in configs */
     if (NULL != lclVisualConfigs) {
         i = 0; /* current buffer */
-        for (depth = 0; depth < 2; depth++) {
+        for (stereo = 0; stereo < (glWinDebugSettings.enableStereo ? 2 : 1); stereo++) {
+	  for (depth = 0; depth < 2; depth++) {
             for (aux = 0; aux < 2; aux++) {
-                for (buffers = 0; buffers < 2; buffers++) {
-                    for (stencil = 0; stencil < 2; stencil++) {
-                        for (accum = 0; accum < 2; accum++) {
-                            lclVisualConfigs[i].vid = -1;
-                            lclVisualConfigs[i].class = -1;
-                            lclVisualConfigs[i].rgba = TRUE;
-                            lclVisualConfigs[i].redSize = -1;
-                            lclVisualConfigs[i].greenSize = -1;
-                            lclVisualConfigs[i].blueSize = -1;
-                            lclVisualConfigs[i].redMask = -1;
-                            lclVisualConfigs[i].greenMask = -1;
-                            lclVisualConfigs[i].blueMask = -1;
-                            lclVisualConfigs[i].alphaMask = 0;
-                            if (accum) {
-                                lclVisualConfigs[i].accumRedSize = 16;
-                                lclVisualConfigs[i].accumGreenSize = 16;
-                                lclVisualConfigs[i].accumBlueSize = 16;
-                                lclVisualConfigs[i].accumAlphaSize = 16;
-                            }
-                            else {
-                                lclVisualConfigs[i].accumRedSize = 0;
-                                lclVisualConfigs[i].accumGreenSize = 0;
-                                lclVisualConfigs[i].accumBlueSize = 0;
-                                lclVisualConfigs[i].accumAlphaSize = 0;
-                            }
-                            lclVisualConfigs[i].doubleBuffer = buffers ? TRUE : FALSE;
-                            lclVisualConfigs[i].stereo = FALSE;
-                            lclVisualConfigs[i].bufferSize = -1;
-                            
-                            lclVisualConfigs[i].depthSize = depth? 24 : 0;
-                            lclVisualConfigs[i].stencilSize = stencil ? 8 : 0;
-                            lclVisualConfigs[i].auxBuffers = aux ? 2 : 0;
-                            lclVisualConfigs[i].level = 0;
-                            lclVisualConfigs[i].visualRating = GLX_NONE_EXT;
-                            lclVisualConfigs[i].transparentPixel = 0;
-                            lclVisualConfigs[i].transparentRed = 0;
-                            lclVisualConfigs[i].transparentGreen = 0;
-                            lclVisualConfigs[i].transparentBlue = 0;
-                            lclVisualConfigs[i].transparentAlpha = 0;
-                            lclVisualConfigs[i].transparentIndex = 0;
-                            i++;
-                        }
-                    }
-                }
+	      for (buffers = 0; buffers < 2; buffers++) {
+		for (stencil = 0; stencil < 2; stencil++) {
+		  for (accum = 0; accum < 2; accum++) {
+		    lclVisualConfigs[i].vid = -1;
+		    lclVisualConfigs[i].class = -1;
+		    lclVisualConfigs[i].rgba = TRUE;
+		    lclVisualConfigs[i].redSize = -1;
+		    lclVisualConfigs[i].greenSize = -1;
+		    lclVisualConfigs[i].blueSize = -1;
+		    lclVisualConfigs[i].redMask = -1;
+		    lclVisualConfigs[i].greenMask = -1;
+		    lclVisualConfigs[i].blueMask = -1;
+		    lclVisualConfigs[i].alphaMask = 0;
+		    if (accum) {
+		      lclVisualConfigs[i].accumRedSize = 16;
+		      lclVisualConfigs[i].accumGreenSize = 16;
+		      lclVisualConfigs[i].accumBlueSize = 16;
+		      lclVisualConfigs[i].accumAlphaSize = 16;
+		    } else {
+		      lclVisualConfigs[i].accumRedSize = 0;
+		      lclVisualConfigs[i].accumGreenSize = 0;
+		      lclVisualConfigs[i].accumBlueSize = 0;
+		      lclVisualConfigs[i].accumAlphaSize = 0;
+		    }
+		    lclVisualConfigs[i].doubleBuffer = buffers ? TRUE : FALSE;
+		    lclVisualConfigs[i].stereo = stereo ? TRUE : FALSE;
+		    lclVisualConfigs[i].bufferSize = -1;
+
+		    lclVisualConfigs[i].depthSize = depth? 24 : 0;
+		    lclVisualConfigs[i].stencilSize = stencil ? 8 : 0;
+		    lclVisualConfigs[i].auxBuffers = aux ? 2 : 0;
+		    lclVisualConfigs[i].level = 0;
+		    lclVisualConfigs[i].visualRating = GLX_NONE_EXT;
+		    lclVisualConfigs[i].transparentPixel = 0;
+		    lclVisualConfigs[i].transparentRed = 0;
+		    lclVisualConfigs[i].transparentGreen = 0;
+		    lclVisualConfigs[i].transparentBlue = 0;
+		    lclVisualConfigs[i].transparentAlpha = 0;
+		    lclVisualConfigs[i].transparentIndex = 0;
+		    i++;
+		  }
+		}
+	      }
             }
-        }
+	  }
+	}
     }
     if (i != lclNumConfigs)
         GLWIN_DEBUG_MSG("glWinInitVisualConfigs failed to alloc visual configs");
@@ -1595,7 +1640,7 @@ static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
     GLWIN_DEBUG_MSG("glWinInitVisuals\n");
 
     if (0 == numConfigs) /* if no configs */
-        glWinInitVisualConfigs(); /* ensure the visula configs are setup */
+        glWinInitVisualConfigs(); /* ensure the visual configs are setup */
 
     /*
      * Setup the visuals supported by this particular screen.
