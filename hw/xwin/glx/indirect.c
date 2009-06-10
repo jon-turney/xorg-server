@@ -133,6 +133,7 @@ GLuint __glFloorLog2(GLuint val)
 }
 
 /* some prototypes */
+#if 0
 static Bool glWinScreenProbe(int screen);
 static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
                               int *nvisualp, int *ndepthp,
@@ -145,7 +146,9 @@ static __GLinterface *glWinCreateContext(__GLimports *imports,
                                           __GLinterface *shareGC);
 static void glWinCreateBuffer(__GLXdrawablePrivate *glxPriv);
 static void glWinResetExtension(void);
+#endif
 
+#if 0
 /*
  * This structure is statically allocated in the __glXScreens[]
  * structure.  This struct is not used anywhere other than in
@@ -173,7 +176,9 @@ static __GLXscreenInfo __glDDXScreenInfo = {
 void *__glXglDDXScreenInfo(void) {
     return &__glDDXScreenInfo;
 }
+#endif
 
+#if 0
 static __GLXextensionInfo __glDDXExtensionInfo = {
     GL_CORE_WINDOWS,
     glWinResetExtension,
@@ -184,6 +189,7 @@ static __GLXextensionInfo __glDDXExtensionInfo = {
 void *__glXglDDXExtensionInfo(void) {
     return &__glDDXExtensionInfo;
 }
+#endif
 
 /* prototypes */
 
@@ -1418,6 +1424,7 @@ static void init_screen_visuals(int screen)
     free(used);
 }
 
+#if 0
 static Bool glWinScreenProbe(int screen)
 {
     ScreenPtr pScreen;
@@ -1463,6 +1470,7 @@ static Bool glWinScreenProbe(int screen)
 
     return TRUE;
 }
+#endif
 
 static GLboolean glWinSwapBuffers(__GLXdrawablePrivate *glxPriv)
 {
@@ -1507,6 +1515,7 @@ static void glWinDestroyDrawablePrivate(__GLdrawablePrivate *glPriv)
 }
 
 
+#if 0
 static void glWinCreateBuffer(__GLXdrawablePrivate *glxPriv)
 {
     GLWinDrawableRec *winPriv = malloc(sizeof(GLWinDrawableRec));
@@ -1524,11 +1533,14 @@ static void glWinCreateBuffer(__GLXdrawablePrivate *glxPriv)
     glPriv->private = winPriv;
     glPriv->freePrivate = glWinDestroyDrawablePrivate;
 }
+#endif
 
+#if 0
 static void glWinResetExtension(void)
 {
     GLWIN_DEBUG_MSG("glWinResetExtension\n");
 }
+#endif
 
 /* based on code in apples/indirect.c which is based on i830_dri.c */
 static void
@@ -1618,6 +1630,7 @@ glWinInitVisualConfigs(void)
     GlxSetVisualConfigs(lclNumConfigs, lclVisualConfigs, lclVisualPrivates);
 }
 
+#if 0
 /* Copied from Mesa */
 static void glWinSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs,
                                    void **privates)
@@ -1628,7 +1641,9 @@ static void glWinSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs,
     visualConfigs = configs;
     visualPrivates = privates;
 }
+#endif
 
+#if 0
 /* Copied from Mesa */
 static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
                               int *nvisualp, int *ndepthp,
@@ -1648,3 +1663,4 @@ static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
     return init_visuals(nvisualp, visualp, defaultVisp,
                         *ndepthp, *depthp, *rootDepthp);
 }
+#endif
