@@ -14,7 +14,10 @@ endif
 
 if XWIN_GLX_WINDOWS
 SRCS_GLX_WINDOWS = \
-	winpriv.c
+	winpriv.c \
+	glx/glwindows.h \
+	glx/glwrap.c \
+	glx/indirect.c
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 endif
 
@@ -166,7 +169,8 @@ AM_YFLAGS = -d
 AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
-            -DXFree86Server
+            -DXFree86Server \
+            -I$(top_srcdir)/glx
 
 GLX_EXTRAS = \
 	glx/glwindows.h \
