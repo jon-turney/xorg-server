@@ -92,10 +92,6 @@ __GLXdrawablePrivate *__glXFindDrawablePrivate(XID drawId);
     }
 
 
-/* ggs: needed to call back to glx with visual configs */
-// extern void GlxSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs, void **configprivs);
-// I hope this still takes a __GLXvisualConfig ...
-
 glWinDebugSettingsRec glWinDebugSettings = { 0, 0, 0, 0, 0, 0};
 
 static void glWinInitDebugSettings(void) 
@@ -169,8 +165,8 @@ GLuint __glFloorLog2(GLuint val)
 }
 
 /* some prototypes */
+static  __GLXscreen *glWinScreenProbe(ScreenPtr pScreen);
 #if 0
-static Bool glWinScreenProbe(int screen);
 static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
                               int *nvisualp, int *ndepthp,
                               int *rootDepthp, VisualID *defaultVisp,
@@ -792,6 +788,7 @@ static int makeFormat(__GLcontextModes *mode, PIXELFORMATDESCRIPTOR *pfdret)
     return 0;
 }
 
+#if 0
 static __GLinterface *glWinCreateContext(__GLimports *imports,
                                           __GLcontextModes *mode,
                                           __GLinterface *shareGC)
@@ -820,6 +817,7 @@ static __GLinterface *glWinCreateContext(__GLimports *imports,
     GLWIN_DEBUG_MSG("glWinCreateContext done\n");
     return (__GLinterface *)result;
 }
+#endif
 
 static
 Bool
@@ -839,6 +837,7 @@ glWinRealizeWindow(WindowPtr pWin)
     result = pScreen->RealizeWindow(pWin);
     pScreen->RealizeWindow = glWinRealizeWindow;
 
+#if 0
     /* Re-attach this window's GL contexts, if any. */
     glxPriv = __glXFindDrawablePrivate(pWin->drawable.id);
     if (glxPriv) {
@@ -881,6 +880,7 @@ glWinRealizeWindow(WindowPtr pWin)
         }
 #endif
     }
+#endif
 
     return result;
 }
@@ -892,9 +892,10 @@ glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     ScreenPtr pScreen = pWindow->drawable.pScreen;
     glWinScreenRec *screenPriv = &glWinScreens[pScreen->myNum];
     __GLXdrawablePrivate *glxPriv;
-    
+
     GLWIN_TRACE_MSG(" (pWindow %p)\n", pWindow);
-    
+
+#if 0
     /* Check if the window is attached and discard any drawing request */
     glxPriv = __glXFindDrawablePrivate(pWindow->drawable.id);
     if (glxPriv) {
@@ -902,11 +903,10 @@ glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 
         /* GL contexts bound to this window for drawing */
         for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
-/*            
+/*
             GLWIN_DEBUG_MSG("glWinCopyWindow - calling glDrawBuffer\n");
             glDrawBuffer(GL_FRONT);
- */           
- 
+*/
             return;
         }
 
@@ -915,6 +915,7 @@ glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
             return;
         }
     }
+#endif
 
     GLWIN_DEBUG_MSG("glWinCopyWindow - passing to hw layer\n");
 
@@ -934,6 +935,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
 
     GLWIN_DEBUG_MSG("glWinUnrealizeWindow\n");
 
+#if 0
     /* The Aqua window may have already been destroyed (windows
      * are unrealized from top down)
      */
@@ -959,6 +961,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
         }
 #endif
     }
+#endif
 
     pScreen->UnrealizeWindow = screenPriv->UnrealizeWindow;
     result = pScreen->UnrealizeWindow(pWin);
@@ -1466,9 +1469,9 @@ static void init_screen_visuals(int screen)
 }
 
 #if 0
-static Bool glWinScreenProbe(int screen)
+static __GLXscreen *
+glWinScreenProbe(ScreenPtr pScreen)
 {
-    ScreenPtr pScreen;
     glWinScreenRec *screenPriv;
 
     GLWIN_DEBUG_MSG("glWinScreenProbe\n");
@@ -1478,8 +1481,7 @@ static Bool glWinScreenProbe(int screen)
      */
     __glDDXScreenInfo.modes = glWinScreens[screen].modes;
     __glDDXScreenInfo.pVisualPriv = glWinScreens[screen].priv;
-    __glDDXScreenInfo.numVisuals =
-        __glDDXScreenInfo.numUsableVisuals = glWinScreens[screen].num_vis;
+    __glDDXScreenInfo.numVisuals = __glDDXScreenInfo.numUsableVisuals = glWinScreens[screen].num_vis;
 
     /*
      * Set the current screen's createContext routine.  This could be
@@ -1500,7 +1502,6 @@ static Bool glWinScreenProbe(int screen)
     init_screen_visuals(screen);
 
     /* Wrap RealizeWindow and UnrealizeWindow on this screen */
-    pScreen = screenInfo.screens[screen];
     screenPriv = &glWinScreens[screen];
     screenPriv->RealizeWindow = pScreen->RealizeWindow;
     pScreen->RealizeWindow = glWinRealizeWindow;
@@ -1645,8 +1646,7 @@ glWinInitVisualConfigs(void)
 		      lclVisualConfigs[i].accumBlueSize = 0;
 		      lclVisualConfigs[i].accumAlphaSize = 0;
 		    }
-		    lclVisualConfigs[i].doubleBuffer = buffers ? TRUE : FALSE;
-		    lclVisualConfigs[i].stereo = stereo ? TRUE : FALSE;
+
 		    lclVisualConfigs[i].bufferSize = -1;
 
 		    lclVisualConfigs[i].depthSize = depth? 24 : 0;
@@ -1670,8 +1670,6 @@ glWinInitVisualConfigs(void)
     }
     if (i != lclNumConfigs)
         GLWIN_DEBUG_MSG("glWinInitVisualConfigs failed to alloc visual configs");
-
-    GlxSetVisualConfigs(lclNumConfigs, lclVisualConfigs, lclVisualPrivates);
 }
 
 #if 0
@@ -1708,3 +1706,270 @@ static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
                         *ndepthp, *depthp, *rootDepthp);
 }
 #endif
+
+/* ---------------------------------------------------------------------- */
+
+static __GLXcontext *
+glWinCreateContext(__GLXscreen *screen,
+                   __GLXconfig *modes,
+                   __GLXcontext *shareContext)
+{
+    __GLXcontext *result;
+
+    GLWIN_DEBUG_MSG("glWinCreateContext\n");
+
+    result = (__GLXcontext *)calloc(1, sizeof(__GLXcontext));
+
+    if (!result)
+        return NULL;
+
+/*     if (makeFormat(mode, &result->pfd)) */
+/*     { */
+/*         ErrorF("makeFormat failed\n"); */
+/*         free(result); */
+/*         return NULL; */
+/*     } */
+
+/*     if (glWinDebugSettings.dumpPFD) */
+/*         pfdOut(&result->pfd); */
+
+    GLWIN_DEBUG_MSG("glWinCreateContext done\n");
+
+    return result;
+}
+
+static __GLXconfig *
+glWinCreateConfigs(int *numConfigsPtr, int screenNumber)
+{
+  __GLXconfig *c, *result;
+  int numConfigs = 0;
+  int i;
+
+  GLWIN_DEBUG_MSG("glWinCreateConfigs\n");
+
+  /* count num configs:
+     2 stereo (on, off) (optional)
+     2 Z buffer (0, 24 bit)
+     2 AUX buffer (0, 2)
+     2 buffers (single, double)
+     2 stencil (0, 8 bit)
+     2 accum (0, 64 bit)
+     = 64 configs with stereo, or 32 without */
+
+  if (glWinDebugSettings.enableStereo)
+    numConfigs = 2 * 2 * 2 * 2 * 2 * 2; /* 64 */
+  else
+    numConfigs = 2 * 2 * 2 * 2 * 2; /* 32 */
+
+  *numConfigsPtr = numConfigs;
+
+  /* alloc */
+  c = xalloc(sizeof(*c) * numConfigs);
+
+  if(NULL == c)
+    return NULL;
+
+  result = c;
+
+  /* fill in configs */
+  memset(result, 0, sizeof(*c) * numConfigs);
+
+  i = 0;
+
+  int stereo, aux, buffers, stencil, accum, depth;
+  // msample, color, ???
+
+  for (stereo = 0; stereo < (glWinDebugSettings.enableStereo ? 2 : 1); stereo++)
+    {
+      for (depth = 0; depth < 2; ++depth)
+        {
+          for (aux = 0; aux < 2; ++aux)
+            {
+              for (buffers = 0; buffers < 2; ++buffers)
+                {
+                  for (stencil = 0; stencil < 2; ++stencil)
+                    {
+                      for (accum = 0; accum < 2; ++accum)
+                        {
+                          // point to next config, except for last
+                          if ((i + 1) < numConfigs)
+                            {
+                              c->next = c + 1;
+                            }
+                          else
+                            {
+                              c->next = NULL;
+                            }
+
+                          c->doubleBufferMode = buffers ? GL_TRUE : GL_FALSE;
+                          c->stereoMode = stereo ? GL_TRUE : GL_FALSE;
+
+                          c->redBits = (depth+1)*8;
+                          c->greenBits = (depth+1)*8;
+                          c->blueBits = (depth+1)*8;
+                          c->alphaBits = 0;
+
+                          c->redMask = -1;
+                          c->greenMask = -1;
+                          c->blueMask = -1;
+                          c->alphaMask = -1;
+
+                          c->rgbBits = c->redBits + c->greenBits + c->blueBits + c->alphaBits;
+                          c->indexBits = 0;
+
+                          c->accumRedBits = 0;
+                          c->accumGreenBits = 0;
+                          c->accumBlueBits = 0;
+                          c->accumAlphaBits = 0;
+
+                          if (accum)
+                            {
+                              c->accumRedBits = 16;
+                              c->accumGreenBits = 16;
+                              c->accumBlueBits = 16;
+                              c->accumAlphaBits = 16;
+                            }
+
+                          c->depthBits = depth ? 24 : 0;
+                          c->stencilBits = 0;
+
+                          if (stencil)
+                            {
+                              c->stencilBits = 8;
+                            }
+
+                          c->numAuxBuffers = aux ? 2 : 0;
+
+                          c->level = 0;
+                          c->pixmapMode = 0;
+                          c->visualID = -1;
+                          c->visualType = GLX_TRUE_COLOR;
+                          c->visualRating = GLX_NONE_EXT;
+
+                          c->transparentPixel = GLX_NONE;
+                          c->transparentRed = GLX_NONE;
+                          c->transparentGreen = GLX_NONE;
+                          c->transparentAlpha = GLX_NONE;
+                          c->transparentIndex = GLX_NONE;
+
+                          c->sampleBuffers = 0;
+                          c->samples = 0;
+
+                          c->drawableType = GLX_WINDOW_BIT | GLX_PIXMAP_BIT;
+                          c->renderType = GLX_RGBA_BIT;
+                          c->xRenderable = GL_TRUE;
+                          c->fbconfigID = -1;
+
+                          /*
+                           * There is no introspection for this sort of thing
+                           * with CGL.  What should we do realistically?
+                           */
+                          c->optimalPbufferWidth = 0;
+                          c->optimalPbufferHeight = 0;
+                          c->visualSelectGroup = 0;
+                          c->swapMethod = GLX_SWAP_UNDEFINED_OML;
+                          c->screen = screenNumber;
+
+                          /* EXT_texture_from_pixmap */
+                          c->bindToTextureRgb = 0;
+                          c->bindToTextureRgba = 0;
+                          c->bindToMipmapTexture = 0;
+                          c->bindToTextureTargets = 0;
+                          c->yInverted = 0;
+
+                          if (c->next)
+                            c = c->next;
+
+                          ++i;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+  if (i != numConfigs)
+    FatalError("The number of __GLXconfig generated does not match the initial calculation!\n");
+
+  return result;
+}
+
+
+typedef struct {
+    __GLXscreen base;
+
+    int num_vis;
+    __GLcontextModes *modes;
+    void **priv;
+
+    /* wrapped screen functions */
+    RealizeWindowProcPtr RealizeWindow;
+    UnrealizeWindowProcPtr UnrealizeWindow;
+    CopyWindowProcPtr CopyWindow;
+} glWinScreen;
+
+/* This is called by GlxExtensionInit() */
+static __GLXscreen *
+glWinScreenProbe(ScreenPtr pScreen)
+{
+    glWinScreen *screen;
+
+    GLWIN_DEBUG_MSG("glWinScreenProbe\n");
+
+    glWinInitDebugSettings();
+
+    if (pScreen == NULL)
+	return NULL;
+
+    screen = xcalloc(1, sizeof(glWinScreen));
+
+    if (NULL == screen)
+	return NULL;
+
+    screen->base.destroy = NULL; //__glXAquaScreenDestroy;
+    screen->base.createContext = glWinCreateContext;
+    screen->base.createDrawable = NULL; // __glXAquaScreenCreateDrawable;
+    screen->base.swapInterval = NULL;
+    screen->base.hyperpipeFuncs = NULL;
+    screen->base.swapBarrierFuncs = NULL;
+    screen->base.pScreen = pScreen;
+    screen->base.fbconfigs = glWinCreateConfigs(&screen->base.numFBConfigs,
+                                                pScreen->myNum);
+    // Note that screen->base.numFBConfigs is also initialized by that
+
+    /* This is set by __glXScreenInit: */
+    screen->base.visuals = NULL;
+    /* This is to be initialized prior to the call to __glXScreenInit: */
+    screen->base.numVisuals = 0;
+
+    __glXScreenInit(&screen->base, pScreen);
+
+    /* Wrap RealizeWindow, UnrealizeWindow and CopyWindow on this screen */
+    screen->RealizeWindow = pScreen->RealizeWindow;
+    pScreen->RealizeWindow = glWinRealizeWindow;
+    screen->UnrealizeWindow = pScreen->UnrealizeWindow;
+    pScreen->UnrealizeWindow = glWinUnrealizeWindow;
+    screen->CopyWindow = pScreen->CopyWindow;
+    pScreen->CopyWindow = glWinCopyWindow;
+
+    /* Do we want to override these after __glXScreenInit() has set them? */
+    screen->base.GLXversion = xstrdup("1.4");
+    screen->base.GLXextensions = xstrdup("");
+    /*We may be able to add more GLXextensions at a later time. */
+
+    return &screen->base;
+}
+
+__GLXprovider __glXWGLProvider = {
+    glWinScreenProbe,
+    "Win32 native WGL OpenGL32",
+    NULL
+};
+
+void
+glWinPushNativeProvider(void)
+{
+  GlxPushProvider(&__glXWGLProvider);
+}
+
+/* ---------------------------------------------------------------------- */
