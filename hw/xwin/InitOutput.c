@@ -1013,6 +1013,8 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   if (g_fXdmcpEnabled || g_fAuthEnabled)
     winGenerateAuthorization ();
 
+#endif
+
   /* Perform some one time initialization */
   if (1 == serverGeneration)
     {
@@ -1023,8 +1025,12 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
       setlocale (LC_ALL, "");
 
       glx_debugging();
-    }
+
+#ifdef XWIN_GLX_WINDOWS
+      /* install the native GLX provider */
+      glWinPushNativeProvider();
 #endif
+    }
 
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");
