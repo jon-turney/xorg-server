@@ -152,7 +152,7 @@ XWin_SOURCES = $(SRCS)
 INCLUDES = -I$(top_srcdir)/miext/rootless
 
 XWin_DEPENDENCIES = $(XWIN_LIBS)
-XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) -lopengl32
 
 .rc.o:
 	$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DPROJECT_NAME=\"$(VENDOR_NAME_SHORT)\"
@@ -170,7 +170,7 @@ AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -DXFree86Server \
-            -I$(top_srcdir)/glx
+            -I$(top_srcdir)/glx -Iglx
 
 GLX_EXTRAS = \
 	glx/glwindows.h \
