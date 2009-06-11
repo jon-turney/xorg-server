@@ -40,7 +40,8 @@
  * use or other dealings in this Software without prior written authorization.
  */
 
-
+#define WIN32_LEAN_AND_MEAN
+#define _OBJC_NO_COM_ /* to prevent w32api basetyps.h defining 'interface' */
 
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
@@ -52,6 +53,37 @@
 
 #include <winpriv.h>
 
+typedef struct __GLXdrawablePrivateRec __GLXdrawablePrivate;
+
+// copied from old GLXdrawable.h
+struct __GLXdrawablePrivateRec
+{
+    DrawablePtr pDraw;
+   /*
+    ** Either DRAWABLE_PIXMAP or DRAWABLE_WINDOW, copied from pDraw above.
+    ** Needed by the resource freer because pDraw might already have been
+    ** freed.
+    */
+    int type;
+
+    /*
+    ** Lists of contexts bound to this drawable.  There are two lists here.
+    ** One list is of the contexts that have this drawable bound for drawing,
+    ** and the other is the list of contexts that have this drawable bound
+    ** for reading.
+    */
+    struct __GLXcontext *drawGlxc;
+    struct __GLXcontext *readGlxc;
+
+    /*
+    ** The GL drawable (information shared between GLX and the GL core)
+    */
+    __GLdrawablePrivate glPriv;
+};
+
+// copied from old glxutil.c
+__GLXdrawablePrivate *__glXFindDrawablePrivate(XID drawId);
+
 #define GLWIN_DEBUG_HWND(hwnd)  \
     if (glWinDebugSettings.dumpHWND) { \
         char buffer[1024]; \
@@ -61,7 +93,8 @@
 
 
 /* ggs: needed to call back to glx with visual configs */
-extern void GlxSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs, void **configprivs);
+// extern void GlxSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs, void **configprivs);
+// I hope this still takes a __GLXvisualConfig ...
 
 glWinDebugSettingsRec glWinDebugSettings = { 0, 0, 0, 0, 0, 0};
 
@@ -95,6 +128,8 @@ static void glWinInitDebugSettings(void)
 }
 
 static char errorbuffer[1024];
+
+static
 const char *glWinErrorMessage(void)
 {
     if (!FormatMessage( 
@@ -121,6 +156,7 @@ const char *glWinErrorMessage(void)
  * in the OpenGL SI.
  */
 
+static
 GLuint __glFloorLog2(GLuint val)
 {
     int c = 0;
@@ -785,6 +821,7 @@ static __GLinterface *glWinCreateContext(__GLimports *imports,
     return (__GLinterface *)result;
 }
 
+static
 Bool
 glWinRealizeWindow(WindowPtr pWin)
 {
@@ -810,6 +847,7 @@ glWinRealizeWindow(WindowPtr pWin)
         __GLdrawablePrivate *glPriv = &glxPriv->glPriv;
         GLWIN_DEBUG_MSG("glWinRealizeWindow is GL drawable!\n");
 
+#if 0
         /* GL contexts bound to this window for drawing */
         for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
             gc = (__GLcontext *)gx->gc;
@@ -841,13 +879,14 @@ glWinRealizeWindow(WindowPtr pWin)
 #endif
             attach(gc, glPriv);
         }
+#endif
     }
 
     return result;
 }
 
 
-void 
+static void
 glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 {
     ScreenPtr pScreen = pWindow->drawable.pScreen;
@@ -884,7 +923,7 @@ glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     pScreen->CopyWindow = glWinCopyWindow;
 }
 
-Bool
+static Bool
 glWinUnrealizeWindow(WindowPtr pWin)
 {
     /* If this window has GL contexts, tell them to unattach */
@@ -898,7 +937,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
     /* The Aqua window may have already been destroyed (windows
      * are unrealized from top down)
      */
-    
+
     /* Unattach this window's GL contexts, if any. */
     glxPriv = __glXFindDrawablePrivate(pWin->drawable.id);
     if (glxPriv) {
@@ -906,6 +945,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
         __GLcontext *gc;
         GLWIN_DEBUG_MSG("glWinUnrealizeWindow is GL drawable!\n");
 
+#if 0
         /* GL contexts bound to this window for drawing */
         for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
             gc = (__GLcontext *)gx->gc;
@@ -917,6 +957,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
             gc = (__GLcontext *)gx->gc;
             unattach(gc);
         }
+#endif
     }
 
     pScreen->UnrealizeWindow = screenPriv->UnrealizeWindow;
@@ -1478,6 +1519,8 @@ static GLboolean glWinSwapBuffers(__GLXdrawablePrivate *glxPriv)
    * (e.g. the last one for drawing)
    */
     if (!glxPriv->drawGlxc) return GL_TRUE; /* Colin: do same as gc == NULL and so prevent a bad dereference */
+
+#if 0
     __GLcontext *gc = (__GLcontext *)glxPriv->drawGlxc->gc;
     HDC dc;
     BOOL ret;
@@ -1498,6 +1541,7 @@ static GLboolean glWinSwapBuffers(__GLXdrawablePrivate *glxPriv)
         if (!ret)
             return GL_FALSE;
     }
+#endif
 
     return GL_TRUE;
 }

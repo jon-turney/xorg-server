@@ -151,7 +151,7 @@ XWin_SOURCES = $(SRCS)
 INCLUDES = -I$(top_srcdir)/miext/rootless
 
 XWin_DEPENDENCIES = $(XWIN_LIBS)
-XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) -lopengl32
 XWin_LDFLAGS = -mwindows
 
 .rc.o:
@@ -169,7 +169,7 @@ AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -DBUILD_DATE=$(BUILD_DATE) \
             -DXFree86Server \
-            -I$(top_srcdir)/glx
+            -I$(top_srcdir)/glx -Iglx
 
 dist_man1_MANS = XWin.man
 dist_man5_MANS = XWinrc.man
