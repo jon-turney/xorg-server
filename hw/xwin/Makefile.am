@@ -17,7 +17,8 @@ SRCS_GLX_WINDOWS = \
 	winpriv.c \
 	glx/glwindows.h \
 	glx/glwrap.c \
-	glx/indirect.c
+	glx/indirect.c \
+	glx/glcontextmodes.c
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 endif
 
