@@ -1031,7 +1031,7 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
       glx_debugging();
 
 #ifdef XWIN_GLX_WINDOWS
-      /* install the native GLX provider */
+      /* install the native GL provider */
       glWinPushNativeProvider();
 #endif
     }
