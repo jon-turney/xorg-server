@@ -35,21 +35,7 @@ typedef struct {
 } glWinDebugSettingsRec, *glWinDebugSettingsPtr;
 extern glWinDebugSettingsRec glWinDebugSettings;
 
-typedef struct {
-    int num_vis;
-    __GLcontextModes *modes;
-    void **priv;
-
-    /* wrapped screen functions */
-    RealizeWindowProcPtr RealizeWindow;
-    UnrealizeWindowProcPtr UnrealizeWindow;
-    CopyWindowProcPtr CopyWindow;
-} glWinScreenRec;
-
-extern glWinScreenRec glWinScreens[MAXSCREENS];
-
-#define glWinGetScreenPriv(pScreen)  &glWinScreens[pScreen->myNum]
-#define glWinScreenPriv(pScreen) glWinScreenRec *pScreenPriv = glWinGetScreenPriv(pScreen);
+void setup_dispatch_table(void);
 
 #if 1
 #define GLWIN_TRACE() if (glWinDebugSettings.enableTrace) ErrorF("%s:%d: Trace\n", __FUNCTION__, __LINE__ )
