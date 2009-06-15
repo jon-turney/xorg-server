@@ -16,8 +16,8 @@ winCreateWindowsWindow (WindowPtr pWin);
 /**
  * Return size and handles of a window.
  * If pWin is NULL, then the information for the root window is requested.
- */ 
-extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
+ */
+void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
 {
     /* Sanity check */
     if (pWinInfo == NULL)
@@ -26,7 +26,7 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
     winDebug("%s:%d pWin=%p\n", __FUNCTION__, __LINE__, pWin);
 
     /* a real window was requested */
-    if (pWin != NULL) 
+    if (pWin != NULL)
     {
         /* Initialize the size information */
         RECT rect = {
@@ -43,16 +43,15 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
         rect_extends = rect;
         OffsetRect(&rect_extends, -pWin->drawable.x, -pWin->drawable.y);
 
-        if (pWinScreen == NULL) 
+        if (pWinScreen == NULL)
         {
             ErrorF("winGetWindowInfo: screen has no privates\n");
             return;
         }
-        
+
         pWinInfo->hwnd = pWinScreen->hwndScreen;
         pWinInfo->hrgn = NULL;
         pWinInfo->rect = rect;
-    
 
         pScreenInfo = pWinScreen->pScreenInfo;
 #ifdef XWIN_MULTIWINDOW
@@ -69,10 +68,11 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
 
             if (pWinPriv->hWnd == NULL)
             {
-                winCreateWindowsWindow(pWin);
+              winCreateWindowsWindow(pWin);
             }
-            if (pWinPriv->hWnd != NULL) { 
-                
+
+            if (pWinPriv->hWnd != NULL) {
+
                 /* copy size and window handle */
                 pWinInfo->rect = rect_extends;
                 pWinInfo->hwnd = pWinPriv->hWnd;
@@ -81,10 +81,10 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
                 if (pWinInfo->hrgn)
                     DeleteObject(pWinInfo->hrgn);
                 pWinInfo->hrgn = CreateRectRgn(0,0,0,0);
-                CombineRgn(pWinInfo->hrgn, pWinPriv->hRgn, pWinPriv->hRgn, 
+                CombineRgn(pWinInfo->hrgn, pWinPriv->hRgn, pWinPriv->hRgn,
                         RGN_COPY);
             }
-            
+
             return;
         }
 #endif
@@ -99,7 +99,7 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
                 ErrorF("winGetWindowInfo: window has no privates\n");
                 return;
             }
-            
+
             if (pRLWinPriv->hWnd != NULL)
             {
                 /* copy size and window handle */
@@ -109,8 +109,8 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
             return;
         }
 #endif
-    } 
-    else 
+    }
+    else
     {
         RECT rect = {0, 0, 0, 0};
         ScreenPtr pScreen = g_ScreenInfo[0].pScreen;
@@ -119,7 +119,7 @@ extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
         pWinInfo->hwnd = NULL;
         pWinInfo->hrgn = NULL;
         pWinInfo->rect = rect;
-        
+
         if (pWinScreen == NULL)
         {
             ErrorF("winGetWindowInfo: screen has no privates\n");
