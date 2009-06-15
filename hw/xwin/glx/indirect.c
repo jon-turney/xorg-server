@@ -2,12 +2,12 @@
  * GLX implementation that uses Windows OpenGL library
  * (Indirect rendering path)
  *
- * Authors: Alexander Gottwald 
+ * Authors: Alexander Gottwald
  */
-/* 
+/*
  * Portions of this file are copied from GL/apple/indirect.c,
  * which contains the following copyright:
- *  
+ *
  * Copyright (c) 2002 Greg Parker. All Rights Reserved.
  * Copyright (c) 2002 Apple Computer, Inc.
  *
@@ -53,49 +53,18 @@
 
 #include <winpriv.h>
 
-typedef struct __GLXdrawablePrivateRec __GLXdrawablePrivate;
-
-// copied from old GLXdrawable.h
-struct __GLXdrawablePrivateRec
-{
-    DrawablePtr pDraw;
-   /*
-    ** Either DRAWABLE_PIXMAP or DRAWABLE_WINDOW, copied from pDraw above.
-    ** Needed by the resource freer because pDraw might already have been
-    ** freed.
-    */
-    int type;
-
-    /*
-    ** Lists of contexts bound to this drawable.  There are two lists here.
-    ** One list is of the contexts that have this drawable bound for drawing,
-    ** and the other is the list of contexts that have this drawable bound
-    ** for reading.
-    */
-    struct __GLXcontext *drawGlxc;
-    struct __GLXcontext *readGlxc;
-
-    /*
-    ** The GL drawable (information shared between GLX and the GL core)
-    */
-    __GLdrawablePrivate glPriv;
-};
-
-// copied from old glxutil.c
-__GLXdrawablePrivate *__glXFindDrawablePrivate(XID drawId);
-
 #define GLWIN_DEBUG_HWND(hwnd)  \
     if (glWinDebugSettings.dumpHWND) { \
         char buffer[1024]; \
         if (GetWindowText(hwnd, buffer, sizeof(buffer))==0) *buffer=0; \
-        GLWIN_DEBUG_MSG("Got HWND %s (%p)\n", buffer, hwnd); \
+        GLWIN_DEBUG_MSG("Got HWND '%s' (%p)\n", buffer, hwnd); \
     }
 
 
 //glWinDebugSettingsRec glWinDebugSettings = { 0, 0, 0, 0, 0, 0};
 glWinDebugSettingsRec glWinDebugSettings = { 1, 1, 1, 1, 1, 0};
 
-static void glWinInitDebugSettings(void) 
+static void glWinInitDebugSettings(void)
 {
     char *envptr;
 
@@ -110,7 +79,7 @@ static void glWinInitDebugSettings(void)
     envptr = getenv("GLWIN_DUMP_PFD");
     if (envptr != NULL)
         glWinDebugSettings.dumpPFD = (atoi(envptr) == 1);
-        
+
     envptr = getenv("GLWIN_DUMP_HWND");
     if (envptr != NULL)
         glWinDebugSettings.dumpHWND = (atoi(envptr) == 1);
@@ -129,8 +98,8 @@ static char errorbuffer[1024];
 static
 const char *glWinErrorMessage(void)
 {
-    if (!FormatMessage( 
-                FORMAT_MESSAGE_FROM_SYSTEM | 
+    if (!FormatMessage(
+                FORMAT_MESSAGE_FROM_SYSTEM |
                 FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL,
                 GetLastError(),
@@ -139,270 +108,24 @@ const char *glWinErrorMessage(void)
                 sizeof(errorbuffer),
                 NULL ))
     {
-        snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error in FormatMessage: %08x!\n", (unsigned)GetLastError()); 
+        snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error in FormatMessage: %08x!\n", (unsigned)GetLastError());
     }
-    return errorbuffer; 
+    return errorbuffer;
 }
 
 /*
  * GLX implementation that uses Win32's OpenGL
  */
 
-/*
- * Server-side GLX uses these functions which are normally defined
- * in the OpenGL SI.
- */
-
-static
-GLuint __glFloorLog2(GLuint val)
-{
-    int c = 0;
-
-    while (val > 1) {
-        c++;
-        val >>= 1;
-    }
-    return c;
-}
-
-/* some prototypes */
-static  __GLXscreen *glWinScreenProbe(ScreenPtr pScreen);
-#if 0
-static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
-                              int *nvisualp, int *ndepthp,
-                              int *rootDepthp, VisualID *defaultVisp,
-                              unsigned long sizes, int bitsPerRGB);
-static void glWinSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs,
-                                   void **privates);
-static __GLinterface *glWinCreateContext(__GLimports *imports,
-                                          __GLcontextModes *mode,
-                                          __GLinterface *shareGC);
-static void glWinCreateBuffer(__GLXdrawablePrivate *glxPriv);
-static void glWinResetExtension(void);
-#endif
-
-#if 0
-/*
- * This structure is statically allocated in the __glXScreens[]
- * structure.  This struct is not used anywhere other than in
- * __glXScreenInit to initialize each of the active screens
- * (__glXActiveScreens[]).  Several of the fields must be initialized by
- * the screenProbe routine before they are copied to the active screens
- * struct.  In particular, the contextCreate, pGlxVisual, numVisuals,
- * and numUsableVisuals fields must be initialized.
- */
-static __GLXscreenInfo __glDDXScreenInfo = {
-    glWinScreenProbe,   /* Must be generic and handle all screens */
-    glWinCreateContext, /* Substitute screen's createContext routine */
-    glWinCreateBuffer,  /* Substitute screen's createBuffer routine */
-    NULL,                 /* Set up pGlxVisual in probe */
-    NULL,                 /* Set up pVisualPriv in probe */
-    0,                    /* Set up numVisuals in probe */
-    0,                    /* Set up numUsableVisuals in probe */
-    NULL,                 /* GLextensions is overwritten by __glXScreenInit */
-    "Vendor String",      /* GLXvendor is overwritten by __glXScreenInit */
-    "Version String",     /* GLXversion is overwritten by __glXScreenInit */
-    "Extensions String",  /* GLXextensions is overwritten by __glXScreenInit */
-    NULL                  /* WrappedPositionWindow is overwritten */
-};
-
-void *__glXglDDXScreenInfo(void) {
-    return &__glDDXScreenInfo;
-}
-#endif
-
-#if 0
-static __GLXextensionInfo __glDDXExtensionInfo = {
-    GL_CORE_WINDOWS,
-    glWinResetExtension,
-    glWinInitVisuals,
-    glWinSetVisualConfigs
-};
-
-void *__glXglDDXExtensionInfo(void) {
-    return &__glDDXExtensionInfo;
-}
-#endif
-
-/* prototypes */
-
-static GLboolean glWinDestroyContext(__GLcontext *gc);
-static GLboolean glWinLoseCurrent(__GLcontext *gc);
-static GLboolean glWinMakeCurrent(__GLcontext *gc);
-static GLboolean glWinShareContext(__GLcontext *gc, __GLcontext *gcShare);
-static GLboolean glWinCopyContext(__GLcontext *dst, const __GLcontext *src,
-                            GLuint mask);
-static GLboolean glWinForceCurrent(__GLcontext *gc);
-
-/* Drawing surface notification callbacks */
-static GLboolean glWinNotifyResize(__GLcontext *gc);
-static void glWinNotifyDestroy(__GLcontext *gc);
-static void glWinNotifySwapBuffers(__GLcontext *gc);
-
-/* Dispatch table override control for external agents like libGLS */
-static struct __GLdispatchStateRec* glWinDispatchExec(__GLcontext *gc);
-static void glWinBeginDispatchOverride(__GLcontext *gc);
-static void glWinEndDispatchOverride(__GLcontext *gc);
-
 /* Debug output */
 static void pfdOut(const PIXELFORMATDESCRIPTOR *pfd);
-
-/* __GLdrawablePrivate->private */
-typedef struct {
-    DrawablePtr pDraw;
-  /*    xp_surface_id sid; */
-} GLWinDrawableRec;
-
-struct __GLcontextRec {
-  struct __GLinterfaceRec interface; /* required to be first */
-  HGLRC ctx;                         /* Windows GL Context */
-  HDC dc;                            /* Windows Device Context */
-  winWindowInfoRec winInfo;          /* Window info from XWin */
-  PIXELFORMATDESCRIPTOR pfd;         /* Pixelformat flags */
-  int pixelFormat;                   /* Pixelformat index */
-  unsigned isAttached :1;            /* Flag to track if context is attached */
-};
-
-#if 0
-static BOOL glWinAdjustHWND(__GLcontext *gc, WindowPtr pWin)
-{
-    HDC dc;
-    BOOL ret;
-    HGLRC newctx;
-    HWND oldhwnd;
-
-    GLWIN_DEBUG_MSG("glWinAdjustHWND (ctx %p, pWin %p)\n", gc->ctx, pWin);
-
-    if (pWin == NULL)
-    {
-        GLWIN_DEBUG_MSG("Deferring until window is created\n");
-        return FALSE;
-    }
-
-    oldhwnd = gc->winInfo.hwnd;
-    winGetWindowInfo(pWin, &gc->winInfo);
-    
-    GLWIN_DEBUG_HWND(gc->winInfo.hwnd);
-    if (gc->winInfo.hwnd == NULL)
-    {
-        GLWIN_DEBUG_MSG("Deferring until window is created\n");
-        return FALSE;
-    }
-
-    dc = glWinMakeDC(gc);
-    
-    if (glWinDebugSettings.dumpDC)
-        GLWIN_DEBUG_MSG("Got HDC %p\n", dc);
-    
-    gc->pixelFormat = ChoosePixelFormat(dc, &gc->pfd);
-    if (gc->pixelFormat == 0)
-    {
-        ErrorF("ChoosePixelFormat error: %s\n", glWinErrorMessage());
-        ReleaseDC(gc->winInfo.hwnd, dc);
-        return FALSE;  
-    }
-    
-    ret = SetPixelFormat(dc, gc->pixelFormat, &gc->pfd);
-    if (!ret) {
-        ErrorF("SetPixelFormat error: %s\n", glWinErrorMessage());
-        ReleaseDC(gc->winInfo.hwnd, dc);
-        return FALSE;
-    }
-    
-    newctx = wglCreateContext(dc);
-    if (newctx == NULL) {
-        ErrorF("wglCreateContext error: %s\n", glWinErrorMessage());
-        ReleaseDC(gc->winInfo.hwnd, dc);
-        return FALSE;
-    }
-    
-    GLWIN_DEBUG_MSG("wglCreateContext (ctx %p)\n", newctx);
-
-    if (!wglShareLists(gc->ctx, newctx))
-    {
-        ErrorF("wglShareLists error: %s\n", glWinErrorMessage());
-        ReleaseDC(gc->winInfo.hwnd, dc);
-        return FALSE;
-    }
-    
-    if (oldhwnd != gc->winInfo.hwnd)
-    {
-        GLWIN_DEBUG_MSG("Trying wglCopyContext\n");
-        if (!wglCopyContext(gc->ctx, newctx, GL_ALL_ATTRIB_BITS))
-        {
-            ErrorF("wglCopyContext error: %s\n", glWinErrorMessage());
-            ReleaseDC(gc->winInfo.hwnd, dc);
-            return FALSE;
-        }
-    }
-
-    if (!wglDeleteContext(gc->ctx))
-    {
-        ErrorF("wglDeleteContext error: %s\n", glWinErrorMessage());
-    }
-
-    gc->ctx = newctx;
-
-    if (!wglMakeCurrent(dc, gc->ctx)) {
-        ErrorF("glMakeCurrent error: %s\n", glWinErrorMessage());
-        ReleaseDC(gc->winInfo.hwnd, dc);
-        return FALSE;
-    }
-
-    ReleaseDC(gc->winInfo.hwnd, dc);
-
-    return TRUE;
-}
-#endif
-
-static GLboolean glWinShareContext(__GLcontext *gc, __GLcontext *gcShare)
-{
-  GLWIN_DEBUG_MSG("glWinShareContext unimplemented\n");
-
-  return GL_TRUE;
-}
-
-/* Drawing surface notification callbacks */
-
-static GLboolean glWinNotifyResize(__GLcontext *gc)
-{
-    GLWIN_DEBUG_MSG("unimplemented glWinNotifyResize");
-    return GL_TRUE;
-}
-
-static void glWinNotifyDestroy(__GLcontext *gc)
-{
-    GLWIN_DEBUG_MSG("unimplemented glWinNotifyDestroy");
-}
-
-static void glWinNotifySwapBuffers(__GLcontext *gc)
-{
-    GLWIN_DEBUG_MSG("unimplemented glWinNotifySwapBuffers");
-}
-
-/* Dispatch table override control for external agents like libGLS */
-static struct __GLdispatchStateRec* glWinDispatchExec(__GLcontext *gc)
-{
-    GLWIN_DEBUG_MSG("unimplemented glWinDispatchExec");
-    return NULL;
-}
-
-static void glWinBeginDispatchOverride(__GLcontext *gc)
-{
-    GLWIN_DEBUG_MSG("unimplemented glWinBeginDispatchOverride");
-}
-
-static void glWinEndDispatchOverride(__GLcontext *gc)
-{
-    GLWIN_DEBUG_MSG("unimplemented glWinEndDispatchOverride");
-}
 
 #define DUMP_PFD_FLAG(flag) \
     if (pfd->dwFlags & flag) { \
         ErrorF("%s%s", pipesym, #flag); \
         pipesym = " | "; \
     }
-        
+
 static void pfdOut(const PIXELFORMATDESCRIPTOR *pfd)
 {
     const char *pipesym = ""; /* will be set after first flag dump */
@@ -430,8 +153,8 @@ static void pfdOut(const PIXELFORMATDESCRIPTOR *pfd)
         DUMP_PFD_FLAG(PFD_DOUBLEBUFFER_DONTCARE);
         DUMP_PFD_FLAG(PFD_STEREO_DONTCARE);
     ErrorF("}\n");
-    
-    ErrorF("iPixelType = %hu = %s\n", pfd->iPixelType, 
+
+    ErrorF("iPixelType = %hu = %s\n", pfd->iPixelType,
             (pfd->iPixelType == PFD_TYPE_RGBA ? "PFD_TYPE_RGBA" : "PFD_TYPE_COLORINDEX"));
     ErrorF("cColorBits = %hhu\n", pfd->cColorBits);
     ErrorF("cRedBits = %hhu\n", pfd->cRedBits);
@@ -456,7 +179,7 @@ static void pfdOut(const PIXELFORMATDESCRIPTOR *pfd)
     ErrorF("dwVisibleMask = %lu\n", pfd->dwVisibleMask);
     ErrorF("dwDamageMask = %lu\n", pfd->dwDamageMask);
     ErrorF("\n");
-}    
+}
 
 static int
 makeFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdret)
@@ -517,710 +240,28 @@ makeFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdret)
     return 0;
 }
 
-#if 0
-static __GLinterface *glWinCreateContext(__GLimports *imports,
-                                          __GLcontextModes *mode,
-                                          __GLinterface *shareGC)
-{
-    __GLcontext *result;
-
-    GLWIN_DEBUG_MSG("glWinCreateContext\n");
-
-    result = (__GLcontext *)calloc(1, sizeof(__GLcontext));
-    if (!result) 
-        return NULL;
-
-    result->interface.imports = *imports;
-    result->interface.exports = glWinExports;
-
-    if (makeFormat(mode, &result->pfd))
-    {
-        ErrorF("makeFormat failed\n");
-        free(result);
-        return NULL;
-    }
-
-    if (glWinDebugSettings.dumpPFD)
-        pfdOut(&result->pfd);
-
-    GLWIN_DEBUG_MSG("glWinCreateContext done\n");
-    return (__GLinterface *)result;
-}
-#endif
-
-/* Originally copied from Mesa */
-
-static int                 numConfigs     = 0;
-static __GLXvisualConfig  *visualConfigs  = NULL;
-static void              **visualPrivates = NULL;
-
-/*
- * In the case the driver defines no GLX visuals we'll use these.
- * Note that for TrueColor and DirectColor visuals, bufferSize is the
- * sum of redSize, greenSize, blueSize and alphaSize, which may be larger
- * than the nplanes/rootDepth of the server's X11 visuals
- */
-#define NUM_FALLBACK_CONFIGS 5
-static __GLXvisualConfig FallbackConfigs[NUM_FALLBACK_CONFIGS] = {
-  /* [0] = RGB, double buffered, Z */
-  {
-    -1,                 /* vid */
-    -1,                 /* class */
-    True,               /* rgba */
-    -1, -1, -1, 0,      /* rgba sizes */
-    -1, -1, -1, 0,      /* rgba masks */
-     0,  0,  0, 0,      /* rgba accum sizes */
-    True,               /* doubleBuffer */
-    False,              /* stereo */
-    -1,                 /* bufferSize */
-    16,                 /* depthSize */
-    0,                  /* stencilSize */
-    0,                  /* auxBuffers */
-    0,                  /* level */
-    GLX_NONE,           /* visualRating */
-    GLX_NONE,           /* transparentPixel */
-    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
-    0                   /* transparentIndex */
-  },
-  /* [1] = RGB, double buffered, Z, stencil, accum */
-  {
-    -1,                 /* vid */
-    -1,                 /* class */
-    True,               /* rgba */
-    -1, -1, -1, 0,      /* rgba sizes */
-    -1, -1, -1, 0,      /* rgba masks */
-    16, 16, 16, 0,      /* rgba accum sizes */
-    True,               /* doubleBuffer */
-    False,              /* stereo */
-    -1,                 /* bufferSize */
-    16,                 /* depthSize */
-    8,                  /* stencilSize */
-    0,                  /* auxBuffers */
-    0,                  /* level */
-    GLX_NONE,           /* visualRating */
-    GLX_NONE,           /* transparentPixel */
-    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
-    0                   /* transparentIndex */
-  },
-  /* [2] = RGB+Alpha, double buffered, Z, stencil, accum */
-  {
-    -1,                 /* vid */
-    -1,                 /* class */
-    True,               /* rgba */
-    -1, -1, -1, 8,      /* rgba sizes */
-    -1, -1, -1, -1,     /* rgba masks */
-    16, 16, 16, 16,     /* rgba accum sizes */
-    True,               /* doubleBuffer */
-    False,              /* stereo */
-    -1,                 /* bufferSize */
-    16,                 /* depthSize */
-    8,                  /* stencilSize */
-    0,                  /* auxBuffers */
-    0,                  /* level */
-    GLX_NONE,           /* visualRating */
-    GLX_NONE,           /* transparentPixel */
-    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
-    0                   /* transparentIndex */
-  },
-  /* [3] = RGB+Alpha, single buffered, Z, stencil, accum */
-  {
-    -1,                 /* vid */
-    -1,                 /* class */
-    True,               /* rgba */
-    -1, -1, -1, 8,      /* rgba sizes */
-    -1, -1, -1, -1,     /* rgba masks */
-    16, 16, 16, 16,     /* rgba accum sizes */
-    False,              /* doubleBuffer */
-    False,              /* stereo */
-    -1,                 /* bufferSize */
-    16,                 /* depthSize */
-    8,                  /* stencilSize */
-    0,                  /* auxBuffers */
-    0,                  /* level */
-    GLX_NONE,           /* visualRating */
-    GLX_NONE,           /* transparentPixel */
-    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
-    0                   /* transparentIndex */
-  },
-  /* [4] = CI, double buffered, Z */
-  {
-    -1,                 /* vid */
-    -1,                 /* class */
-    False,              /* rgba? (false = color index) */
-    -1, -1, -1, 0,      /* rgba sizes */
-    -1, -1, -1, 0,      /* rgba masks */
-     0,  0,  0, 0,      /* rgba accum sizes */
-    True,               /* doubleBuffer */
-    False,              /* stereo */
-    -1,                 /* bufferSize */
-    16,                 /* depthSize */
-    0,                  /* stencilSize */
-    0,                  /* auxBuffers */
-    0,                  /* level */
-    GLX_NONE,           /* visualRating */
-    GLX_NONE,           /* transparentPixel */
-    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
-    0                   /* transparentIndex */
-  },
-};
-
-static __GLXvisualConfig NullConfig = {
-    -1,                 /* vid */
-    -1,                 /* class */
-    False,              /* rgba */
-    -1, -1, -1, 0,      /* rgba sizes */
-    -1, -1, -1, 0,      /* rgba masks */
-     0,  0,  0, 0,      /* rgba accum sizes */
-    False,              /* doubleBuffer */
-    False,              /* stereo */
-    -1,                 /* bufferSize */
-    16,                 /* depthSize */
-    0,                  /* stencilSize */
-    0,                  /* auxBuffers */
-    0,                  /* level */
-    GLX_NONE_EXT,       /* visualRating */
-    0,                  /* transparentPixel */
-    0, 0, 0, 0,         /* transparent rgba color (floats scaled to ints) */
-    0                   /* transparentIndex */
-};
-
-static inline int count_bits(uint32_t x)
-{
-    x = x - ((x >> 1) & 0x55555555);
-    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-    x = (x + (x >> 4)) & 0x0f0f0f0f;
-    x = x + (x >> 8);
-    x = x + (x >> 16);
-    return x & 63;
-}
-
-#if 0
-/* Mostly copied from Mesa's xf86glx.c */
-static Bool init_visuals(int *nvisualp, VisualPtr *visualp,
-                         VisualID *defaultVisp,
-                         int ndepth, DepthPtr pdepth,
-                         int rootDepth)
-{
-    int numRGBconfigs;
-    int numCIconfigs;
-    int numVisuals = *nvisualp;
-    int numNewVisuals;
-    int numNewConfigs;
-    VisualPtr pVisual = *visualp;
-    VisualPtr pVisualNew = NULL;
-    VisualID *orig_vid = NULL;
-    __GLcontextModes *modes;
-    __GLXvisualConfig *pNewVisualConfigs = NULL;
-    void **glXVisualPriv;
-    void **pNewVisualPriv;
-    int found_default;
-    int i, j, k;
-
-    GLWIN_DEBUG_MSG("init_visuals\n");
-
-    if (numConfigs > 0)
-        numNewConfigs = numConfigs;
-    else
-        numNewConfigs = NUM_FALLBACK_CONFIGS;
-
-    /* Alloc space for the list of new GLX visuals */
-    pNewVisualConfigs = (__GLXvisualConfig *)
-                     malloc(numNewConfigs * sizeof(__GLXvisualConfig));
-    if (!pNewVisualConfigs) {
-        return FALSE;
-    }
-
-    /* Alloc space for the list of new GLX visual privates */
-    pNewVisualPriv = (void **) malloc(numNewConfigs * sizeof(void *));
-    if (!pNewVisualPriv) {
-        free(pNewVisualConfigs);
-        return FALSE;
-    }
-
-    /*
-    ** If SetVisualConfigs was not called, then use default GLX
-    ** visual configs.
-    */
-    if (numConfigs == 0) {
-        memcpy(pNewVisualConfigs, FallbackConfigs,
-               NUM_FALLBACK_CONFIGS * sizeof(__GLXvisualConfig));
-        memset(pNewVisualPriv, 0, NUM_FALLBACK_CONFIGS * sizeof(void *));
-    }
-    else {
-        /* copy driver's visual config info */
-        for (i = 0; i < numConfigs; i++) {
-            pNewVisualConfigs[i] = visualConfigs[i];
-            pNewVisualPriv[i] = visualPrivates[i];
-        }
-    }
-
-    /* Count the number of RGB and CI visual configs */
-    numRGBconfigs = 0;
-    numCIconfigs = 0;
-    for (i = 0; i < numNewConfigs; i++) {
-        if (pNewVisualConfigs[i].rgba)
-            numRGBconfigs++;
-        else
-            numCIconfigs++;
-    }
-
-    /* Count the total number of visuals to compute */
-    numNewVisuals = 0;
-    for (i = 0; i < numVisuals; i++) {
-        numNewVisuals +=
-            (pVisual[i].class == TrueColor || pVisual[i].class == DirectColor)
-            ? numRGBconfigs : numCIconfigs;
-    }
-
-    /* Reset variables for use with the next screen/driver's visual configs */
-    visualConfigs = NULL;
-    numConfigs = 0;
-
-    /* Alloc temp space for the list of orig VisualIDs for each new visual */
-    orig_vid = (VisualID *)malloc(numNewVisuals * sizeof(VisualID));
-    if (!orig_vid) {
-        free(pNewVisualPriv);
-        free(pNewVisualConfigs);
-        return FALSE;
-    }
-
-    /* Alloc space for the list of glXVisuals */
-    modes = _gl_context_modes_create(numNewVisuals, sizeof(__GLcontextModes));
-    if (modes == NULL) {
-        free(orig_vid);
-        free(pNewVisualPriv);
-        free(pNewVisualConfigs);
-        return FALSE;
-    }
-
-    /* Alloc space for the list of glXVisualPrivates */
-    glXVisualPriv = (void **)malloc(numNewVisuals * sizeof(void *));
-    if (!glXVisualPriv) {
-        _gl_context_modes_destroy( modes );
-        free(orig_vid);
-        free(pNewVisualPriv);
-        free(pNewVisualConfigs);
-        return FALSE;
-    }
-
-    /* Alloc space for the new list of the X server's visuals */
-    pVisualNew = (VisualPtr)malloc(numNewVisuals * sizeof(VisualRec));
-    if (!pVisualNew) {
-        free(glXVisualPriv);
-        _gl_context_modes_destroy( modes );
-        free(orig_vid);
-        free(pNewVisualPriv);
-        free(pNewVisualConfigs);
-        return FALSE;
-    }
-
-    /* Initialize the new visuals */
-    found_default = FALSE;
-    glWinScreens[screenInfo.numScreens-1].modes = modes;
-    for (i = j = 0; i < numVisuals; i++) {
-        int is_rgb = (pVisual[i].class == TrueColor ||
-                      pVisual[i].class == DirectColor);
-
-        if (!is_rgb)
-        {
-            /* We don't support non-rgb visuals for GL. But we don't
-               want to remove them either, so just pass them through
-               with null glX configs */
-
-            pVisualNew[j] = pVisual[i];
-            pVisualNew[j].vid = FakeClientID(0);
-
-            /* Check for the default visual */
-            if (!found_default && pVisual[i].vid == *defaultVisp) {
-                *defaultVisp = pVisualNew[j].vid;
-                found_default = TRUE;
-            }
-
-            /* Save the old VisualID */
-            orig_vid[j] = pVisual[i].vid;
-
-            /* Initialize the glXVisual */
-            _gl_copy_visual_to_context_mode( modes, & NullConfig );
-            modes->visualID = pVisualNew[j].vid;
-
-            j++;
-
-            continue;
-        }
-
-        for (k = 0; k < numNewConfigs; k++) {
-            if (pNewVisualConfigs[k].rgba != is_rgb)
-                continue;
-
-            assert( modes != NULL );
-
-            /* Initialize the new visual */
-            pVisualNew[j] = pVisual[i];
-            pVisualNew[j].vid = FakeClientID(0);
-
-            /* Check for the default visual */
-            if (!found_default && pVisual[i].vid == *defaultVisp) {
-                *defaultVisp = pVisualNew[j].vid;
-                found_default = TRUE;
-            }
-
-            /* Save the old VisualID */
-            orig_vid[j] = pVisual[i].vid;
-
-            /* Initialize the glXVisual */
-            _gl_copy_visual_to_context_mode( modes, & pNewVisualConfigs[k] );
-            modes->visualID = pVisualNew[j].vid;
-	    if (modes->fbconfigID == GLX_DONT_CARE)
-		modes->fbconfigID = modes->visualID;
-
-            /*
-             * If the class is -1, then assume the X visual information
-             * is identical to what GLX needs, and take them from the X
-             * visual.  NOTE: if class != -1, then all other fields MUST
-             * be initialized.
-             */
-            if (modes->visualType == GLX_NONE) {
-                modes->visualType = _gl_convert_from_x_visual_type( pVisual[i].class );
-                modes->redBits    = count_bits(pVisual[i].redMask);
-                modes->greenBits  = count_bits(pVisual[i].greenMask);
-                modes->blueBits   = count_bits(pVisual[i].blueMask);
-                modes->alphaBits  = modes->alphaBits;
-                modes->redMask    = pVisual[i].redMask;
-                modes->greenMask  = pVisual[i].greenMask;
-                modes->blueMask   = pVisual[i].blueMask;
-                modes->alphaMask  = modes->alphaMask;
-                modes->rgbBits = (is_rgb)
-                    ? (modes->redBits + modes->greenBits +
-                       modes->blueBits + modes->alphaBits)
-                    : rootDepth;
-            }
-
-            /* Save the device-dependent private for this visual */
-            glXVisualPriv[j] = pNewVisualPriv[k];
-
-            j++;
-            modes = modes->next;
-        }
-    }
-
-    assert(j <= numNewVisuals);
-
-    /* Save the GLX visuals in the screen structure */
-    glWinScreens[screenInfo.numScreens-1].num_vis = numNewVisuals;
-    glWinScreens[screenInfo.numScreens-1].priv = glXVisualPriv;
-
-    /* Set up depth's VisualIDs */
-    for (i = 0; i < ndepth; i++) {
-        int numVids = 0;
-        VisualID *pVids = NULL;
-        int k, n = 0;
-
-        /* Count the new number of VisualIDs at this depth */
-        for (j = 0; j < pdepth[i].numVids; j++)
-            for (k = 0; k < numNewVisuals; k++)
-                if (pdepth[i].vids[j] == orig_vid[k])
-                    numVids++;
-
-        /* Allocate a new list of VisualIDs for this depth */
-        pVids = (VisualID *)malloc(numVids * sizeof(VisualID));
-
-        /* Initialize the new list of VisualIDs for this depth */
-        for (j = 0; j < pdepth[i].numVids; j++)
-            for (k = 0; k < numNewVisuals; k++)
-                if (pdepth[i].vids[j] == orig_vid[k])
-                    pVids[n++] = pVisualNew[k].vid;
-
-        /* Update this depth's list of VisualIDs */
-        free(pdepth[i].vids);
-        pdepth[i].vids = pVids;
-        pdepth[i].numVids = numVids;
-    }
-
-    /* Update the X server's visuals */
-    *nvisualp = numNewVisuals;
-    *visualp = pVisualNew;
-
-    /* Free the old list of the X server's visuals */
-    free(pVisual);
-
-    /* Clean up temporary allocations */
-    free(orig_vid);
-    free(pNewVisualPriv);
-    free(pNewVisualConfigs);
-
-    /* Free the private list created by DDX HW driver */
-    if (visualPrivates)
-        free(visualPrivates);
-    visualPrivates = NULL;
-
-    return TRUE;
-}
-#endif
-
-
-#if 0
-static void fixup_visuals(int screen)
-{
-    ScreenPtr pScreen = screenInfo.screens[screen];
-    glWinScreenRec *pScr = &glWinScreens[screen];
-    __GLcontextModes *modes;
-    int j;
-
-    GLWIN_DEBUG_MSG("fixup_visuals\n");
-
-    for (modes = pScr->modes; modes != NULL; modes = modes->next ) {
-        const int vis_class = _gl_convert_to_x_visual_type( modes->visualType );
-        const int nplanes = (modes->rgbBits - modes->alphaBits);
-        const VisualPtr pVis = pScreen->visuals;
-
-        /* Find a visual that matches the GLX visual's class and size */
-        for (j = 0; j < pScreen->numVisuals; j++) {
-            if (pVis[j].class == vis_class &&
-                pVis[j].nplanes == nplanes) {
-
-                /* Fixup the masks */
-                modes->redMask   = pVis[j].redMask;
-                modes->greenMask = pVis[j].greenMask;
-                modes->blueMask  = pVis[j].blueMask;
-
-                /* Recalc the sizes */
-                modes->redBits   = count_bits(modes->redMask);
-                modes->greenBits = count_bits(modes->greenMask);
-                modes->blueBits  = count_bits(modes->blueMask);
-            }
-        }
-    }
-}
-#endif
-
-#if 0
-static void init_screen_visuals(int screen)
-{
-    ScreenPtr pScreen = screenInfo.screens[screen];
-    __GLcontextModes *modes;
-    int *used;
-    int i, j;
-
-    GLWIN_DEBUG_MSG("init_screen_visuals\n");
-
-    used = (int *)malloc(pScreen->numVisuals * sizeof(int));
-    memset(used, 0, pScreen->numVisuals * sizeof(int));
-
-    i = 0;
-    for ( modes = glWinScreens[screen].modes
-          ; modes != NULL
-          ; modes = modes->next) {
-        const int vis_class = _gl_convert_to_x_visual_type( modes->visualType );
-        const int nplanes = (modes->rgbBits - modes->alphaBits);
-        const VisualPtr pVis = pScreen->visuals;
-
-        for (j = 0; j < pScreen->numVisuals; j++) {
-
-            if (pVis[j].class     == vis_class &&
-                pVis[j].nplanes   == nplanes &&
-                pVis[j].redMask   == modes->redMask &&
-                pVis[j].greenMask == modes->greenMask &&
-                pVis[j].blueMask  == modes->blueMask &&
-                !used[j]) {
-
-                /* Set the VisualID */
-                modes->visualID = pVis[j].vid;
-
-                /* Mark this visual used */
-                used[j] = 1;
-                break;
-            }
-        }
-
-        if ( j == pScreen->numVisuals ) {
-            ErrorF("No matching visual for __GLcontextMode with "
-                   "visual class = %d (%d), nplanes = %u\n",
-                   vis_class, 
-                   modes->visualType,
-                   (modes->rgbBits - modes->alphaBits) );
-        }
-        else if ( modes->visualID == -1 ) {
-            FatalError( "Matching visual found, but visualID still -1!\n" );
-        }
-
-        i++;
-        
-    }
-
-    free(used);
-}
-#endif
-
-#if 0
-static void glWinCreateBuffer(__GLXdrawablePrivate *glxPriv)
-{
-    GLWinDrawableRec *winPriv = malloc(sizeof(GLWinDrawableRec));
-    __GLdrawablePrivate *glPriv = &glxPriv->glPriv;
-
-    /*winPriv->sid = 0; */
-    winPriv->pDraw = NULL;
-
-    GLWIN_DEBUG_MSG("glWinCreateBuffer\n");
-
-    /* replace swapBuffers (original is never called) */
-    glxPriv->swapBuffers = glWinSwapBuffers;
-
-    /* stash private data */
-    glPriv->private = winPriv;
-    glPriv->freePrivate = glWinDestroyDrawablePrivate;
-}
-#endif
-
-#if 0
-static void glWinResetExtension(void)
-{
-    GLWIN_DEBUG_MSG("glWinResetExtension\n");
-}
-#endif
-
-/* based on code in apples/indirect.c which is based on i830_dri.c */
-static void
-glWinInitVisualConfigs(void)
-{
-    int                 lclNumConfigs     = 0;
-    __GLXvisualConfig  *lclVisualConfigs  = NULL;
-    void              **lclVisualPrivates = NULL;
-
-    int stereo, depth, aux, buffers, stencil, accum;
-    int i = 0;
-
-    GLWIN_DEBUG_MSG("glWinInitVisualConfigs\n");
-        
-    /* count num configs:
-        2 stereo (on, off) (optional)
-        2 Z buffer (0, 24 bit)
-        2 AUX buffer (0, 2)
-        2 buffers (single, double)
-        2 stencil (0, 8 bit)
-        2 accum (0, 64 bit)
-        = 64 configs with stereo, or 32 without */
-
-    if (glWinDebugSettings.enableStereo) lclNumConfigs = 2 * 2 * 2 * 2 * 2 * 2; /* 64 */
-    else                                 lclNumConfigs = 2 * 2 * 2 * 2 * 2; /* 32 */
-
-    /* alloc */
-    lclVisualConfigs = xcalloc(sizeof(__GLXvisualConfig), lclNumConfigs);
-    lclVisualPrivates = xcalloc(sizeof(void *), lclNumConfigs);
-
-    /* fill in configs */
-    if (NULL != lclVisualConfigs) {
-        i = 0; /* current buffer */
-        for (stereo = 0; stereo < (glWinDebugSettings.enableStereo ? 2 : 1); stereo++) {
-	  for (depth = 0; depth < 2; depth++) {
-            for (aux = 0; aux < 2; aux++) {
-	      for (buffers = 0; buffers < 2; buffers++) {
-		for (stencil = 0; stencil < 2; stencil++) {
-		  for (accum = 0; accum < 2; accum++) {
-		    lclVisualConfigs[i].vid = -1;
-		    lclVisualConfigs[i].class = -1;
-		    lclVisualConfigs[i].rgba = TRUE;
-		    lclVisualConfigs[i].redSize = -1;
-		    lclVisualConfigs[i].greenSize = -1;
-		    lclVisualConfigs[i].blueSize = -1;
-		    lclVisualConfigs[i].redMask = -1;
-		    lclVisualConfigs[i].greenMask = -1;
-		    lclVisualConfigs[i].blueMask = -1;
-		    lclVisualConfigs[i].alphaMask = 0;
-		    if (accum) {
-		      lclVisualConfigs[i].accumRedSize = 16;
-		      lclVisualConfigs[i].accumGreenSize = 16;
-		      lclVisualConfigs[i].accumBlueSize = 16;
-		      lclVisualConfigs[i].accumAlphaSize = 16;
-		    } else {
-		      lclVisualConfigs[i].accumRedSize = 0;
-		      lclVisualConfigs[i].accumGreenSize = 0;
-		      lclVisualConfigs[i].accumBlueSize = 0;
-		      lclVisualConfigs[i].accumAlphaSize = 0;
-		    }
-
-		    lclVisualConfigs[i].bufferSize = -1;
-
-		    lclVisualConfigs[i].depthSize = depth? 24 : 0;
-		    lclVisualConfigs[i].stencilSize = stencil ? 8 : 0;
-		    lclVisualConfigs[i].auxBuffers = aux ? 2 : 0;
-		    lclVisualConfigs[i].level = 0;
-		    lclVisualConfigs[i].visualRating = GLX_NONE_EXT;
-		    lclVisualConfigs[i].transparentPixel = 0;
-		    lclVisualConfigs[i].transparentRed = 0;
-		    lclVisualConfigs[i].transparentGreen = 0;
-		    lclVisualConfigs[i].transparentBlue = 0;
-		    lclVisualConfigs[i].transparentAlpha = 0;
-		    lclVisualConfigs[i].transparentIndex = 0;
-		    i++;
-		  }
-		}
-	      }
-            }
-	  }
-	}
-    }
-    if (i != lclNumConfigs)
-        GLWIN_DEBUG_MSG("glWinInitVisualConfigs failed to alloc visual configs");
-}
-
-#if 0
-/* Copied from Mesa */
-static void glWinSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs,
-                                   void **privates)
-{
-    GLWIN_DEBUG_MSG("glWinSetVisualConfigs\n");
-
-    numConfigs = nconfigs;
-    visualConfigs = configs;
-    visualPrivates = privates;
-}
-#endif
-
-#if 0
-/* Copied from Mesa */
-static Bool glWinInitVisuals(VisualPtr *visualp, DepthPtr *depthp,
-                              int *nvisualp, int *ndepthp,
-                              int *rootDepthp, VisualID *defaultVisp,
-                              unsigned long sizes, int bitsPerRGB)
-{
-    glWinInitDebugSettings();
-
-    GLWIN_DEBUG_MSG("glWinInitVisuals\n");
-
-    if (0 == numConfigs) /* if no configs */
-        glWinInitVisualConfigs(); /* ensure the visual configs are setup */
-
-    /*
-     * Setup the visuals supported by this particular screen.
-     */
-    return init_visuals(nvisualp, visualp, defaultVisp,
-                        *ndepthp, *depthp, *rootDepthp);
-}
-#endif
-
 /* ---------------------------------------------------------------------- */
-
-struct __GLXWinDrawable
-{
-  __GLXdrawable base;
-  DrawablePtr pDraw;
-  // xp_surface_id sid;
-  // __GLXWinContext *context;
-};
-
-typedef struct __GLXWinDrawable __GLXWinDrawable;
 
 struct __GLXWinContext {
   __GLXcontext base;
   HGLRC ctx;                         /* Windows GL Context */
   HDC dc;                            /* Windows Device Context */
-  winWindowInfoRec winInfo;          /* Window info from XWin */
-  PIXELFORMATDESCRIPTOR pfd;         /* Pixelformat flags */
-  int pixelFormat;                   /* Pixelformat index */
+  winWindowInfoRec winInfo;          /* Window info from XWin DDX */
+  PIXELFORMATDESCRIPTOR pfd;         /* Pixel format descriptor */
+  int pixelFormat;                   /* Pixel format index */
   unsigned isAttached :1;            /* Flag to track if context is attached */
 };
 
 typedef struct __GLXWinContext  __GLXWinContext;
+
+struct __GLXWinDrawable
+{
+  __GLXdrawable base;
+  // DrawablePtr pDraw;
+  __GLXWinContext *context;
+};
+
+typedef struct __GLXWinDrawable __GLXWinDrawable;
 
 /* ---------------------------------------------------------------------- */
 
@@ -1249,7 +290,7 @@ glWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
 
     if (pWin == NULL)
     {
-        GLWIN_DEBUG_MSG("Deferring until window is created\n");
+        GLWIN_DEBUG_MSG("Deferring until X window is created\n");
         return FALSE;
     }
 
@@ -1258,7 +299,7 @@ glWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
     GLWIN_DEBUG_HWND(gc->winInfo.hwnd);
     if (gc->winInfo.hwnd == NULL)
     {
-        GLWIN_DEBUG_MSG("Deferring until window is created\n");
+        GLWIN_DEBUG_MSG("Deferring until native window is created\n");
         return FALSE;
     }
 
@@ -1297,7 +338,8 @@ glWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
         return FALSE;
     }
 
-    ReleaseDC(gc->winInfo.hwnd, dc);
+    gc->dc = dc;
+    //    ReleaseDC(gc->winInfo.hwnd, dc);
 
     return TRUE;
 }
@@ -1336,6 +378,7 @@ unattach(__GLXWinContext *gc)
 {
     BOOL ret;
     GLWIN_DEBUG_MSG("unattach (ctx %p)\n", gc->ctx);
+
     if (!gc->isAttached)
     {
         ErrorF("called unattach on an unattached context\n");
@@ -1363,7 +406,7 @@ unattach(__GLXWinContext *gc)
 
 /* ---------------------------------------------------------------------- */
 
-/* Context manipulation routes return FALSE on failure */
+/* Context manipulation routes return TRUE on success, FALSE on failure */
 
 static int
 glWinContextMakeCurrent(__GLXcontext *base)
@@ -1382,13 +425,14 @@ glWinContextMakeCurrent(__GLXcontext *base)
     return FALSE;
   }
 
-  dc = glWinMakeDC(gc);
+  //dc = glWinMakeDC(gc);
+  dc = gc->dc;
   ret = wglMakeCurrent(dc, gc->ctx);
   if (!ret)
     ErrorF("glMakeCurrent error: %s\n", glWinErrorMessage());
-  ReleaseDC(gc->winInfo.hwnd, dc);
+  //ReleaseDC(gc->winInfo.hwnd, dc);
 
-  return (ret == FALSE);
+  return ret;
 }
 
 static int
@@ -1407,7 +451,7 @@ glWinContextLoseCurrent(__GLXcontext *base)
 
   __glXLastContext = NULL; /* Mesa does this; why? */
 
-  return GL_TRUE;
+  return TRUE;
 }
 
 static int
@@ -1425,7 +469,7 @@ glWinContextCopy(__GLXcontext *dst_base, __GLXcontext *src_base, unsigned long m
       ErrorF("wglCopyContext error: %s\n", glWinErrorMessage());
     }
 
-  return (ret == 0);
+  return ret;
 }
 
 static int
@@ -1442,7 +486,7 @@ glWinContextForceCurrent(__GLXcontext *base)
     ErrorF("glMakeCurrent error: %s\n", glWinErrorMessage());
   ReleaseDC(gc->winInfo.hwnd, dc);
 
-  return (ret == 0);
+  return ret;
 }
 
 static void
@@ -1473,7 +517,7 @@ glWinCreateContext(__GLXscreen *screen,
 
     GLWIN_DEBUG_MSG("glWinCreateContext\n");
 
-    context = (__GLXWinContext *)xcalloc(1, sizeof(__GLXcontext));
+    context = (__GLXWinContext *)xcalloc(1, sizeof(__GLXWinContext));
 
     if (!context)
         return NULL;
@@ -1490,6 +534,7 @@ glWinCreateContext(__GLXscreen *screen,
     // actual native GL context creation is deferred until attach()
     // reason???
     context->ctx = NULL;
+    context->isAttached = 0;
 
     // convert and store PFD
     if (makeFormat(modes, &context->pfd))
@@ -1514,154 +559,158 @@ glWinCreateConfigs(int *numConfigsPtr, int screenNumber)
 {
   __GLXconfig *c, *result;
   int numConfigs = 0;
-  int i;
+  int i = 0;
 
   GLWIN_DEBUG_MSG("glWinCreateConfigs\n");
 
-  /* count num configs:
-     2 stereo (on, off) (optional)
-     2 Z buffer (0, 24 bit)
-     2 AUX buffer (0, 2)
-     2 buffers (single, double)
-     2 stencil (0, 8 bit)
-     2 accum (0, 64 bit)
-     = 64 configs with stereo, or 32 without */
+  PIXELFORMATDESCRIPTOR pfd;
+  HDC hdc;
 
-  if (glWinDebugSettings.enableStereo)
-    numConfigs = 2 * 2 * 2 * 2 * 2 * 2; /* 64 */
-  else
-    numConfigs = 2 * 2 * 2 * 2 * 2; /* 32 */
+  // XXX: this is possibly wrong if we are not on the primary monitor...
+  hdc = GetDC(NULL);
 
-  *numConfigsPtr = numConfigs;
+  // get the number of pixelformats
+  numConfigs = DescribePixelFormat(hdc, 1, sizeof(PIXELFORMATDESCRIPTOR), NULL);
+  GLWIN_DEBUG_MSG("DescribePixelFormat says %d configs\n", numConfigs);
 
   /* alloc */
-  c = xalloc(sizeof(__GLXconfig) * numConfigs);
+  result = xalloc(sizeof(__GLXconfig) * numConfigs);
 
-  if (NULL == c)
-    return NULL;
-
-  result = c;
-
-  /* fill in configs */
-  memset(result, 0, sizeof(*c) * numConfigs);
-
-  i = 0;
-
-  int stereo, aux, buffers, stencil, accum, depth;
-  // msample, color, ???
-
-  for (stereo = 0; stereo < (glWinDebugSettings.enableStereo ? 2 : 1); stereo++)
+  if (NULL == result)
     {
-      for (depth = 0; depth < 2; ++depth)
-        {
-          for (aux = 0; aux < 2; ++aux)
-            {
-              for (buffers = 0; buffers < 2; ++buffers)
-                {
-                  for (stencil = 0; stencil < 2; ++stencil)
-                    {
-                      for (accum = 0; accum < 2; ++accum)
-                        {
-                          // point to next config, except for last
-                          if ((i + 1) < numConfigs)
-                            {
-                              c->next = c + 1;
-                            }
-                          else
-                            {
-                              c->next = NULL;
-                            }
-
-                          c->doubleBufferMode = buffers ? GL_TRUE : GL_FALSE;
-                          c->stereoMode = stereo ? GL_TRUE : GL_FALSE;
-
-                          c->redBits = (depth+1)*8;
-                          c->greenBits = (depth+1)*8;
-                          c->blueBits = (depth+1)*8;
-                          c->alphaBits = 0;
-
-                          c->redMask = -1;
-                          c->greenMask = -1;
-                          c->blueMask = -1;
-                          c->alphaMask = -1;
-
-                          c->rgbBits = c->redBits + c->greenBits + c->blueBits + c->alphaBits;
-                          c->indexBits = 0;
-
-                          c->accumRedBits = 0;
-                          c->accumGreenBits = 0;
-                          c->accumBlueBits = 0;
-                          c->accumAlphaBits = 0;
-
-                          if (accum)
-                            {
-                              c->accumRedBits = 16;
-                              c->accumGreenBits = 16;
-                              c->accumBlueBits = 16;
-                              c->accumAlphaBits = 16;
-                            }
-
-                          c->depthBits = depth ? 24 : 0;
-                          c->stencilBits = 0;
-
-                          if (stencil)
-                            {
-                              c->stencilBits = 8;
-                            }
-
-                          c->numAuxBuffers = aux ? 2 : 0;
-
-                          c->level = 0;
-                          c->pixmapMode = 0;
-                          c->visualID = -1;
-                          c->visualType = GLX_TRUE_COLOR;
-                          c->visualRating = GLX_NONE_EXT;
-
-                          c->transparentPixel = GLX_NONE;
-                          c->transparentRed = GLX_NONE;
-                          c->transparentGreen = GLX_NONE;
-                          c->transparentAlpha = GLX_NONE;
-                          c->transparentIndex = GLX_NONE;
-
-                          c->sampleBuffers = 0;
-                          c->samples = 0;
-
-                          c->drawableType = GLX_WINDOW_BIT | GLX_PIXMAP_BIT;
-                          c->renderType = GLX_RGBA_BIT;
-                          c->xRenderable = GL_TRUE;
-                          c->fbconfigID = -1;
-
-                          /*
-                           * There is no introspection for this sort of thing
-                           * with CGL.  What should we do realistically?
-                           */
-                          c->optimalPbufferWidth = 0;
-                          c->optimalPbufferHeight = 0;
-                          c->visualSelectGroup = 0;
-                          c->swapMethod = GLX_SWAP_UNDEFINED_OML;
-                          c->screen = screenNumber;
-
-                          /* EXT_texture_from_pixmap */
-                          c->bindToTextureRgb = 0;
-                          c->bindToTextureRgba = 0;
-                          c->bindToMipmapTexture = 0;
-                          c->bindToTextureTargets = 0;
-                          c->yInverted = 0;
-
-                          if (c->next)
-                            c = c->next;
-
-                          ++i;
-                        }
-                    }
-                }
-            }
-        }
+      *numConfigsPtr = 0;
+      return NULL;
     }
 
-  if (i != numConfigs)
-    FatalError("The number of __GLXconfig generated does not match the initial calculation!\n");
+  memset(result, 0, sizeof(__GLXconfig) * numConfigs);
+  c = result;
 
+  /* fill in configs */
+  for (i = 0;  i < numConfigs; i++)
+    {
+      // point to next config, except for last
+      if ((i + 1) < numConfigs)
+        {
+          c->next = c + 1;
+        }
+      else
+        {
+          c->next = NULL;
+        }
+
+      int rc = DescribePixelFormat(hdc, i+1, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+
+      if (!rc)
+        {
+          break;
+        }
+
+      if (glWinDebugSettings.dumpPFD)
+        pfdOut(&pfd);
+
+      c->doubleBufferMode = (pfd.dwFlags & PFD_DOUBLEBUFFER) ? GL_TRUE : GL_FALSE;
+      c->stereoMode = (pfd.dwFlags & PFD_STEREO) ? GL_TRUE : GL_FALSE;
+
+      c->redBits = pfd.cRedBits;
+      c->greenBits = pfd.cGreenBits;
+      c->blueBits = pfd.cBlueBits;
+      c->alphaBits = pfd.cAlphaBits;
+
+#define BITS_AND_SHIFT_TO_MASK(bits,mask) (((1<<(bits))-1) << (mask))
+
+      c->redMask = BITS_AND_SHIFT_TO_MASK(pfd.cRedBits, pfd.cRedShift);
+      c->greenMask =  BITS_AND_SHIFT_TO_MASK(pfd.cGreenBits, pfd.cGreenShift);
+      c->blueMask = BITS_AND_SHIFT_TO_MASK(pfd.cBlueBits, pfd.cBlueShift);
+      c->alphaMask = BITS_AND_SHIFT_TO_MASK(pfd.cAlphaBits, pfd.cAlphaShift);
+
+      c->rgbBits = pfd.cColorBits;
+
+      if (pfd.iPixelType == PFD_TYPE_COLORINDEX)
+        {
+          c->indexBits = pfd.cColorBits;
+        }
+      else
+        {
+          c->indexBits = 0;
+        }
+
+      c->accumRedBits = pfd.cAccumRedBits;
+      c->accumGreenBits = pfd.cAccumGreenBits;
+      c->accumBlueBits = pfd.cAccumBlueBits;
+      c->accumAlphaBits = pfd.cAccumAlphaBits;
+      //  pfd.cAccumBits;
+
+      c->depthBits = pfd.cDepthBits;
+      c->stencilBits = pfd.cStencilBits;
+      c->numAuxBuffers = pfd.cAuxBuffers;
+
+      // pfd.iLayerType; // ignored
+      // pfd.bReserved;  // overlay/underlay planes
+      // pfd.dwLayerMask; // ignored
+      // pfd.dwDamageMask;  // ignored
+
+      c->level = 0;
+      c->pixmapMode = 0;
+      c->visualID = -1;  // will be set by __glXScreenInit()
+
+      if (pfd.iPixelType == PFD_TYPE_COLORINDEX)
+        {
+          c->visualType = GLX_STATIC_COLOR;
+        }
+      else
+        {
+          c->visualType = GLX_TRUE_COLOR;
+        }
+
+      // XXX: also consider PFD_GENERIC_ACCELERATED ?
+      if (pfd.dwFlags & PFD_GENERIC_FORMAT)
+        {
+          c->visualRating = GLX_SLOW_CONFIG;
+        }
+      else
+        {
+          c->visualRating = GLX_NONE_EXT;
+        }
+
+      // pfd.dwVisibleMask; ???
+      c->transparentPixel = GLX_NONE;
+      c->transparentRed = GLX_NONE;
+      c->transparentGreen = GLX_NONE;
+      c->transparentBlue = GLX_NONE;
+      c->transparentAlpha = GLX_NONE;
+      c->transparentIndex = GLX_NONE;
+
+      c->sampleBuffers = 0;
+      c->samples = 0;
+
+      c->drawableType = GLX_WINDOW_BIT | GLX_PIXMAP_BIT;
+      c->renderType = GLX_RGBA_BIT;
+      c->xRenderable = GL_TRUE;
+      c->fbconfigID = -1; // will be set by __glXScreenInit()
+
+      /*
+       * There is no introspection for this sort of thing
+       * with CGL.  What should we do realistically?
+       */
+      c->optimalPbufferWidth = 0;
+      c->optimalPbufferHeight = 0;
+      c->visualSelectGroup = 0;
+      c->swapMethod = GLX_SWAP_UNDEFINED_OML;
+      c->screen = screenNumber;
+
+      /* EXT_texture_from_pixmap */
+      c->bindToTextureRgb = 0;
+      c->bindToTextureRgba = 0;
+      c->bindToMipmapTexture = 0;
+      c->bindToTextureTargets = 0;
+      c->yInverted = 0;
+
+      if (c->next)
+        c = c->next;
+    }
+
+  ReleaseDC(NULL, hdc);
+  *numConfigsPtr = numConfigs;
   return result;
 }
 
@@ -1798,7 +847,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
 
 #if 0
     __GLXdrawablePrivate *glxPriv;
-    /* The Aqua window may have already been destroyed (windows
+    /* The native window may have already been destroyed (windows
      * are unrealized from top down)
      */
 
@@ -1832,6 +881,8 @@ glWinUnrealizeWindow(WindowPtr pWin)
     return result;
 }
 
+/* ---------------------------------------------------------------------- */
+
 static void
 glWinScreenDestroy(__GLXscreen *screen)
 {
@@ -1840,38 +891,32 @@ glWinScreenDestroy(__GLXscreen *screen)
     xfree(screen);
 }
 
-
-/* ---------------------------------------------------------------------- */
-
 static GLboolean
 glWinDrawableSwapBuffers(__GLXdrawable *base)
 {
   /* swap buffers on only *one* of the contexts
    * (e.g. the last one for drawing)
    */
-#if 0
-    __GLXWinContext *gc = (__GLXWinContext *)base->glxPriv->drawGlxc->gc;
     HDC dc;
     BOOL ret;
 
-    GLWIN_TRACE_MSG("glWinSwapBuffers (ctx %p)\n", (gc!=NULL?gc->ctx:NULL));
+    GLWIN_TRACE_MSG("glWinSwapBuffers (drawable %p, context %p)\n", base, wglGetCurrentContext()) ;
 
-    if (gc != NULL && gc->ctx != NULL)
-    {
-        dc = glWinMakeDC(gc);
-        if (dc == NULL)
-            return GL_FALSE;
+    dc = wglGetCurrentDC();
+    if (dc == NULL)
+      return GL_FALSE;
 
-        ret = wglSwapLayerBuffers(dc, WGL_SWAP_MAIN_PLANE);
-        if (!ret)
-            ErrorF("SwapBuffers failed: %s\n", glWinErrorMessage());
+    //    ret = SwapBuffers(dc);
+    //    if (!ret)
+    //      ErrorF("SwapBuffers failed: %s\n", glWinErrorMessage());
 
-        ReleaseDC(gc->winInfo.hwnd, dc);
-        if (!ret)
-            return GL_FALSE;
-    }
-#endif
+    ret = wglSwapLayerBuffers(dc, WGL_SWAP_MAIN_PLANE);
+    if (!ret)
+      ErrorF("wglSwapBuffers failed: %s\n", glWinErrorMessage());
 
+    //    ReleaseDC(gc->winInfo.hwnd, dc);
+    // if (!ret)
+    // return GL_FALSE;
     return GL_TRUE;
 }
 
@@ -1891,13 +936,14 @@ glWinDrawableDestroy(__GLXdrawable *base)
 }
 
 static __GLXdrawable *
-glWinScreenCreateDrawable(__GLXscreen *screen,
-                          DrawablePtr pDraw,
-                          int type,
-                          XID drawId,
-                          __GLXconfig *conf)
+glWinCreateDrawable(__GLXscreen *screen,
+                    DrawablePtr pDraw,
+                    int type,
+                    XID drawId,
+                    __GLXconfig *conf)
 {
- __GLXWinDrawable *glxPriv;
+  __GLXWinDrawable *glxPriv;
+  GLWIN_DEBUG_MSG("glWinCreateDrawable\n");
 
   glxPriv = xalloc(sizeof *glxPriv);
 
@@ -1915,7 +961,7 @@ glWinScreenCreateDrawable(__GLXscreen *screen,
   glxPriv->base.swapBuffers   = glWinDrawableSwapBuffers;
   glxPriv->base.copySubBuffer = glWinDrawableCopySubBuffer;
 
-  glxPriv->pDraw = pDraw;
+  // glxPriv->pDraw = pDraw;
   // glxPriv->sid = 0;
   // glxPriv->context = NULL;
 
@@ -1944,7 +990,7 @@ glWinScreenProbe(ScreenPtr pScreen)
 
     screen->base.destroy = glWinScreenDestroy;
     screen->base.createContext = glWinCreateContext;
-    screen->base.createDrawable = glWinScreenCreateDrawable;
+    screen->base.createDrawable = glWinCreateDrawable;
     screen->base.swapInterval = NULL;
     screen->base.hyperpipeFuncs = NULL;
     screen->base.swapBarrierFuncs = NULL;
@@ -1953,9 +999,8 @@ glWinScreenProbe(ScreenPtr pScreen)
                                                 pScreen->myNum);
     // Note that screen->base.numFBConfigs is also initialized by that
 
-    /* This is set by __glXScreenInit: */
+    /* These will be set by __glXScreenInit */
     screen->base.visuals = NULL;
-    /* This is to be initialized prior to the call to __glXScreenInit: */
     screen->base.numVisuals = 0;
 
     __glXScreenInit(&screen->base, pScreen);
@@ -1971,7 +1016,7 @@ glWinScreenProbe(ScreenPtr pScreen)
     /* Do we want to override these after __glXScreenInit() has set them? */
     screen->base.GLXversion = xstrdup("1.4");
     screen->base.GLXextensions = xstrdup("");
-    /*We may be able to add more GLXextensions at a later time. */
+    /* We may be able to add more GLXextensions at a later time. */
 
     return &screen->base;
 }

@@ -164,7 +164,7 @@ static GLint NoOpUnused(void)
  * \c _glapi_Context will be \c NULL if an application is detected as being
  * multithreaded.  Single-threaded applications will use \c _glapi_Dispatch
  * and \c _glapi_Context just like the case without any threading support.
- * When \c _glapi_Dispatch and \c _glapi_Context are \c NULL, the thread state
+\ * When \c _glapi_Dispatch and \c _glapi_Context are \c NULL, the thread state
  * data \c _gl_DispatchTSD and \c ContextTSD are used.  Drivers and the
  * static dispatch functions access these variables via \c _glapi_get_dispatch
  * and \c _glapi_get_context.

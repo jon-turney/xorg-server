@@ -5,6 +5,8 @@
  * Authors: Alexander Gottwald
  */
 
+#define USE_OPENGL32
+
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -35,213 +37,228 @@
 #define RESOLVE(procname, symbol) RESOLVE_RET(procname, symbol,)
 
 /*
+ *  cdecl wrappers for stdcall gl*() functions in opengl32.dll
+ */
+
+#include "glwrap_api.c"
+
+/*
+   OpenGL 1.2 and upward is treated as extensions, function address must
+   found using wglGetProcAddress() - still stdcall so still need wrappers...
+ */
+
+/*
  * GL_ARB_imaging
  */
 
-GLAPI void GLAPIENTRY glColorTable( GLenum target, GLenum internalformat,
+static void glColorTableWrapper( GLenum target, GLenum internalformat,
                                     GLsizei width, GLenum format,
-                                    GLenum type, const GLvoid *table )
+                                    GLenum type, const GLvoid *table)
 {
     RESOLVE(PFNGLCOLORTABLEPROC, "glColorTable");
     proc(target, internalformat, width, format, type, table);
 }
 
-GLAPI void GLAPIENTRY glColorSubTable( GLenum target,
+static void glColorSubTableWrapper( GLenum target,
                                        GLsizei start, GLsizei count,
                                        GLenum format, GLenum type,
-                                       const GLvoid *data )
+                                       const GLvoid *data)
 {
     RESOLVE(PFNGLCOLORSUBTABLEPROC, "glColorSubTable");
     proc(target, start, count, format, type, data);
 }
 
-GLAPI void GLAPIENTRY glColorTableParameteriv(GLenum target, GLenum pname,
+static void glColorTableParameterivWrapper(GLenum target, GLenum pname,
                                               const GLint *params)
 {
     RESOLVE(PFNGLCOLORTABLEPARAMETERIVPROC, "glColorTableParameteriv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glColorTableParameterfv(GLenum target, GLenum pname,
+static void glColorTableParameterfvWrapper(GLenum target, GLenum pname,
                                               const GLfloat *params)
 {
     RESOLVE(PFNGLCOLORTABLEPARAMETERFVPROC, "glColorTableParameterfv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glCopyColorSubTable( GLenum target, GLsizei start,
-                                           GLint x, GLint y, GLsizei width )
+static void glCopyColorSubTableWrapper(GLenum target, GLsizei start,
+                                           GLint x, GLint y, GLsizei width)
 {
     RESOLVE(PFNGLCOPYCOLORSUBTABLEPROC, "glCopyColorSubTable");
     proc(target, start, x, y, width);
 }
 
-GLAPI void GLAPIENTRY glCopyColorTable( GLenum target, GLenum internalformat,
-                                        GLint x, GLint y, GLsizei width )
+static void glCopyColorTableWrapper(GLenum target, GLenum internalformat,
+                                        GLint x, GLint y, GLsizei width)
 {
     RESOLVE(PFNGLCOPYCOLORTABLEPROC, "glCopyColorTable");
     proc(target, internalformat, x, y, width);
 }
 
 
-GLAPI void GLAPIENTRY glGetColorTable( GLenum target, GLenum format,
-                                       GLenum type, GLvoid *table )
+static void glGetColorTableWrapper(GLenum target, GLenum format,
+                                       GLenum type, GLvoid *table)
 {
     RESOLVE(PFNGLGETCOLORTABLEPROC, "glGetColorTable");
     proc(target, format, type, table);
 }
 
-GLAPI void GLAPIENTRY glGetColorTableParameterfv( GLenum target, GLenum pname,
-                                                  GLfloat *params )
+static void glGetColorTableParameterfvWrapper(GLenum target, GLenum pname,
+                                                  GLfloat *params)
 {
     RESOLVE(PFNGLGETCOLORTABLEPARAMETERFVPROC, "glGetColorTableParameterfv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glGetColorTableParameteriv( GLenum target, GLenum pname,
-                                                  GLint *params )
+static void glGetColorTableParameterivWrapper(GLenum target, GLenum pname,
+                                                  GLint *params)
 {
     RESOLVE(PFNGLGETCOLORTABLEPARAMETERIVPROC, "glGetColorTableParameteriv");
     proc(target, pname, params);
 }
 
-#if 0
-GLAPI void GLAPIENTRY glBlendEquation( GLenum mode )
+/*
+ * Not sure why these typedefs aren't provided by gl.h...
+ */
+typedef void (APIENTRYP PFNGLBLENDEQUATIONPROC) (GLenum mode);
+typedef void (APIENTRYP PFNGLBLENDCOLORPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+
+static void glBlendEquationWrapper(GLenum mode)
 {
     RESOLVE(PFNGLBLENDEQUATIONPROC, "glBlendEquation");
     proc(mode);
 }
 
-GLAPI void GLAPIENTRY glBlendColor( GLclampf red, GLclampf green,
-                                    GLclampf blue, GLclampf alpha )
+static void glBlendColorWrapper(GLclampf red, GLclampf green,
+                                GLclampf blue, GLclampf alpha)
 {
     RESOLVE(PFNGLBLENDCOLORPROC, "glBlendColor");
     proc(red, green, blue, alpha);
 }
-#endif
 
-GLAPI void GLAPIENTRY glHistogram( GLenum target, GLsizei width,
-				   GLenum internalformat, GLboolean sink )
+static void glHistogramWrapper(GLenum target, GLsizei width,
+				   GLenum internalformat, GLboolean sink)
 {
     RESOLVE(PFNGLHISTOGRAMPROC, "glHistogram");
     proc(target, width, internalformat, sink);
 }
 
-GLAPI void GLAPIENTRY glResetHistogram( GLenum target )
+static void glResetHistogramWrapper(GLenum target)
 {
     RESOLVE(PFNGLRESETHISTOGRAMPROC, "glResetHistogram");
     proc(target);
 }
 
-GLAPI void GLAPIENTRY glGetHistogram( GLenum target, GLboolean reset,
+static void glGetHistogramWrapper(GLenum target, GLboolean reset,
 				      GLenum format, GLenum type,
-				      GLvoid *values )
+				      GLvoid *values)
 {
     RESOLVE(PFNGLGETHISTOGRAMPROC, "glGetHistogram");
     proc(target, reset, format, type, values);
 };
 
-GLAPI void GLAPIENTRY glGetHistogramParameterfv( GLenum target, GLenum pname,
-						 GLfloat *params )
+static void glGetHistogramParameterfvWrapper(GLenum target, GLenum pname,
+						 GLfloat *params)
 {
     RESOLVE(PFNGLGETHISTOGRAMPARAMETERFVPROC, "glGetHistogramParameterfv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glGetHistogramParameteriv( GLenum target, GLenum pname,
-						 GLint *params )
+static void glGetHistogramParameterivWrapper(GLenum target, GLenum pname,
+						 GLint *params)
 {
     RESOLVE(PFNGLGETHISTOGRAMPARAMETERIVPROC, "glGetHistogramParameteriv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glMinmax( GLenum target, GLenum internalformat,
-				GLboolean sink )
+static void glMinmaxWrapper(GLenum target, GLenum internalformat,
+				GLboolean sink)
 {
     RESOLVE(PFNGLMINMAXPROC, "glMinmax");
     proc(target, internalformat, sink);
 }
 
-GLAPI void GLAPIENTRY glResetMinmax( GLenum target )
+static void glResetMinmaxWrapper(GLenum target)
 {
     RESOLVE(PFNGLRESETMINMAXPROC, "glResetMinmax");
     proc(target);
 }
 
-GLAPI void GLAPIENTRY glGetMinmax( GLenum target, GLboolean reset,
+static void glGetMinmaxWrapper(GLenum target, GLboolean reset,
                                    GLenum format, GLenum types,
-                                   GLvoid *values )
+                                   GLvoid *values)
 {
     RESOLVE(PFNGLGETMINMAXPROC, "glGetMinmax");
     proc(target, reset, format, types, values);
 }
 
-GLAPI void GLAPIENTRY glGetMinmaxParameterfv( GLenum target, GLenum pname,
-					      GLfloat *params )
+static void glGetMinmaxParameterfvWrapper(GLenum target, GLenum pname,
+					      GLfloat *params)
 {
     RESOLVE(PFNGLGETMINMAXPARAMETERFVPROC, "glGetMinmaxParameterfv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glGetMinmaxParameteriv( GLenum target, GLenum pname,
-					      GLint *params )
+static void glGetMinmaxParameterivWrapper(GLenum target, GLenum pname,
+					      GLint *params)
 {
     RESOLVE(PFNGLGETMINMAXPARAMETERIVPROC, "glGetMinmaxParameteriv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glConvolutionFilter1D( GLenum target,
+static void glConvolutionFilter1DWrapper(GLenum target,
 	GLenum internalformat, GLsizei width, GLenum format, GLenum type,
-	const GLvoid *image )
+	const GLvoid *image)
 {
     RESOLVE(PFNGLCONVOLUTIONFILTER1DPROC, "glConvolutionFilter1D");
     proc(target, internalformat, width, format, type, image);
 }
 
-GLAPI void GLAPIENTRY glConvolutionFilter2D( GLenum target,
+static void glConvolutionFilter2DWrapper(GLenum target,
 	GLenum internalformat, GLsizei width, GLsizei height, GLenum format,
-	GLenum type, const GLvoid *image )
+	GLenum type, const GLvoid *image)
 {
     RESOLVE(PFNGLCONVOLUTIONFILTER2DPROC, "glConvolutionFilter2D");
     proc(target, internalformat, width, height, format, type, image);
 }
 
-GLAPI void GLAPIENTRY glConvolutionParameterf( GLenum target, GLenum pname,
-	GLfloat params )
+static void glConvolutionParameterfWrapper(GLenum target, GLenum pname,
+	GLfloat params)
 {
     RESOLVE(PFNGLCONVOLUTIONPARAMETERFPROC, "glConvolutionParameterf");
-    proc(target, pname, params); 
+    proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glConvolutionParameterfv( GLenum target, GLenum pname,
-	const GLfloat *params )
+static void glConvolutionParameterfvWrapper(GLenum target, GLenum pname,
+	const GLfloat *params)
 {
     RESOLVE(PFNGLCONVOLUTIONPARAMETERFVPROC, "glConvolutionParameterfv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glConvolutionParameteri( GLenum target, GLenum pname,
-	GLint params )
+static void glConvolutionParameteriWrapper(GLenum target, GLenum pname,
+	GLint params)
 {
     RESOLVE(PFNGLCONVOLUTIONPARAMETERIPROC, "glConvolutionParameteri");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glConvolutionParameteriv( GLenum target, GLenum pname,
-	const GLint *params )
+static void glConvolutionParameterivWrapper(GLenum target, GLenum pname,
+	const GLint *params)
 {
     RESOLVE(PFNGLCONVOLUTIONPARAMETERIVPROC, "glConvolutionParameteriv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glCopyConvolutionFilter1D( GLenum target,
-	GLenum internalformat, GLint x, GLint y, GLsizei width )
+static void glCopyConvolutionFilter1DWrapper(GLenum target,
+	GLenum internalformat, GLint x, GLint y, GLsizei width)
 {
     RESOLVE(PFNGLCOPYCONVOLUTIONFILTER1DPROC, "glCopyConvolutionFilter1D");
     proc(target, internalformat, x, y, width);
 }
 
-GLAPI void GLAPIENTRY glCopyConvolutionFilter2D( GLenum target,
+static void glCopyConvolutionFilter2DWrapper(GLenum target,
 	GLenum internalformat, GLint x, GLint y, GLsizei width,
 	GLsizei height)
 {
@@ -249,37 +266,37 @@ GLAPI void GLAPIENTRY glCopyConvolutionFilter2D( GLenum target,
     proc(target, internalformat, x, y, width, height);
 }
 
-GLAPI void GLAPIENTRY glGetConvolutionFilter( GLenum target, GLenum format,
-	GLenum type, GLvoid *image )
+static void glGetConvolutionFilterWrapper(GLenum target, GLenum format,
+	GLenum type, GLvoid *image)
 {
     RESOLVE(PFNGLGETCONVOLUTIONFILTERPROC, "glGetConvolutionFilter");
     proc(target, format, type, image);
 }
 
-GLAPI void GLAPIENTRY glGetConvolutionParameterfv( GLenum target, GLenum pname,
-	GLfloat *params )
+static void glGetConvolutionParameterfvWrapper(GLenum target, GLenum pname,
+	GLfloat *params)
 {
     RESOLVE(PFNGLGETCONVOLUTIONPARAMETERFVPROC, "glGetConvolutionParameterfv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glGetConvolutionParameteriv( GLenum target, GLenum pname,
-	GLint *params )
+static void glGetConvolutionParameterivWrapper(GLenum target, GLenum pname,
+	GLint *params)
 {
     RESOLVE(PFNGLGETCONVOLUTIONPARAMETERIVPROC, "glGetConvolutionParameteriv");
     proc(target, pname, params);
 }
 
-GLAPI void GLAPIENTRY glSeparableFilter2D( GLenum target,
+static void glSeparableFilter2DWrapper(GLenum target,
 	GLenum internalformat, GLsizei width, GLsizei height, GLenum format,
-	GLenum type, const GLvoid *row, const GLvoid *column )
+	GLenum type, const GLvoid *row, const GLvoid *column)
 {
     RESOLVE(PFNGLSEPARABLEFILTER2DPROC, "glSeparableFilter2D");
     proc(target, internalformat, width, height, format, type, row, column);
 }
 
-GLAPI void GLAPIENTRY glGetSeparableFilter( GLenum target, GLenum format,
-	GLenum type, GLvoid *row, GLvoid *column, GLvoid *span )
+static void glGetSeparableFilterWrapper(GLenum target, GLenum format,
+	GLenum type, GLvoid *row, GLvoid *column, GLvoid *span)
 {
     RESOLVE(PFNGLGETSEPARABLEFILTERPROC, "glGetSeparableFilter");
     proc(target, format, type, row, column, span);
@@ -289,18 +306,18 @@ GLAPI void GLAPIENTRY glGetSeparableFilter( GLenum target, GLenum format,
  * OpenGL 1.2
  */
 
-GLAPI void GLAPIENTRY glTexImage3D( GLenum target, GLint level,
+static void glTexImage3DWrapper(GLenum target, GLint level,
                                       GLint internalFormat,
                                       GLsizei width, GLsizei height,
                                       GLsizei depth, GLint border,
                                       GLenum format, GLenum type,
-                                      const GLvoid *pixels )
+                                      const GLvoid *pixels)
 {
     RESOLVE(PFNGLTEXIMAGE3DPROC, "glTexImage3D");
     proc(target, level, internalFormat, width, height, depth, border, format, type, pixels);
 }
 
-GLAPI void GLAPIENTRY glTexSubImage3D( GLenum target, GLint level,
+static void glTexSubImage3DWrapper(GLenum target, GLint level,
                                          GLint xoffset, GLint yoffset,
                                          GLint zoffset, GLsizei width,
                                          GLsizei height, GLsizei depth,
@@ -311,281 +328,263 @@ GLAPI void GLAPIENTRY glTexSubImage3D( GLenum target, GLint level,
     proc(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 }
 
-GLAPI void GLAPIENTRY glCopyTexSubImage3D( GLenum target, GLint level,
+static void glCopyTexSubImage3DWrapper(GLenum target, GLint level,
                                              GLint xoffset, GLint yoffset,
                                              GLint zoffset, GLint x,
                                              GLint y, GLsizei width,
-                                             GLsizei height )
+                                             GLsizei height)
 {
     RESOLVE(PFNGLCOPYTEXSUBIMAGE3DPROC, "glCopyTexSubImage3D");
     proc(target, level, xoffset, yoffset, zoffset, x, y, width, height);
 }
 
-#if 0
-// these are problematic as we need stdcall linakge, can we wrapperise?
-
-/*
- * 20. GL_EXT_texture_object
- */
-GLAPI void GLAPIENTRY glGenTexturesEXT( GLsizei n, GLuint *textures )
-{
-    glGenTextures(n, textures);
-}
-
-GLAPI void GLAPIENTRY glDeleteTexturesEXT( GLsizei n, const GLuint *textures)
-{
-    glDeleteTextures(n, textures);
-}
-
-GLAPI void GLAPIENTRY glBindTextureEXT( GLenum target, GLuint texture )
-{
-    glBindTexture(target, target);
-}
-
-GLAPI void GLAPIENTRY glPrioritizeTexturesEXT( GLsizei n, const GLuint *textures, const GLclampf *priorities )
-{
-    glPrioritizeTextures(n, textures, priorities);
-}
-
-GLAPI GLboolean GLAPIENTRY glAreTexturesResidentEXT( GLsizei n, const GLuint *textures, GLboolean *residences )
-{
-    return glAreTexturesResident(n, textures, residences);
-}
-
-GLAPI GLboolean GLAPIENTRY glIsTextureEXT( GLuint texture )
-{
-    return glIsTexture(texture); 
-}
-#endif
-
 /*
  * GL_ARB_multitexture (ARB extension 1 and OpenGL 1.2.1)
  */
 
-GLAPI void GLAPIENTRY glActiveTextureARB(GLenum texture)
+static void glActiveTextureARBWrapper(GLenum texture)
 {
     RESOLVE(PFNGLACTIVETEXTUREARBPROC, "glActiveTextureARB");
     proc(texture);
 }
 
-GLAPI void GLAPIENTRY glMultiTexCoord1dvARB(GLenum target, const GLdouble *v)
+static void glMultiTexCoord1dvARBWrapper(GLenum target, const GLdouble *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1DVARBPROC, "glMultiTexCoord1dvARB");
     proc(target, v);
 }
 
-GLAPI void GLAPIENTRY glMultiTexCoord1fvARB(GLenum target, const GLfloat *v)
+static void glMultiTexCoord1fvARBWrapper(GLenum target, const GLfloat *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1FVARBPROC, "glMultiTexCoord1fvARB");
     proc(target, v);
 }
 
-GLAPI void GLAPIENTRY glMultiTexCoord1ivARB(GLenum target, const GLint *v)
+static void glMultiTexCoord1ivARBWrapper(GLenum target, const GLint *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1IVARBPROC, "glMultiTexCoord1ivARB");
     proc(target, v);
 }
 
-GLAPI void GLAPIENTRY glMultiTexCoord1svARB(GLenum target, const GLshort *v)
+static void glMultiTexCoord1svARBWrapper(GLenum target, const GLshort *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord2dvARB(GLenum target, const GLdouble *v)
+static void glMultiTexCoord2dvARBWrapper(GLenum target, const GLdouble *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD2DVARBPROC, "glMultiTexCoord2dvARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord2fvARB(GLenum target, const GLfloat *v)
+static void glMultiTexCoord2fvARBWrapper(GLenum target, const GLfloat *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD2FVARBPROC, "glMultiTexCoord2fvARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord2ivARB(GLenum target, const GLint *v)
+static void glMultiTexCoord2ivARBWrapper(GLenum target, const GLint *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD2IVARBPROC, "glMultiTexCoord2ivARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord2svARB(GLenum target, const GLshort *v)
+static void glMultiTexCoord2svARBWrapper(GLenum target, const GLshort *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord3dvARB(GLenum target, const GLdouble *v)
+static void glMultiTexCoord3dvARBWrapper(GLenum target, const GLdouble *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD3DVARBPROC, "glMultiTexCoord3dvARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord3fvARB(GLenum target, const GLfloat *v)
+static void glMultiTexCoord3fvARBWrapper(GLenum target, const GLfloat *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD3FVARBPROC, "glMultiTexCoord3fvARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord3ivARB(GLenum target, const GLint *v)
+static void glMultiTexCoord3ivARBWrapper(GLenum target, const GLint *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD3IVARBPROC, "glMultiTexCoord3ivARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord3svARB(GLenum target, const GLshort *v)
+static void glMultiTexCoord3svARBWrapper(GLenum target, const GLshort *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord4dvARB(GLenum target, const GLdouble *v)
+static void glMultiTexCoord4dvARBWrapper(GLenum target, const GLdouble *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD4DVARBPROC, "glMultiTexCoord4dvARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord4fvARB(GLenum target, const GLfloat *v)
+static void glMultiTexCoord4fvARBWrapper(GLenum target, const GLfloat *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD4FVARBPROC, "glMultiTexCoord4fvARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord4ivARB(GLenum target, const GLint *v)
+static void glMultiTexCoord4ivARBWrapper(GLenum target, const GLint *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD4IVARBPROC, "glMultiTexCoord4ivARB");
     proc(target, v);
 }
-GLAPI void GLAPIENTRY glMultiTexCoord4svARB(GLenum target, const GLshort *v)
+static void glMultiTexCoord4svARBWrapper(GLenum target, const GLshort *v)
 {
     RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
     proc(target, v);
 }
 
-
-GLAPI void GLAPIENTRY glActiveStencilFaceEXT(GLenum face)
+static void glActiveStencilFaceEXTWrapper(GLenum face)
 {
     RESOLVE(PFNGLACTIVESTENCILFACEEXTPROC, "glActiveStencilFaceEXT");
     proc(face);
 }
 
-GLAPI void APIENTRY glPointParameterfARB(GLenum pname, GLfloat param)
+static void glPointParameterfARBWrapper(GLenum pname, GLfloat param)
 {
     RESOLVE(PFNGLPOINTPARAMETERFARBPROC, "glPointParameterfARB");
     proc(pname, param);
 }
 
-GLAPI void APIENTRY glPointParameterfvARB(GLenum pname, const GLfloat *params)
+static void glPointParameterfvARBWrapper(GLenum pname, const GLfloat *params)
 {
     RESOLVE(PFNGLPOINTPARAMETERFVARBPROC, "glPointParameterfvARB");
     proc(pname, params);
 }
 
 
-GLAPI void APIENTRY glWindowPos3fARB(GLfloat x, GLfloat y, GLfloat z)
+static void glWindowPos3fARBWrapper(GLfloat x, GLfloat y, GLfloat z)
 {
     RESOLVE(PFNGLWINDOWPOS3FARBPROC, "glWindowPos3fARB");
     proc(x, y, z);
 }
 
-GLAPI void APIENTRY glPointParameteri(GLenum pname, GLint param)
+static void glPointParameteriWrapper(GLenum pname, GLint param)
 {
     RESOLVE(PFNGLPOINTPARAMETERIPROC, "glPointParameteri");
     proc(pname, param);
 }
 
-GLAPI void APIENTRY glPointParameteriv(GLenum pname, const GLint *params)
+static void glPointParameterivWrapper(GLenum pname, const GLint *params)
 {
     RESOLVE(PFNGLPOINTPARAMETERIVPROC, "glPointParameteriv");
     proc(pname, params);
 }
 
-GLAPI void APIENTRY glPointParameteriNV(GLenum pname, GLint param)
+static void glPointParameteriNVWrapper(GLenum pname, GLint param)
 {
     RESOLVE(PFNGLPOINTPARAMETERINVPROC, "glPointParameteriNV");
     proc(pname, param);
 }
 
-GLAPI void APIENTRY glPointParameterivNV(GLenum pname, const GLint *params)
+static void glPointParameterivNVWrapper(GLenum pname, const GLint *params)
 {
     RESOLVE(PFNGLPOINTPARAMETERIVNVPROC, "glPointParameterivNV");
     proc(pname, params);
 }
 
-GLAPI void APIENTRY glSecondaryColor3bv(const GLbyte *v)
+static void glSecondaryColor3bvWrapper(const GLbyte *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3BVPROC, "glSecondaryColor3bv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3dv(const GLdouble *v)
+static void glSecondaryColor3dvWrapper(const GLdouble *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3DVPROC, "glSecondaryColor3dv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3fv(const GLfloat *v)
+static void glSecondaryColor3fvWrapper(const GLfloat *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3FVPROC, "glSecondaryColor3fv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3iv(const GLint *v)
+static void glSecondaryColor3ivWrapper(const GLint *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3IVPROC, "glSecondaryColor3iv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3sv(const GLshort *v)
+static void glSecondaryColor3svWrapper(const GLshort *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3SVPROC, "glSecondaryColor3sv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3ubv(const GLubyte *v)
+static void glSecondaryColor3ubvWrapper(const GLubyte *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3UBVPROC, "glSecondaryColor3ubv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3uiv(const GLuint *v)
+static void glSecondaryColor3uivWrapper(const GLuint *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3UIVPROC, "glSecondaryColor3uiv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColor3usv(const GLushort *v)
+static void glSecondaryColor3usvWrapper(const GLushort *v)
 {
     RESOLVE(PFNGLSECONDARYCOLOR3USVPROC, "glSecondaryColor3usv");
     proc(v);
 }
-GLAPI void APIENTRY glSecondaryColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+static void glSecondaryColorPointerWrapper(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 {
     RESOLVE(PFNGLSECONDARYCOLORPOINTERPROC, "glSecondaryColorPointer");
     proc(size, type, stride, pointer);
 }
 
-
-GLAPI void APIENTRY glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+static void glBlendFuncSeparateWrapper(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
 {
     RESOLVE(PFNGLBLENDFUNCSEPARATEPROC, "glBlendFuncSeparate");
     proc(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 }
-GLAPI void APIENTRY glFogCoordfv(const GLfloat *coord)
+static void glFogCoordfvWrapper(const GLfloat *coord)
 {
     RESOLVE(PFNGLFOGCOORDFVPROC, "glFogCoordfv");
     proc(coord);
 }
-GLAPI void APIENTRY glFogCoorddv(const GLdouble *coord)
+static void glFogCoorddvWrapper(const GLdouble *coord)
 {
     RESOLVE(PFNGLFOGCOORDDVPROC, "glFogCoorddv");
     proc(coord);
 }
-GLAPI void APIENTRY glFogCoordPointer(GLenum type, GLsizei stride, const GLvoid *pointer)
+static void glFogCoordPointerWrapper(GLenum type, GLsizei stride, const GLvoid *pointer)
 {
     RESOLVE(PFNGLFOGCOORDPOINTERPROC, "glFogCoordPointer");
     proc(type, stride, pointer);
 }
 
-
-GLAPI void APIENTRY glSampleCoverageARB(GLclampf value, GLboolean invert)
+static void glSampleCoverageARBWrapper(GLclampf value, GLboolean invert)
 {
     RESOLVE(PFNGLSAMPLECOVERAGEARBPROC, "glSampleCoverageARB");
     proc(value, invert);
 }
-GLAPI void APIENTRY glSampleMaskSGIS(GLclampf value, GLboolean invert)
+static void glSampleMaskSGISWrapper(GLclampf value, GLboolean invert)
 {
     RESOLVE(PFNGLSAMPLEMASKSGISPROC, "glSampleMaskSGIS");
     proc(value, invert);
 }
-GLAPI void APIENTRY glSamplePatternSGIS(GLenum pattern)
+static void glSamplePatternSGISWrapper(GLenum pattern)
 {
     RESOLVE(PFNGLSAMPLEPATTERNSGISPROC, "glSamplePatternSGIS");
     proc(pattern);
 }
+
+/*
+ *
+ */
+
+static
+void glGetProgramivARBWrapper(GLenum target, GLenum pname, GLint *params)
+{
+  RESOLVE(PFNGLGETPROGRAMIVARBPROC, "glGetProgramivARB");
+  proc(target, pname, params);
+}
+
+static
+void glDrawRangeElementsWrapper(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid *indices)
+{
+  RESOLVE(PFNGLDRAWRANGEELEMENTSPROC, "glDrawRangeElementsWrapper");
+  proc(mode, start, end, count, type, indices);
+}
+
+/*
+ *
+ */
 
 static void
 warn_func(void * ctx, const char *format, ...)
@@ -609,865 +608,871 @@ void setup_dispatch_table(void)
   struct _glapi_table *disp=_glapi_get_dispatch();
   glx_debugging();
 
-  // SET_Accum(disp, glAccum);
-  // SET_AlphaFunc(disp, glAlphaFunc);
-  // SET_AreTexturesResident(disp, glAreTexturesResident);
-  // SET_ArrayElement(disp, glArrayElement);
-  // SET_Begin(disp, glBegin);
-  // SET_BindTexture(disp, glBindTexture);
-  // SET_Bitmap(disp, glBitmap);
-  // SET_BlendColor(disp, glBlendColor);
-  // SET_BlendEquation(disp, glBlendEquation);
-  // SET_BlendFunc(disp, glBlendFunc);
-  // SET_CallList(disp, glCallList);
-  //  SET_CallLists(disp, glCallLists);
-  //  SET_Clear(disp, glClear);
-  //  SET_ClearAccum(disp, glClearAccum);
-  //  SET_ClearColor(disp, glClearColor);
-  //  SET_ClearDepth(disp, glClearDepth);
-  //  SET_ClearIndex(disp, glClearIndex);
-  //  SET_ClearStencil(disp, glClearStencil);
-  //  SET_ClipPlane(disp, glClipPlane);
-  //  SET_Color3b(disp, glColor3b);
-  //  SET_Color3bv(disp, glColor3bv);
-/*   SET_Color3d(disp, glColor3d); */
-/*   SET_Color3dv(disp, glColor3dv); */
-/*   SET_Color3f(disp, glColor3f); */
-/*   SET_Color3fv(disp, glColor3fv); */
-/*   SET_Color3i(disp, glColor3i); */
-/*   SET_Color3iv(disp, glColor3iv); */
-/*   SET_Color3s(disp, glColor3s); */
-/*   SET_Color3sv(disp, glColor3sv); */
-/*   SET_Color3ub(disp, glColor3ub); */
-/*   SET_Color3ubv(disp, glColor3ubv); */
-/*   SET_Color3ui(disp, glColor3ui); */
-/*   SET_Color3uiv(disp, glColor3uiv); */
-/*   SET_Color3us(disp, glColor3us); */
-/*   SET_Color3usv(disp, glColor3usv); */
-/*   SET_Color4b(disp, glColor4b); */
-/*   SET_Color4bv(disp, glColor4bv); */
-/*   SET_Color4d(disp, glColor4d); */
-/*   SET_Color4dv(disp, glColor4dv); */
-/*   SET_Color4f(disp, glColor4f); */
-/*   SET_Color4fv(disp, glColor4fv); */
-/*   SET_Color4i(disp, glColor4i); */
-/*   SET_Color4iv(disp, glColor4iv); */
-/*   SET_Color4s(disp, glColor4s); */
-/*   SET_Color4sv(disp, glColor4sv); */
-/*   SET_Color4ub(disp, glColor4ub); */
-/*   SET_Color4ubv(disp, glColor4ubv); */
-/*   SET_Color4ui(disp, glColor4ui); */
-/*   SET_Color4uiv(disp, glColor4uiv); */
-/*   SET_Color4us(disp, glColor4us); */
-/*   SET_Color4usv(disp, glColor4usv); */
-//  SET_ColorMask(disp, glColorMask);
-//  SET_ColorMaterial(disp, glColorMaterial);
-//  SET_ColorPointer(disp, glColorPointer);
-  SET_ColorSubTable(disp, glColorSubTable);
-  SET_ColorTable(disp, glColorTable);
-  SET_ColorTableParameterfv(disp, glColorTableParameterfv);
-  SET_ColorTableParameteriv(disp, glColorTableParameteriv);
-  SET_ConvolutionFilter1D(disp, glConvolutionFilter1D);
-  SET_ConvolutionFilter2D(disp, glConvolutionFilter2D);
-  SET_ConvolutionParameterf(disp, glConvolutionParameterf);
-  SET_ConvolutionParameterfv(disp, glConvolutionParameterfv);
-  SET_ConvolutionParameteri(disp, glConvolutionParameteri);
-  SET_ConvolutionParameteriv(disp, glConvolutionParameteriv);
-  SET_CopyColorSubTable(disp, glCopyColorSubTable);
-  SET_CopyColorTable(disp, glCopyColorTable);
-  SET_CopyConvolutionFilter1D(disp, glCopyConvolutionFilter1D);
-  SET_CopyConvolutionFilter2D(disp, glCopyConvolutionFilter2D);
-  //  SET_CopyPixels(disp, glCopyPixels);
-  //  SET_CopyTexImage1D(disp, glCopyTexImage1D);
-  //  SET_CopyTexImage2D(disp, glCopyTexImage2D);
-  //  SET_CopyTexSubImage1D(disp, glCopyTexSubImage1D);
-  //  SET_CopyTexSubImage2D(disp, glCopyTexSubImage2D);
-  SET_CopyTexSubImage3D(disp, glCopyTexSubImage3D);
-  //  SET_CullFace(disp, glCullFace);
-  //  SET_DeleteLists(disp, glDeleteLists);
-  //  SET_DeleteTextures(disp, glDeleteTextures);
-  //  SET_DepthFunc(disp, glDepthFunc);
-  //  SET_DepthMask(disp, glDepthMask);
-  //  SET_DepthRange(disp, glDepthRange);
-  //  SET_Disable(disp, glDisable);
-  //  SET_DisableClientState(disp, glDisableClientState);
-  //  SET_DrawArrays(disp, glDrawArrays);
-  //  SET_DrawBuffer(disp, glDrawBuffer);
-  //  SET_DrawElements(disp, glDrawElements);
-  //  SET_DrawPixels(disp, glDrawPixels);
-  //  SET_DrawRangeElements(disp, glDrawRangeElements);
-  //  SET_EdgeFlag(disp, glEdgeFlag);
-  //  SET_EdgeFlagPointer(disp, glEdgeFlagPointer);
-  //  SET_EdgeFlagv(disp, glEdgeFlagv);
-  //  SET_Enable(disp, glEnable);
-  //  SET_EnableClientState(disp, glEnableClientState);
-  //  SET_End(disp, glEnd);
-  //  SET_EndList(disp, glEndList);
-/*   SET_EvalCoord1d(disp, glEvalCoord1d); */
-/*   SET_EvalCoord1dv(disp, glEvalCoord1dv); */
-/*   SET_EvalCoord1f(disp, glEvalCoord1f); */
-/*   SET_EvalCoord1fv(disp, glEvalCoord1fv); */
-/*   SET_EvalCoord2d(disp, glEvalCoord2d); */
-/*   SET_EvalCoord2dv(disp, glEvalCoord2dv); */
-/*   SET_EvalCoord2f(disp, glEvalCoord2f); */
-/*   SET_EvalCoord2fv(disp, glEvalCoord2fv); */
-/*   SET_EvalMesh1(disp, glEvalMesh1); */
-/*   SET_EvalMesh2(disp, glEvalMesh2); */
-/*   SET_EvalPoint1(disp, glEvalPoint1); */
-/*   SET_EvalPoint2(disp, glEvalPoint2); */
-//  SET_FeedbackBuffer(disp, glFeedbackBuffer);
-//  SET_Finish(disp, glFinish);
-//  SET_Flush(disp, glFlush);
-//  SET_Fogf(disp, glFogf);
-//  SET_Fogfv(disp, glFogfv);
-//  SET_Fogi(disp, glFogi);
-///  SET_Fogiv(disp, glFogiv);
-//  SET_FrontFace(disp, glFrontFace);
-//  SET_Frustum(disp, glFrustum);
-//  SET_GenLists(disp, glGenLists);
-//  SET_GenTextures(disp, glGenTextures);
-//  SET_GetBooleanv(disp, glGetBooleanv);
-//  SET_GetClipPlane(disp, glGetClipPlane);
-  SET_GetColorTable(disp, glGetColorTable);
-  SET_GetColorTableParameterfv(disp, glGetColorTableParameterfv);
-  SET_GetColorTableParameteriv(disp, glGetColorTableParameteriv);
-  SET_GetConvolutionFilter(disp, glGetConvolutionFilter);
-  SET_GetConvolutionParameterfv(disp, glGetConvolutionParameterfv);
-  SET_GetConvolutionParameteriv(disp, glGetConvolutionParameteriv);
-  //  SET_GetDoublev(disp, glGetDoublev);
-  //  SET_GetError(disp, glGetError);
-  //  SET_GetFloatv(disp, glGetFloatv);
-  SET_GetHistogram(disp, glGetHistogram);
-  SET_GetHistogramParameterfv(disp, glGetHistogramParameterfv);
-  SET_GetHistogramParameteriv(disp, glGetHistogramParameteriv);
-  //  SET_GetIntegerv(disp, glGetIntegerv);
-  //  SET_GetLightfv(disp, glGetLightfv);
-  //  SET_GetLightiv(disp, glGetLightiv);
-  //  SET_GetMapdv(disp, glGetMapdv);
-  //  SET_GetMapfv(disp, glGetMapfv);
-  //  SET_GetMapiv(disp, glGetMapiv);
-  //  SET_GetMaterialfv(disp, glGetMaterialfv);
-  //  SET_GetMaterialiv(disp, glGetMaterialiv);
-  SET_GetMinmax(disp, glGetMinmax);
-  SET_GetMinmaxParameterfv(disp, glGetMinmaxParameterfv);
-  SET_GetMinmaxParameteriv(disp, glGetMinmaxParameteriv);
-  //  SET_GetPixelMapfv(disp, glGetPixelMapfv);
-  //  SET_GetPixelMapuiv(disp, glGetPixelMapuiv);
-  //  SET_GetPixelMapusv(disp, glGetPixelMapusv);
-  //  SET_GetPointerv(disp, glGetPointerv);
-  //  SET_GetPolygonStipple(disp, glGetPolygonStipple);
-  SET_GetSeparableFilter(disp, glGetSeparableFilter);
-  //  SET_GetString(disp, glGetString);
-/*   SET_GetTexEnvfv(disp, glGetTexEnvfv); */
-/*   SET_GetTexEnviv(disp, glGetTexEnviv); */
-/*   SET_GetTexGendv(disp, glGetTexGendv); */
-/*   SET_GetTexGenfv(disp, glGetTexGenfv); */
-/*   SET_GetTexGeniv(disp, glGetTexGeniv); */
-/*   SET_GetTexImage(disp, glGetTexImage); */
-/*   SET_GetTexLevelParameterfv(disp, glGetTexLevelParameterfv); */
-/*   SET_GetTexLevelParameteriv(disp, glGetTexLevelParameteriv); */
-/*   SET_GetTexParameterfv(disp, glGetTexParameterfv); */
-/*   SET_GetTexParameteriv(disp, glGetTexParameteriv); */
-/*   SET_Hint(disp, glHint); */
-  SET_Histogram(disp, glHistogram);
-/*   SET_IndexMask(disp, glIndexMask); */
-/*   SET_IndexPointer(disp, glIndexPointer); */
-/*   SET_Indexd(disp, glIndexd); */
-/*   SET_Indexdv(disp, glIndexdv); */
-/*   SET_Indexf(disp, glIndexf); */
-/*   SET_Indexfv(disp, glIndexfv); */
-/*   SET_Indexi(disp, glIndexi); */
-/*   SET_Indexiv(disp, glIndexiv); */
-/*   SET_Indexs(disp, glIndexs); */
-/*   SET_Indexsv(disp, glIndexsv); */
-/*   SET_Indexub(disp, glIndexub); */
-/*   SET_Indexubv(disp, glIndexubv); */
-/*   SET_InitNames(disp, glInitNames); */
-/*   SET_InterleavedArrays(disp, glInterleavedArrays); */
-/*   SET_IsEnabled(disp, glIsEnabled); */
-/*   SET_IsList(disp, glIsList); */
-/*   SET_IsTexture(disp, glIsTexture); */
-/*   SET_LightModelf(disp, glLightModelf); */
-/*   SET_LightModelfv(disp, glLightModelfv); */
-/*   SET_LightModeli(disp, glLightModeli); */
-/*   SET_LightModeliv(disp, glLightModeliv); */
-/*   SET_Lightf(disp, glLightf); */
-/*   SET_Lightfv(disp, glLightfv); */
-/*   SET_Lighti(disp, glLighti); */
-/*   SET_Lightiv(disp, glLightiv); */
-/*   SET_LineStipple(disp, glLineStipple); */
-/*   SET_LineWidth(disp, glLineWidth); */
-/*   SET_ListBase(disp, glListBase); */
-/*   SET_LoadIdentity(disp, glLoadIdentity); */
-/*   SET_LoadMatrixd(disp, glLoadMatrixd); */
-/*   SET_LoadMatrixf(disp, glLoadMatrixf); */
-/*   SET_LoadName(disp, glLoadName); */
-/*   SET_LogicOp(disp, glLogicOp); */
-/*   SET_Map1d(disp, glMap1d); */
-/*   SET_Map1f(disp, glMap1f); */
-/*   SET_Map2d(disp, glMap2d); */
-/*   SET_Map2f(disp, glMap2f); */
-/*   SET_MapGrid1d(disp, glMapGrid1d); */
-/*   SET_MapGrid1f(disp, glMapGrid1f); */
-/*   SET_MapGrid2d(disp, glMapGrid2d); */
-/*   SET_MapGrid2f(disp, glMapGrid2f); */
-/*   SET_Materialf(disp, glMaterialf); */
-/*   SET_Materialfv(disp, glMaterialfv); */
-/*   SET_Materiali(disp, glMateriali); */
-/*   SET_Materialiv(disp, glMaterialiv); */
-/*   SET_MatrixMode(disp, glMatrixMode); */
-  SET_Minmax(disp, glMinmax);
-/*   SET_MultMatrixd(disp, glMultMatrixd); */
-/*   SET_MultMatrixf(disp, glMultMatrixf); */
-/*   SET_NewList(disp, glNewList); */
-/*   SET_Normal3b(disp, glNormal3b); */
-/*   SET_Normal3bv(disp, glNormal3bv); */
-/*   SET_Normal3d(disp, glNormal3d); */
-/*   SET_Normal3dv(disp, glNormal3dv); */
-/*   SET_Normal3f(disp, glNormal3f); */
-/*   SET_Normal3fv(disp, glNormal3fv); */
-/*   SET_Normal3i(disp, glNormal3i); */
-/*   SET_Normal3iv(disp, glNormal3iv); */
-/*   SET_Normal3s(disp, glNormal3s); */
-/*   SET_Normal3sv(disp, glNormal3sv); */
-/*   SET_NormalPointer(disp, glNormalPointer); */
-/*   SET_Ortho(disp, glOrtho); */
-/*   SET_PassThrough(disp, glPassThrough); */
-/*   SET_PixelMapfv(disp, glPixelMapfv); */
-/*   SET_PixelMapuiv(disp, glPixelMapuiv); */
-/*   SET_PixelMapusv(disp, glPixelMapusv); */
-/*   SET_PixelStoref(disp, glPixelStoref); */
-/*   SET_PixelStorei(disp, glPixelStorei); */
-/*   SET_PixelTransferf(disp, glPixelTransferf); */
-/*   SET_PixelTransferi(disp, glPixelTransferi); */
-/*   SET_PixelZoom(disp, glPixelZoom); */
-/*   SET_PointSize(disp, glPointSize); */
-/*   SET_PolygonMode(disp, glPolygonMode); */
-/*   SET_PolygonOffset(disp, glPolygonOffset); */
-/*   SET_PolygonStipple(disp, glPolygonStipple); */
-/*   SET_PopAttrib(disp, glPopAttrib); */
-/*   SET_PopClientAttrib(disp, glPopClientAttrib); */
-/*   SET_PopMatrix(disp, glPopMatrix); */
-/*   SET_PopName(disp, glPopName); */
-/*   SET_PrioritizeTextures(disp, glPrioritizeTextures); */
-/*   SET_PushAttrib(disp, glPushAttrib); */
-/*   SET_PushClientAttrib(disp, glPushClientAttrib); */
-/*   SET_PushMatrix(disp, glPushMatrix); */
-/*   SET_PushName(disp, glPushName); */
-/*   SET_RasterPos2d(disp, glRasterPos2d); */
-/*   SET_RasterPos2dv(disp, glRasterPos2dv); */
-/*   SET_RasterPos2f(disp, glRasterPos2f); */
-/*   SET_RasterPos2fv(disp, glRasterPos2fv); */
-/*   SET_RasterPos2i(disp, glRasterPos2i); */
-/*   SET_RasterPos2iv(disp, glRasterPos2iv); */
-/*   SET_RasterPos2s(disp, glRasterPos2s); */
-/*   SET_RasterPos2sv(disp, glRasterPos2sv); */
-/*   SET_RasterPos3d(disp, glRasterPos3d); */
-/*   SET_RasterPos3dv(disp, glRasterPos3dv); */
-/*   SET_RasterPos3f(disp, glRasterPos3f); */
-/*   SET_RasterPos3fv(disp, glRasterPos3fv); */
-/*   SET_RasterPos3i(disp, glRasterPos3i); */
-/*   SET_RasterPos3iv(disp, glRasterPos3iv); */
-/*   SET_RasterPos3s(disp, glRasterPos3s); */
-/*   SET_RasterPos3sv(disp, glRasterPos3sv); */
-/*   SET_RasterPos4d(disp, glRasterPos4d); */
-/*   SET_RasterPos4dv(disp, glRasterPos4dv); */
-/*   SET_RasterPos4f(disp, glRasterPos4f); */
-/*   SET_RasterPos4fv(disp, glRasterPos4fv); */
-/*   SET_RasterPos4i(disp, glRasterPos4i); */
-/*   SET_RasterPos4iv(disp, glRasterPos4iv); */
-/*   SET_RasterPos4s(disp, glRasterPos4s); */
-/*   SET_RasterPos4sv(disp, glRasterPos4sv); */
-/*   SET_ReadBuffer(disp, glReadBuffer); */
-/*   SET_ReadPixels(disp, glReadPixels); */
-/*   SET_Rectd(disp, glRectd); */
-/*   SET_Rectdv(disp, glRectdv); */
-/*   SET_Rectf(disp, glRectf); */
-/*   SET_Rectfv(disp, glRectfv); */
-/*   SET_Recti(disp, glRecti); */
-/*   SET_Rectiv(disp, glRectiv); */
-/*   SET_Rects(disp, glRects); */
-/*   SET_Rectsv(disp, glRectsv); */
-/*   SET_RenderMode(disp, glRenderMode); */
-  SET_ResetHistogram(disp, glResetHistogram);
-  SET_ResetMinmax(disp, glResetMinmax);
-/*   SET_Rotated(disp, glRotated); */
-/*   SET_Rotatef(disp, glRotatef); */
-/*   SET_Scaled(disp, glScaled); */
-/*   SET_Scalef(disp, glScalef); */
-/*   SET_Scissor(disp, glScissor); */
-/*   SET_SelectBuffer(disp, glSelectBuffer); */
-  SET_SeparableFilter2D(disp, glSeparableFilter2D);
-/*   SET_ShadeModel(disp, glShadeModel); */
-/*   SET_StencilFunc(disp, glStencilFunc); */
-/*   SET_StencilMask(disp, glStencilMask); */
-/*   SET_StencilOp(disp, glStencilOp); */
-/*   SET_TexCoord1d(disp, glTexCoord1d); */
-/*   SET_TexCoord1dv(disp, glTexCoord1dv); */
-/*   SET_TexCoord1f(disp, glTexCoord1f); */
-/*   SET_TexCoord1fv(disp, glTexCoord1fv); */
-/*   SET_TexCoord1i(disp, glTexCoord1i); */
-/*   SET_TexCoord1iv(disp, glTexCoord1iv); */
-/*   SET_TexCoord1s(disp, glTexCoord1s); */
-/*   SET_TexCoord1sv(disp, glTexCoord1sv); */
-/*   SET_TexCoord2d(disp, glTexCoord2d); */
-/*   SET_TexCoord2dv(disp, glTexCoord2dv); */
-/*   SET_TexCoord2f(disp, glTexCoord2f); */
-/*   SET_TexCoord2fv(disp, glTexCoord2fv); */
-/*   SET_TexCoord2i(disp, glTexCoord2i); */
-/*   SET_TexCoord2iv(disp, glTexCoord2iv); */
-/*   SET_TexCoord2s(disp, glTexCoord2s); */
-/*   SET_TexCoord2sv(disp, glTexCoord2sv); */
-/*   SET_TexCoord3d(disp, glTexCoord3d); */
-/*   SET_TexCoord3dv(disp, glTexCoord3dv); */
-/*   SET_TexCoord3f(disp, glTexCoord3f); */
-/*   SET_TexCoord3fv(disp, glTexCoord3fv); */
-/*   SET_TexCoord3i(disp, glTexCoord3i); */
-/*   SET_TexCoord3iv(disp, glTexCoord3iv); */
-/*   SET_TexCoord3s(disp, glTexCoord3s); */
-/*   SET_TexCoord3sv(disp, glTexCoord3sv); */
-/*   SET_TexCoord4d(disp, glTexCoord4d); */
-/*   SET_TexCoord4dv(disp, glTexCoord4dv); */
-/*   SET_TexCoord4f(disp, glTexCoord4f); */
-/*   SET_TexCoord4fv(disp, glTexCoord4fv); */
-/*   SET_TexCoord4i(disp, glTexCoord4i); */
-/*   SET_TexCoord4iv(disp, glTexCoord4iv); */
-/*   SET_TexCoord4s(disp, glTexCoord4s); */
-/*   SET_TexCoord4sv(disp, glTexCoord4sv); */
-/*   SET_TexCoordPointer(disp, glTexCoordPointer); */
-/*   SET_TexEnvf(disp, glTexEnvf); */
-/*   SET_TexEnvfv(disp, glTexEnvfv); */
-/*   SET_TexEnvi(disp, glTexEnvi); */
-/*   SET_TexEnviv(disp, glTexEnviv); */
-/*   SET_TexGend(disp, glTexGend); */
-/*   SET_TexGendv(disp, glTexGendv); */
-/*   SET_TexGenf(disp, glTexGenf); */
-/*   SET_TexGenfv(disp, glTexGenfv); */
-/*   SET_TexGeni(disp, glTexGeni); */
-/*   SET_TexGeniv(disp, glTexGeniv); */
-  //  SET_TexImage1D(disp, glTexImage1D);
-  //  SET_TexImage2D(disp, glTexImage2D);
-  SET_TexImage3D(disp, glTexImage3D);
-/*   SET_TexParameterf(disp, glTexParameterf); */
-/*   SET_TexParameterfv(disp, glTexParameterfv); */
-/*   SET_TexParameteri(disp, glTexParameteri); */
-/*   SET_TexParameteriv(disp, glTexParameteriv); */
-  //  SET_TexSubImage1D(disp, glTexSubImage1D);
-  //  SET_TexSubImage2D(disp, glTexSubImage2D);
-  SET_TexSubImage3D(disp, glTexSubImage3D);
-/*   SET_Translated(disp, glTranslated); */
-/*   SET_Translatef(disp, glTranslatef); */
-/*   SET_Vertex2d(disp, glVertex2d); */
-/*   SET_Vertex2dv(disp, glVertex2dv); */
-/*   SET_Vertex2f(disp, glVertex2f); */
-/*   SET_Vertex2fv(disp, glVertex2fv); */
-/*   SET_Vertex2i(disp, glVertex2i); */
-/*   SET_Vertex2iv(disp, glVertex2iv); */
-/*   SET_Vertex2s(disp, glVertex2s); */
-/*   SET_Vertex2sv(disp, glVertex2sv); */
-/*   SET_Vertex3d(disp, glVertex3d); */
-/*   SET_Vertex3dv(disp, glVertex3dv); */
-/*   SET_Vertex3f(disp, glVertex3f); */
-/*   SET_Vertex3fv(disp, glVertex3fv); */
-/*   SET_Vertex3i(disp, glVertex3i); */
-/*   SET_Vertex3iv(disp, glVertex3iv); */
-/*   SET_Vertex3s(disp, glVertex3s); */
-/*   SET_Vertex3sv(disp, glVertex3sv); */
-/*   SET_Vertex4d(disp, glVertex4d); */
-/*   SET_Vertex4dv(disp, glVertex4dv); */
-/*   SET_Vertex4f(disp, glVertex4f); */
-/*   SET_Vertex4fv(disp, glVertex4fv); */
-/*   SET_Vertex4i(disp, glVertex4i); */
-/*   SET_Vertex4iv(disp, glVertex4iv); */
-/*   SET_Vertex4s(disp, glVertex4s); */
-/*   SET_Vertex4sv(disp, glVertex4sv); */
-/*   SET_VertexPointer(disp, glVertexPointer); */
-/*   SET_Viewport(disp, glViewport); */
+  SET_GetString(disp, glGetStringWrapper);
+  SET_GetIntegerv(disp, glGetIntegervWrapper);
+
+  SET_GenTextures(disp, glGenTexturesWrapper);
+  SET_DeleteTextures(disp, glDeleteTexturesWrapper);
+  SET_BindTexture(disp, glBindTextureWrapper);
+  SET_PrioritizeTextures(disp, glPrioritizeTexturesWrapper);
+  SET_AreTexturesResident(disp, glAreTexturesResidentWrapper);
+  SET_IsTexture(disp, glIsTextureWrapper);
+
+  SET_Accum(disp, glAccumWrapper);
+  SET_AlphaFunc(disp, glAlphaFuncWrapper);
+
+  SET_ArrayElement(disp, glArrayElementWrapper);
+  SET_Begin(disp, glBeginWrapper);
+
+  SET_Bitmap(disp, glBitmapWrapper);
+  SET_BlendColor(disp, glBlendColorWrapper);
+  SET_BlendEquation(disp, glBlendEquationWrapper);
+  SET_BlendFunc(disp, glBlendFuncWrapper);
+  SET_CallList(disp, glCallListWrapper);
+  SET_CallLists(disp, glCallListsWrapper);
+  SET_Clear(disp, glClearWrapper);
+  SET_ClearAccum(disp, glClearAccumWrapper);
+  SET_ClearColor(disp, glClearColorWrapper);
+  SET_ClearDepth(disp, glClearDepthWrapper);
+  SET_ClearIndex(disp, glClearIndexWrapper);
+  SET_ClearStencil(disp, glClearStencilWrapper);
+  SET_ClipPlane(disp, glClipPlaneWrapper);
+  SET_Color3b(disp, glColor3bWrapper);
+  SET_Color3bv(disp, glColor3bvWrapper);
+  SET_Color3d(disp, glColor3dWrapper);
+  SET_Color3dv(disp, glColor3dvWrapper);
+  SET_Color3f(disp, glColor3fWrapper);
+  SET_Color3fv(disp, glColor3fvWrapper);
+  SET_Color3i(disp, glColor3iWrapper);
+  SET_Color3iv(disp, glColor3ivWrapper);
+  SET_Color3s(disp, glColor3sWrapper);
+  SET_Color3sv(disp, glColor3svWrapper);
+  SET_Color3ub(disp, glColor3ubWrapper);
+  SET_Color3ubv(disp, glColor3ubvWrapper);
+  SET_Color3ui(disp, glColor3uiWrapper);
+  SET_Color3uiv(disp, glColor3uivWrapper);
+  SET_Color3us(disp, glColor3usWrapper);
+  SET_Color3usv(disp, glColor3usvWrapper);
+  SET_Color4b(disp, glColor4bWrapper);
+  SET_Color4bv(disp, glColor4bvWrapper);
+  SET_Color4d(disp, glColor4dWrapper);
+  SET_Color4dv(disp, glColor4dvWrapper);
+  SET_Color4f(disp, glColor4fWrapper);
+  SET_Color4fv(disp, glColor4fvWrapper);
+  SET_Color4i(disp, glColor4iWrapper);
+  SET_Color4iv(disp, glColor4ivWrapper);
+  SET_Color4s(disp, glColor4sWrapper);
+  SET_Color4sv(disp, glColor4svWrapper);
+  SET_Color4ub(disp, glColor4ubWrapper);
+  SET_Color4ubv(disp, glColor4ubvWrapper);
+  SET_Color4ui(disp, glColor4uiWrapper);
+  SET_Color4uiv(disp, glColor4uivWrapper);
+  SET_Color4us(disp, glColor4usWrapper);
+  SET_Color4usv(disp, glColor4usvWrapper);
+  SET_ColorMask(disp, glColorMaskWrapper);
+  SET_ColorMaterial(disp, glColorMaterialWrapper);
+  SET_ColorPointer(disp, glColorPointerWrapper);
+  SET_ColorSubTable(disp, glColorSubTableWrapper);
+  SET_ColorTable(disp, glColorTableWrapper);
+  SET_ColorTableParameterfv(disp, glColorTableParameterfvWrapper);
+  SET_ColorTableParameteriv(disp, glColorTableParameterivWrapper);
+  SET_ConvolutionFilter1D(disp, glConvolutionFilter1DWrapper);
+  SET_ConvolutionFilter2D(disp, glConvolutionFilter2DWrapper);
+  SET_ConvolutionParameterf(disp, glConvolutionParameterfWrapper);
+  SET_ConvolutionParameterfv(disp, glConvolutionParameterfvWrapper);
+  SET_ConvolutionParameteri(disp, glConvolutionParameteriWrapper);
+  SET_ConvolutionParameteriv(disp, glConvolutionParameterivWrapper);
+  SET_CopyColorSubTable(disp, glCopyColorSubTableWrapper);
+  SET_CopyColorTable(disp, glCopyColorTableWrapper);
+  SET_CopyConvolutionFilter1D(disp, glCopyConvolutionFilter1DWrapper);
+  SET_CopyConvolutionFilter2D(disp, glCopyConvolutionFilter2DWrapper);
+  SET_CopyPixels(disp, glCopyPixelsWrapper);
+  SET_CopyTexImage1D(disp, glCopyTexImage1DWrapper);
+  SET_CopyTexImage2D(disp, glCopyTexImage2DWrapper);
+  SET_CopyTexSubImage1D(disp, glCopyTexSubImage1DWrapper);
+  SET_CopyTexSubImage2D(disp, glCopyTexSubImage2DWrapper);
+  SET_CopyTexSubImage3D(disp, glCopyTexSubImage3DWrapper);
+  SET_CullFace(disp, glCullFaceWrapper);
+  SET_DeleteLists(disp, glDeleteListsWrapper);
+
+  SET_DepthFunc(disp, glDepthFuncWrapper);
+  SET_DepthMask(disp, glDepthMaskWrapper);
+  SET_DepthRange(disp, glDepthRangeWrapper);
+  SET_Disable(disp, glDisableWrapper);
+  SET_DisableClientState(disp, glDisableClientStateWrapper);
+  SET_DrawArrays(disp, glDrawArraysWrapper);
+  SET_DrawBuffer(disp, glDrawBufferWrapper);
+  SET_DrawElements(disp, glDrawElementsWrapper);
+  SET_DrawPixels(disp, glDrawPixelsWrapper);
+  SET_DrawRangeElements(disp, glDrawRangeElementsWrapper);
+  SET_EdgeFlag(disp, glEdgeFlagWrapper);
+  SET_EdgeFlagPointer(disp, glEdgeFlagPointerWrapper);
+  SET_EdgeFlagv(disp, glEdgeFlagvWrapper);
+  SET_Enable(disp, glEnableWrapper);
+  SET_EnableClientState(disp, glEnableClientStateWrapper);
+  SET_End(disp, glEndWrapper);
+  SET_EndList(disp, glEndListWrapper);
+  SET_EvalCoord1d(disp, glEvalCoord1dWrapper);
+  SET_EvalCoord1dv(disp, glEvalCoord1dvWrapper);
+  SET_EvalCoord1f(disp, glEvalCoord1fWrapper);
+  SET_EvalCoord1fv(disp, glEvalCoord1fvWrapper);
+  SET_EvalCoord2d(disp, glEvalCoord2dWrapper);
+  SET_EvalCoord2dv(disp, glEvalCoord2dvWrapper);
+  SET_EvalCoord2f(disp, glEvalCoord2fWrapper);
+  SET_EvalCoord2fv(disp, glEvalCoord2fvWrapper);
+  SET_EvalMesh1(disp, glEvalMesh1Wrapper);
+  SET_EvalMesh2(disp, glEvalMesh2Wrapper);
+  SET_EvalPoint1(disp, glEvalPoint1Wrapper);
+  SET_EvalPoint2(disp, glEvalPoint2Wrapper);
+  SET_FeedbackBuffer(disp, glFeedbackBufferWrapper);
+  SET_Finish(disp, glFinishWrapper);
+  SET_Flush(disp, glFlushWrapper);
+  SET_Fogf(disp, glFogfWrapper);
+  SET_Fogfv(disp, glFogfvWrapper);
+  SET_Fogi(disp, glFogiWrapper);
+  SET_Fogiv(disp, glFogivWrapper);
+  SET_FrontFace(disp, glFrontFaceWrapper);
+  SET_Frustum(disp, glFrustumWrapper);
+  SET_GenLists(disp, glGenListsWrapper);
+  SET_GetBooleanv(disp, glGetBooleanvWrapper);
+  SET_GetClipPlane(disp, glGetClipPlaneWrapper);
+  SET_GetColorTable(disp, glGetColorTableWrapper);
+  SET_GetColorTableParameterfv(disp, glGetColorTableParameterfvWrapper);
+  SET_GetColorTableParameteriv(disp, glGetColorTableParameterivWrapper);
+  SET_GetConvolutionFilter(disp, glGetConvolutionFilterWrapper);
+  SET_GetConvolutionParameterfv(disp, glGetConvolutionParameterfvWrapper);
+  SET_GetConvolutionParameteriv(disp, glGetConvolutionParameterivWrapper);
+  SET_GetDoublev(disp, glGetDoublevWrapper);
+  SET_GetError(disp, glGetErrorWrapper);
+  SET_GetFloatv(disp, glGetFloatvWrapper);
+  SET_GetHistogram(disp, glGetHistogramWrapper);
+  SET_GetHistogramParameterfv(disp, glGetHistogramParameterfvWrapper);
+  SET_GetHistogramParameteriv(disp, glGetHistogramParameterivWrapper);
+
+  SET_GetLightfv(disp, glGetLightfvWrapper);
+  SET_GetLightiv(disp, glGetLightivWrapper);
+  SET_GetMapdv(disp, glGetMapdvWrapper);
+  SET_GetMapfv(disp, glGetMapfvWrapper);
+  SET_GetMapiv(disp, glGetMapivWrapper);
+  SET_GetMaterialfv(disp, glGetMaterialfvWrapper);
+  SET_GetMaterialiv(disp, glGetMaterialivWrapper);
+  SET_GetMinmax(disp, glGetMinmaxWrapper);
+  SET_GetMinmaxParameterfv(disp, glGetMinmaxParameterfvWrapper);
+  SET_GetMinmaxParameteriv(disp, glGetMinmaxParameterivWrapper);
+  SET_GetPixelMapfv(disp, glGetPixelMapfvWrapper);
+  SET_GetPixelMapuiv(disp, glGetPixelMapuivWrapper);
+  SET_GetPixelMapusv(disp, glGetPixelMapusvWrapper);
+  SET_GetPointerv(disp, glGetPointervWrapper);
+  SET_GetPolygonStipple(disp, glGetPolygonStippleWrapper);
+  SET_GetSeparableFilter(disp, glGetSeparableFilterWrapper);
+  SET_GetTexEnvfv(disp, glGetTexEnvfvWrapper);
+  SET_GetTexEnviv(disp, glGetTexEnvivWrapper);
+  SET_GetTexGendv(disp, glGetTexGendvWrapper);
+  SET_GetTexGenfv(disp, glGetTexGenfvWrapper);
+  SET_GetTexGeniv(disp, glGetTexGenivWrapper);
+  SET_GetTexImage(disp, glGetTexImageWrapper);
+  SET_GetTexLevelParameterfv(disp, glGetTexLevelParameterfvWrapper);
+  SET_GetTexLevelParameteriv(disp, glGetTexLevelParameterivWrapper);
+  SET_GetTexParameterfv(disp, glGetTexParameterfvWrapper);
+  SET_GetTexParameteriv(disp, glGetTexParameterivWrapper);
+  SET_Hint(disp, glHintWrapper);
+  SET_Histogram(disp, glHistogramWrapper);
+  SET_IndexMask(disp, glIndexMaskWrapper);
+  SET_IndexPointer(disp, glIndexPointerWrapper);
+  SET_Indexd(disp, glIndexdWrapper);
+  SET_Indexdv(disp, glIndexdvWrapper);
+  SET_Indexf(disp, glIndexfWrapper);
+  SET_Indexfv(disp, glIndexfvWrapper);
+  SET_Indexi(disp, glIndexiWrapper);
+  SET_Indexiv(disp, glIndexivWrapper);
+  SET_Indexs(disp, glIndexsWrapper);
+  SET_Indexsv(disp, glIndexsvWrapper);
+  SET_Indexub(disp, glIndexubWrapper);
+  SET_Indexubv(disp, glIndexubvWrapper);
+  SET_InitNames(disp, glInitNamesWrapper);
+  SET_InterleavedArrays(disp, glInterleavedArraysWrapper);
+  SET_IsEnabled(disp, glIsEnabledWrapper);
+  SET_IsList(disp, glIsListWrapper);
+  SET_LightModelf(disp, glLightModelfWrapper);
+  SET_LightModelfv(disp, glLightModelfvWrapper);
+  SET_LightModeli(disp, glLightModeliWrapper);
+  SET_LightModeliv(disp, glLightModelivWrapper);
+  SET_Lightf(disp, glLightfWrapper);
+  SET_Lightfv(disp, glLightfvWrapper);
+  SET_Lighti(disp, glLightiWrapper);
+  SET_Lightiv(disp, glLightivWrapper);
+  SET_LineStipple(disp, glLineStippleWrapper);
+  SET_LineWidth(disp, glLineWidthWrapper);
+  SET_ListBase(disp, glListBaseWrapper);
+  SET_LoadIdentity(disp, glLoadIdentityWrapper);
+  SET_LoadMatrixd(disp, glLoadMatrixdWrapper);
+  SET_LoadMatrixf(disp, glLoadMatrixfWrapper);
+  SET_LoadName(disp, glLoadNameWrapper);
+  SET_LogicOp(disp, glLogicOpWrapper);
+  SET_Map1d(disp, glMap1dWrapper);
+  SET_Map1f(disp, glMap1fWrapper);
+  SET_Map2d(disp, glMap2dWrapper);
+  SET_Map2f(disp, glMap2fWrapper);
+  SET_MapGrid1d(disp, glMapGrid1dWrapper);
+  SET_MapGrid1f(disp, glMapGrid1fWrapper);
+  SET_MapGrid2d(disp, glMapGrid2dWrapper);
+  SET_MapGrid2f(disp, glMapGrid2fWrapper);
+  SET_Materialf(disp, glMaterialfWrapper);
+  SET_Materialfv(disp, glMaterialfvWrapper);
+  SET_Materiali(disp, glMaterialiWrapper);
+  SET_Materialiv(disp, glMaterialivWrapper);
+  SET_MatrixMode(disp, glMatrixModeWrapper);
+  SET_Minmax(disp, glMinmaxWrapper);
+  SET_MultMatrixd(disp, glMultMatrixdWrapper);
+  SET_MultMatrixf(disp, glMultMatrixfWrapper);
+  SET_NewList(disp, glNewListWrapper);
+  SET_Normal3b(disp, glNormal3bWrapper);
+  SET_Normal3bv(disp, glNormal3bvWrapper);
+  SET_Normal3d(disp, glNormal3dWrapper);
+  SET_Normal3dv(disp, glNormal3dvWrapper);
+  SET_Normal3f(disp, glNormal3fWrapper);
+  SET_Normal3fv(disp, glNormal3fvWrapper);
+  SET_Normal3i(disp, glNormal3iWrapper);
+  SET_Normal3iv(disp, glNormal3ivWrapper);
+  SET_Normal3s(disp, glNormal3sWrapper);
+  SET_Normal3sv(disp, glNormal3svWrapper);
+  SET_NormalPointer(disp, glNormalPointerWrapper);
+  SET_Ortho(disp, glOrthoWrapper);
+  SET_PassThrough(disp, glPassThroughWrapper);
+  SET_PixelMapfv(disp, glPixelMapfvWrapper);
+  SET_PixelMapuiv(disp, glPixelMapuivWrapper);
+  SET_PixelMapusv(disp, glPixelMapusvWrapper);
+  SET_PixelStoref(disp, glPixelStorefWrapper);
+  SET_PixelStorei(disp, glPixelStoreiWrapper);
+  SET_PixelTransferf(disp, glPixelTransferfWrapper);
+  SET_PixelTransferi(disp, glPixelTransferiWrapper);
+  SET_PixelZoom(disp, glPixelZoomWrapper);
+  SET_PointSize(disp, glPointSizeWrapper);
+  SET_PolygonMode(disp, glPolygonModeWrapper);
+  SET_PolygonOffset(disp, glPolygonOffsetWrapper);
+  SET_PolygonStipple(disp, glPolygonStippleWrapper);
+  SET_PopAttrib(disp, glPopAttribWrapper);
+  SET_PopClientAttrib(disp, glPopClientAttribWrapper);
+  SET_PopMatrix(disp, glPopMatrixWrapper);
+  SET_PopName(disp, glPopNameWrapper);
+  SET_PushAttrib(disp, glPushAttribWrapper);
+  SET_PushClientAttrib(disp, glPushClientAttribWrapper);
+  SET_PushMatrix(disp, glPushMatrixWrapper);
+  SET_PushName(disp, glPushNameWrapper);
+  SET_RasterPos2d(disp, glRasterPos2dWrapper);
+  SET_RasterPos2dv(disp, glRasterPos2dvWrapper);
+  SET_RasterPos2f(disp, glRasterPos2fWrapper);
+  SET_RasterPos2fv(disp, glRasterPos2fvWrapper);
+  SET_RasterPos2i(disp, glRasterPos2iWrapper);
+  SET_RasterPos2iv(disp, glRasterPos2ivWrapper);
+  SET_RasterPos2s(disp, glRasterPos2sWrapper);
+  SET_RasterPos2sv(disp, glRasterPos2svWrapper);
+  SET_RasterPos3d(disp, glRasterPos3dWrapper);
+  SET_RasterPos3dv(disp, glRasterPos3dvWrapper);
+  SET_RasterPos3f(disp, glRasterPos3fWrapper);
+  SET_RasterPos3fv(disp, glRasterPos3fvWrapper);
+  SET_RasterPos3i(disp, glRasterPos3iWrapper);
+  SET_RasterPos3iv(disp, glRasterPos3ivWrapper);
+  SET_RasterPos3s(disp, glRasterPos3sWrapper);
+  SET_RasterPos3sv(disp, glRasterPos3svWrapper);
+  SET_RasterPos4d(disp, glRasterPos4dWrapper);
+  SET_RasterPos4dv(disp, glRasterPos4dvWrapper);
+  SET_RasterPos4f(disp, glRasterPos4fWrapper);
+  SET_RasterPos4fv(disp, glRasterPos4fvWrapper);
+  SET_RasterPos4i(disp, glRasterPos4iWrapper);
+  SET_RasterPos4iv(disp, glRasterPos4ivWrapper);
+  SET_RasterPos4s(disp, glRasterPos4sWrapper);
+  SET_RasterPos4sv(disp, glRasterPos4svWrapper);
+  SET_ReadBuffer(disp, glReadBufferWrapper);
+  SET_ReadPixels(disp, glReadPixelsWrapper);
+  SET_Rectd(disp, glRectdWrapper);
+  SET_Rectdv(disp, glRectdvWrapper);
+  SET_Rectf(disp, glRectfWrapper);
+  SET_Rectfv(disp, glRectfvWrapper);
+  SET_Recti(disp, glRectiWrapper);
+  SET_Rectiv(disp, glRectivWrapper);
+  SET_Rects(disp, glRectsWrapper);
+  SET_Rectsv(disp, glRectsvWrapper);
+  SET_RenderMode(disp, glRenderModeWrapper);
+  SET_ResetHistogram(disp, glResetHistogramWrapper);
+  SET_ResetMinmax(disp, glResetMinmaxWrapper);
+  SET_Rotated(disp, glRotatedWrapper);
+  SET_Rotatef(disp, glRotatefWrapper);
+  SET_Scaled(disp, glScaledWrapper);
+  SET_Scalef(disp, glScalefWrapper);
+  SET_Scissor(disp, glScissorWrapper);
+  SET_SelectBuffer(disp, glSelectBufferWrapper);
+  SET_SeparableFilter2D(disp, glSeparableFilter2DWrapper);
+  SET_ShadeModel(disp, glShadeModelWrapper);
+  SET_StencilFunc(disp, glStencilFuncWrapper);
+  SET_StencilMask(disp, glStencilMaskWrapper);
+  SET_StencilOp(disp, glStencilOpWrapper);
+  SET_TexCoord1d(disp, glTexCoord1dWrapper);
+  SET_TexCoord1dv(disp, glTexCoord1dvWrapper);
+  SET_TexCoord1f(disp, glTexCoord1fWrapper);
+  SET_TexCoord1fv(disp, glTexCoord1fvWrapper);
+  SET_TexCoord1i(disp, glTexCoord1iWrapper);
+  SET_TexCoord1iv(disp, glTexCoord1ivWrapper);
+  SET_TexCoord1s(disp, glTexCoord1sWrapper);
+  SET_TexCoord1sv(disp, glTexCoord1svWrapper);
+  SET_TexCoord2d(disp, glTexCoord2dWrapper);
+  SET_TexCoord2dv(disp, glTexCoord2dvWrapper);
+  SET_TexCoord2f(disp, glTexCoord2fWrapper);
+  SET_TexCoord2fv(disp, glTexCoord2fvWrapper);
+  SET_TexCoord2i(disp, glTexCoord2iWrapper);
+  SET_TexCoord2iv(disp, glTexCoord2ivWrapper);
+  SET_TexCoord2s(disp, glTexCoord2sWrapper);
+  SET_TexCoord2sv(disp, glTexCoord2svWrapper);
+  SET_TexCoord3d(disp, glTexCoord3dWrapper);
+  SET_TexCoord3dv(disp, glTexCoord3dvWrapper);
+  SET_TexCoord3f(disp, glTexCoord3fWrapper);
+  SET_TexCoord3fv(disp, glTexCoord3fvWrapper);
+  SET_TexCoord3i(disp, glTexCoord3iWrapper);
+  SET_TexCoord3iv(disp, glTexCoord3ivWrapper);
+  SET_TexCoord3s(disp, glTexCoord3sWrapper);
+  SET_TexCoord3sv(disp, glTexCoord3svWrapper);
+  SET_TexCoord4d(disp, glTexCoord4dWrapper);
+  SET_TexCoord4dv(disp, glTexCoord4dvWrapper);
+  SET_TexCoord4f(disp, glTexCoord4fWrapper);
+  SET_TexCoord4fv(disp, glTexCoord4fvWrapper);
+  SET_TexCoord4i(disp, glTexCoord4iWrapper);
+  SET_TexCoord4iv(disp, glTexCoord4ivWrapper);
+  SET_TexCoord4s(disp, glTexCoord4sWrapper);
+  SET_TexCoord4sv(disp, glTexCoord4svWrapper);
+  SET_TexCoordPointer(disp, glTexCoordPointerWrapper);
+  SET_TexEnvf(disp, glTexEnvfWrapper);
+  SET_TexEnvfv(disp, glTexEnvfvWrapper);
+  SET_TexEnvi(disp, glTexEnviWrapper);
+  SET_TexEnviv(disp, glTexEnvivWrapper);
+  SET_TexGend(disp, glTexGendWrapper);
+  SET_TexGendv(disp, glTexGendvWrapper);
+  SET_TexGenf(disp, glTexGenfWrapper);
+  SET_TexGenfv(disp, glTexGenfvWrapper);
+  SET_TexGeni(disp, glTexGeniWrapper);
+  SET_TexGeniv(disp, glTexGenivWrapper);
+  SET_TexImage1D(disp, glTexImage1DWrapper);
+  SET_TexImage2D(disp, glTexImage2DWrapper);
+  SET_TexImage3D(disp, glTexImage3DWrapper);
+  SET_TexParameterf(disp, glTexParameterfWrapper);
+  SET_TexParameterfv(disp, glTexParameterfvWrapper);
+  SET_TexParameteri(disp, glTexParameteriWrapper);
+  SET_TexParameteriv(disp, glTexParameterivWrapper);
+  SET_TexSubImage1D(disp, glTexSubImage1DWrapper);
+  SET_TexSubImage2D(disp, glTexSubImage2DWrapper);
+  SET_TexSubImage3D(disp, glTexSubImage3DWrapper);
+  SET_Translated(disp, glTranslatedWrapper);
+  SET_Translatef(disp, glTranslatefWrapper);
+  SET_Vertex2d(disp, glVertex2dWrapper);
+  SET_Vertex2dv(disp, glVertex2dvWrapper);
+  SET_Vertex2f(disp, glVertex2fWrapper);
+  SET_Vertex2fv(disp, glVertex2fvWrapper);
+  SET_Vertex2i(disp, glVertex2iWrapper);
+  SET_Vertex2iv(disp, glVertex2ivWrapper);
+  SET_Vertex2s(disp, glVertex2sWrapper);
+  SET_Vertex2sv(disp, glVertex2svWrapper);
+  SET_Vertex3d(disp, glVertex3dWrapper);
+  SET_Vertex3dv(disp, glVertex3dvWrapper);
+  SET_Vertex3f(disp, glVertex3fWrapper);
+  SET_Vertex3fv(disp, glVertex3fvWrapper);
+  SET_Vertex3i(disp, glVertex3iWrapper);
+  SET_Vertex3iv(disp, glVertex3ivWrapper);
+  SET_Vertex3s(disp, glVertex3sWrapper);
+  SET_Vertex3sv(disp, glVertex3svWrapper);
+  SET_Vertex4d(disp, glVertex4dWrapper);
+  SET_Vertex4dv(disp, glVertex4dvWrapper);
+  SET_Vertex4f(disp, glVertex4fWrapper);
+  SET_Vertex4fv(disp, glVertex4fvWrapper);
+  SET_Vertex4i(disp, glVertex4iWrapper);
+  SET_Vertex4iv(disp, glVertex4ivWrapper);
+  SET_Vertex4s(disp, glVertex4sWrapper);
+  SET_Vertex4sv(disp, glVertex4svWrapper);
+  SET_VertexPointer(disp, glVertexPointerWrapper);
+  SET_Viewport(disp, glViewportWrapper);
 
 #if GL_VERSION_2_0
-/*   SET_AttachShader(disp, glAttachShader); */
-/*   SET_DeleteShader(disp, glDeleteShader); */
-/*   SET_DetachShader(disp, glDetachShader); */
-/*   SET_GetAttachedShaders(disp, glGetAttachedShaders); */
-/*   SET_GetProgramInfoLog(disp, glGetProgramInfoLog); */
-/*   SET_GetShaderInfoLog(disp, glGetShaderInfoLog); */
-/*   SET_GetShaderiv(disp, glGetShaderiv); */
-/*   SET_IsShader(disp, glIsShader); */
-/*   SET_StencilFuncSeparate(disp, glStencilFuncSeparate); */
-/*   SET_StencilMaskSeparate(disp, glStencilMaskSeparate); */
-/*   SET_StencilOpSeparate(disp, glStencilOpSeparate); */
+/*   SET_AttachShader(disp, glAttachShaderWrapper); */
+/*   SET_DeleteShader(disp, glDeleteShaderWrapper); */
+/*   SET_DetachShader(disp, glDetachShaderWrapper); */
+/*   SET_GetAttachedShaders(disp, glGetAttachedShadersWrapper); */
+/*   SET_GetProgramInfoLog(disp, glGetProgramInfoLogWrapper); */
+/*   SET_GetShaderInfoLog(disp, glGetShaderInfoLogWrapper); */
+/*   SET_GetShaderiv(disp, glGetShaderivWrapper); */
+/*   SET_IsShader(disp, glIsShaderWrapper); */
+/*   SET_StencilFuncSeparate(disp, glStencilFuncSeparateWrapper); */
+/*   SET_StencilMaskSeparate(disp, glStencilMaskSeparateWrapper); */
+/*   SET_StencilOpSeparate(disp, glStencilOpSeparateWrapper); */
 #endif
 
 #if GL_VERSION_2_1
-/*   SET_UniformMatrix2x3fv(disp, glUniformMatrix2x3fv); */
-/*   SET_UniformMatrix2x4fv(disp, glUniformMatrix2x4fv); */
-/*   SET_UniformMatrix3x2fv(disp, glUniformMatrix3x2fv); */
-/*   SET_UniformMatrix3x4fv(disp, glUniformMatrix3x4fv); */
-/*   SET_UniformMatrix4x2fv(disp, glUniformMatrix4x2fv); */
-/*   SET_UniformMatrix4x3fv(disp, glUniformMatrix4x3fv); */
+/*   SET_UniformMatrix2x3fv(disp, glUniformMatrix2x3fvWrapper); */
+/*   SET_UniformMatrix2x4fv(disp, glUniformMatrix2x4fvWrapper); */
+/*   SET_UniformMatrix3x2fv(disp, glUniformMatrix3x2fvWrapper); */
+/*   SET_UniformMatrix3x4fv(disp, glUniformMatrix3x4fvWrapper); */
+/*   SET_UniformMatrix4x2fv(disp, glUniformMatrix4x2fvWrapper); */
+/*   SET_UniformMatrix4x3fv(disp, glUniformMatrix4x3fvWrapper); */
 #endif
 
 #if GL_APPLE_vertex_array_object
-/*   SET_BindVertexArrayAPPLE(disp, glBindVertexArrayAPPLE); */
-/*   SET_DeleteVertexArraysAPPLE(disp, glDeleteVertexArraysAPPLE); */
-/*   SET_GenVertexArraysAPPLE(disp, glGenVertexArraysAPPLE); */
-/*   SET_IsVertexArrayAPPLE(disp, glIsVertexArrayAPPLE); */
+/*   SET_BindVertexArrayAPPLE(disp, glBindVertexArrayAPPLEWrapper); */
+/*   SET_DeleteVertexArraysAPPLE(disp, glDeleteVertexArraysAPPLEWrapper); */
+/*   SET_GenVertexArraysAPPLE(disp, glGenVertexArraysAPPLEWrapper); */
+/*   SET_IsVertexArrayAPPLE(disp, glIsVertexArrayAPPLEWrapper); */
 #endif
 
 #if GL_ARB_draw_buffers
-/*   SET_DrawBuffersARB(disp, glDrawBuffersARB); */
+/*   SET_DrawBuffersARB(disp, glDrawBuffersARBWrapper); */
 #endif
 
 #if GL_ARB_multisample
-/*   SET_SampleCoverageARB(disp, glSampleCoverageARB); */
+  SET_SampleCoverageARB(disp, glSampleCoverageARBWrapper);
 #endif
 
 #if GL_ARB_multitexture
-  SET_ActiveTextureARB(disp, glActiveTextureARB);
-/*   SET_ClientActiveTextureARB(disp, glClientActiveTextureARB); */
-/*    SET_MultiTexCoord1dARB(disp, glMultiTexCoord1dARB); */
-  SET_MultiTexCoord1dvARB(disp, glMultiTexCoord1dvARB);
-/*   SET_MultiTexCoord1fARB(disp, glMultiTexCoord1fARB); */
-  SET_MultiTexCoord1fvARB(disp, glMultiTexCoord1fvARB);
-/*   SET_MultiTexCoord1iARB(disp, glMultiTexCoord1iARB); */
-  SET_MultiTexCoord1ivARB(disp, glMultiTexCoord1ivARB);
-/*   SET_MultiTexCoord1sARB(disp, glMultiTexCoord1sARB); */
-  SET_MultiTexCoord1svARB(disp, glMultiTexCoord1svARB);
-/*   SET_MultiTexCoord2dARB(disp, glMultiTexCoord2dARB); */
-  SET_MultiTexCoord2dvARB(disp, glMultiTexCoord2dvARB);
-/*   SET_MultiTexCoord2fARB(disp, glMultiTexCoord2fARB); */
-  SET_MultiTexCoord2fvARB(disp, glMultiTexCoord2fvARB);
-/*   SET_MultiTexCoord2iARB(disp, glMultiTexCoord2iARB); */
-  SET_MultiTexCoord2ivARB(disp, glMultiTexCoord2ivARB);
-/*   SET_MultiTexCoord2sARB(disp, glMultiTexCoord2sARB); */
-  SET_MultiTexCoord2svARB(disp, glMultiTexCoord2svARB);
-/*   SET_MultiTexCoord3dARB(disp, glMultiTexCoord3dARB); */
-  SET_MultiTexCoord3dvARB(disp, glMultiTexCoord3dvARB);
-/*   SET_MultiTexCoord3fARB(disp, glMultiTexCoord3fARB); */
-  SET_MultiTexCoord3fvARB(disp, glMultiTexCoord3fvARB);
-/*   SET_MultiTexCoord3iARB(disp, glMultiTexCoord3iARB); */
-  SET_MultiTexCoord3ivARB(disp, glMultiTexCoord3ivARB);
-/*   SET_MultiTexCoord3sARB(disp, glMultiTexCoord3sARB); */
-  SET_MultiTexCoord3svARB(disp, glMultiTexCoord3svARB);
-/*   SET_MultiTexCoord4dARB(disp, glMultiTexCoord4dARB); */
-  SET_MultiTexCoord4dvARB(disp, glMultiTexCoord4dvARB);
-/*   SET_MultiTexCoord4fARB(disp, glMultiTexCoord4fARB); */
-  SET_MultiTexCoord4fvARB(disp, glMultiTexCoord4fvARB);
-/*   SET_MultiTexCoord4iARB(disp, glMultiTexCoord4iARB); */
-  SET_MultiTexCoord4ivARB(disp, glMultiTexCoord4ivARB);
-/*   SET_MultiTexCoord4sARB(disp, glMultiTexCoord4sARB); */
-  SET_MultiTexCoord4svARB(disp, glMultiTexCoord4svARB);
+  SET_ActiveTextureARB(disp, glActiveTextureARBWrapper);
+/*   SET_ClientActiveTextureARB(disp, glClientActiveTextureARBWrapper); */
+/*    SET_MultiTexCoord1dARB(disp, glMultiTexCoord1dARBWrapper); */
+  SET_MultiTexCoord1dvARB(disp, glMultiTexCoord1dvARBWrapper);
+/*   SET_MultiTexCoord1fARB(disp, glMultiTexCoord1fARBWrapper); */
+  SET_MultiTexCoord1fvARB(disp, glMultiTexCoord1fvARBWrapper);
+/*   SET_MultiTexCoord1iARB(disp, glMultiTexCoord1iARBWrapper); */
+  SET_MultiTexCoord1ivARB(disp, glMultiTexCoord1ivARBWrapper);
+/*   SET_MultiTexCoord1sARB(disp, glMultiTexCoord1sARBWrapper); */
+  SET_MultiTexCoord1svARB(disp, glMultiTexCoord1svARBWrapper);
+/*   SET_MultiTexCoord2dARB(disp, glMultiTexCoord2dARBWrapper); */
+  SET_MultiTexCoord2dvARB(disp, glMultiTexCoord2dvARBWrapper);
+/*   SET_MultiTexCoord2fARB(disp, glMultiTexCoord2fARBWrapper); */
+  SET_MultiTexCoord2fvARB(disp, glMultiTexCoord2fvARBWrapper);
+/*   SET_MultiTexCoord2iARB(disp, glMultiTexCoord2iARBWrapper); */
+  SET_MultiTexCoord2ivARB(disp, glMultiTexCoord2ivARBWrapper);
+/*   SET_MultiTexCoord2sARB(disp, glMultiTexCoord2sARBWrapper); */
+  SET_MultiTexCoord2svARB(disp, glMultiTexCoord2svARBWrapper);
+/*   SET_MultiTexCoord3dARB(disp, glMultiTexCoord3dARBWrapper); */
+  SET_MultiTexCoord3dvARB(disp, glMultiTexCoord3dvARBWrapper);
+/*   SET_MultiTexCoord3fARB(disp, glMultiTexCoord3fARBWrapper); */
+  SET_MultiTexCoord3fvARB(disp, glMultiTexCoord3fvARBWrapper);
+/*   SET_MultiTexCoord3iARB(disp, glMultiTexCoord3iARBWrapper); */
+  SET_MultiTexCoord3ivARB(disp, glMultiTexCoord3ivARBWrapper);
+/*   SET_MultiTexCoord3sARB(disp, glMultiTexCoord3sARBWrapper); */
+  SET_MultiTexCoord3svARB(disp, glMultiTexCoord3svARBWrapper);
+/*   SET_MultiTexCoord4dARB(disp, glMultiTexCoord4dARBWrapper); */
+  SET_MultiTexCoord4dvARB(disp, glMultiTexCoord4dvARBWrapper);
+/*   SET_MultiTexCoord4fARB(disp, glMultiTexCoord4fARBWrapper); */
+  SET_MultiTexCoord4fvARB(disp, glMultiTexCoord4fvARBWrapper);
+/*   SET_MultiTexCoord4iARB(disp, glMultiTexCoord4iARBWrapper); */
+  SET_MultiTexCoord4ivARB(disp, glMultiTexCoord4ivARBWrapper);
+/*   SET_MultiTexCoord4sARB(disp, glMultiTexCoord4sARBWrapper); */
+  SET_MultiTexCoord4svARB(disp, glMultiTexCoord4svARBWrapper);
 #endif
 
 #if GL_ARB_occlusion_query
-/*   SET_BeginQueryARB(disp, glBeginQueryARB); */
-/*   SET_DeleteQueriesARB(disp, glDeleteQueriesARB); */
-/*   SET_EndQueryARB(disp, glEndQueryARB); */
-/*   SET_GenQueriesARB(disp, glGenQueriesARB); */
-/*   SET_GetQueryObjectivARB(disp, glGetQueryObjectivARB); */
-/*   SET_GetQueryObjectuivARB(disp, glGetQueryObjectuivARB); */
-/*   SET_GetQueryivARB(disp, glGetQueryivARB); */
-/*   SET_IsQueryARB(disp, glIsQueryARB); */
+/*   SET_BeginQueryARB(disp, glBeginQueryARBWrapper); */
+/*   SET_DeleteQueriesARB(disp, glDeleteQueriesARBWrapper); */
+/*   SET_EndQueryARB(disp, glEndQueryARBWrapper); */
+/*   SET_GenQueriesARB(disp, glGenQueriesARBWrapper); */
+/*   SET_GetQueryObjectivARB(disp, glGetQueryObjectivARBWrapper); */
+/*   SET_GetQueryObjectuivARB(disp, glGetQueryObjectuivARBWrapper); */
+/*   SET_GetQueryivARB(disp, glGetQueryivARBWrapper); */
+/*   SET_IsQueryARB(disp, glIsQueryARBWrapper); */
 #endif
 
 #if GL_ARB_shader_objects
-/*   SET_AttachObjectARB(disp, glAttachObjectARB); */
-/*   SET_CompileShaderARB(disp, glCompileShaderARB); */
-/*   SET_DeleteObjectARB(disp, glDeleteObjectARB); */
-/*   SET_GetHandleARB(disp, glGetHandleARB); */
-/*   SET_DetachObjectARB(disp, glDetachObjectARB); */
-/*   SET_CreateProgramObjectARB(disp, glCreateProgramObjectARB); */
-/*   SET_CreateShaderObjectARB(disp, glCreateShaderObjectARB); */
-/*   SET_GetInfoLogARB(disp, glGetInfoLogARB); */
-/*   SET_GetActiveUniformARB(disp, glGetActiveUniformARB); */
-/*   SET_GetAttachedObjectsARB(disp, glGetAttachedObjectsARB); */
-/*   SET_GetObjectParameterfvARB(disp, glGetObjectParameterfvARB); */
-/*   SET_GetObjectParameterivARB(disp, glGetObjectParameterivARB); */
-/*   SET_GetShaderSourceARB(disp, glGetShaderSourceARB); */
-/*   SET_GetUniformLocationARB(disp, glGetUniformLocationARB); */
-/*   SET_GetUniformfvARB(disp, glGetUniformfvARB); */
-/*   SET_GetUniformivARB(disp, glGetUniformivARB); */
-/*   SET_LinkProgramARB(disp, glLinkProgramARB); */
-/*   SET_ShaderSourceARB(disp, glShaderSourceARB); */
-/*   SET_Uniform1fARB(disp, glUniform1fARB); */
-/*   SET_Uniform1fvARB(disp, glUniform1fvARB); */
-/*   SET_Uniform1iARB(disp, glUniform1iARB); */
-/*   SET_Uniform1ivARB(disp, glUniform1ivARB); */
-/*   SET_Uniform2fARB(disp, glUniform2fARB); */
-/*   SET_Uniform2fvARB(disp, glUniform2fvARB); */
-/*   SET_Uniform2iARB(disp, glUniform2iARB); */
-/*   SET_Uniform2ivARB(disp, glUniform2ivARB); */
-/*   SET_Uniform3fARB(disp, glUniform3fARB); */
-/*   SET_Uniform3fvARB(disp, glUniform3fvARB); */
-/*   SET_Uniform3iARB(disp, glUniform3iARB); */
-/*   SET_Uniform3ivARB(disp, glUniform3ivARB); */
-/*   SET_Uniform4fARB(disp, glUniform4fARB); */
-/*   SET_Uniform4fvARB(disp, glUniform4fvARB); */
-/*   SET_Uniform4iARB(disp, glUniform4iARB); */
-/*   SET_Uniform4ivARB(disp, glUniform4ivARB); */
-/*   SET_UniformMatrix2fvARB(disp, glUniformMatrix2fvARB); */
-/*   SET_UniformMatrix3fvARB(disp, glUniformMatrix3fvARB); */
-/*   SET_UniformMatrix4fvARB(disp, glUniformMatrix4fvARB); */
-/*   SET_UseProgramObjectARB(disp, glUseProgramObjectARB); */
-/*   SET_ValidateProgramARB(disp, glValidateProgramARB); */
+/*   SET_AttachObjectARB(disp, glAttachObjectARBWrapper); */
+/*   SET_CompileShaderARB(disp, glCompileShaderARBWrapper); */
+/*   SET_DeleteObjectARB(disp, glDeleteObjectARBWrapper); */
+/*   SET_GetHandleARB(disp, glGetHandleARBWrapper); */
+/*   SET_DetachObjectARB(disp, glDetachObjectARBWrapper); */
+/*   SET_CreateProgramObjectARB(disp, glCreateProgramObjectARBWrapper); */
+/*   SET_CreateShaderObjectARB(disp, glCreateShaderObjectARBWrapper); */
+/*   SET_GetInfoLogARB(disp, glGetInfoLogARBWrapper); */
+/*   SET_GetActiveUniformARB(disp, glGetActiveUniformARBWrapper); */
+/*   SET_GetAttachedObjectsARB(disp, glGetAttachedObjectsARBWrapper); */
+/*   SET_GetObjectParameterfvARB(disp, glGetObjectParameterfvARBWrapper); */
+/*   SET_GetObjectParameterivARB(disp, glGetObjectParameterivARBWrapper); */
+/*   SET_GetShaderSourceARB(disp, glGetShaderSourceARBWrapper); */
+/*   SET_GetUniformLocationARB(disp, glGetUniformLocationARBWrapper); */
+/*   SET_GetUniformfvARB(disp, glGetUniformfvARBWrapper); */
+/*   SET_GetUniformivARB(disp, glGetUniformivARBWrapper); */
+/*   SET_LinkProgramARB(disp, glLinkProgramARBWrapper); */
+/*   SET_ShaderSourceARB(disp, glShaderSourceARBWrapper); */
+/*   SET_Uniform1fARB(disp, glUniform1fARBWrapper); */
+/*   SET_Uniform1fvARB(disp, glUniform1fvARBWrapper); */
+/*   SET_Uniform1iARB(disp, glUniform1iARBWrapper); */
+/*   SET_Uniform1ivARB(disp, glUniform1ivARBWrapper); */
+/*   SET_Uniform2fARB(disp, glUniform2fARBWrapper); */
+/*   SET_Uniform2fvARB(disp, glUniform2fvARBWrapper); */
+/*   SET_Uniform2iARB(disp, glUniform2iARBWrapper); */
+/*   SET_Uniform2ivARB(disp, glUniform2ivARBWrapper); */
+/*   SET_Uniform3fARB(disp, glUniform3fARBWrapper); */
+/*   SET_Uniform3fvARB(disp, glUniform3fvARBWrapper); */
+/*   SET_Uniform3iARB(disp, glUniform3iARBWrapper); */
+/*   SET_Uniform3ivARB(disp, glUniform3ivARBWrapper); */
+/*   SET_Uniform4fARB(disp, glUniform4fARBWrapper); */
+/*   SET_Uniform4fvARB(disp, glUniform4fvARBWrapper); */
+/*   SET_Uniform4iARB(disp, glUniform4iARBWrapper); */
+/*   SET_Uniform4ivARB(disp, glUniform4ivARBWrapper); */
+/*   SET_UniformMatrix2fvARB(disp, glUniformMatrix2fvARBWrapper); */
+/*   SET_UniformMatrix3fvARB(disp, glUniformMatrix3fvARBWrapper); */
+/*   SET_UniformMatrix4fvARB(disp, glUniformMatrix4fvARBWrapper); */
+/*   SET_UseProgramObjectARB(disp, glUseProgramObjectARBWrapper); */
+/*   SET_ValidateProgramARB(disp, glValidateProgramARBWrapper); */
 #endif
 
 #if GL_ARB_texture_compression
-/*   SET_CompressedTexImage1DARB(disp, glCompressedTexImage1DARB); */
-/*   SET_CompressedTexImage2DARB(disp, glCompressedTexImage2DARB); */
-/*   SET_CompressedTexImage3DARB(disp, glCompressedTexImage3DARB); */
-/*   SET_CompressedTexSubImage1DARB(disp, glCompressedTexSubImage1DARB); */
-/*   SET_CompressedTexSubImage2DARB(disp, glCompressedTexSubImage2DARB); */
-/*   SET_CompressedTexSubImage3DARB(disp, glCompressedTexSubImage3DARB); */
-/*   SET_GetCompressedTexImageARB(disp, glGetCompressedTexImageARB); */
+/*   SET_CompressedTexImage1DARB(disp, glCompressedTexImage1DARBWrapper); */
+/*   SET_CompressedTexImage2DARB(disp, glCompressedTexImage2DARBWrapper); */
+/*   SET_CompressedTexImage3DARB(disp, glCompressedTexImage3DARBWrapper); */
+/*   SET_CompressedTexSubImage1DARB(disp, glCompressedTexSubImage1DARBWrapper); */
+/*   SET_CompressedTexSubImage2DARB(disp, glCompressedTexSubImage2DARBWrapper); */
+/*   SET_CompressedTexSubImage3DARB(disp, glCompressedTexSubImage3DARBWrapper); */
+/*   SET_GetCompressedTexImageARB(disp, glGetCompressedTexImageARBWrapper); */
 #endif
 
 #if GL_ARB_transpose_matrix
-/*   SET_LoadTransposeMatrixdARB(disp, glLoadTransposeMatrixdARB); */
-/*   SET_LoadTransposeMatrixfARB(disp, glLoadTransposeMatrixfARB); */
-/*   SET_MultTransposeMatrixdARB(disp, glMultTransposeMatrixdARB); */
-/*   SET_MultTransposeMatrixfARB(disp, glMultTransposeMatrixfARB); */
+/*   SET_LoadTransposeMatrixdARB(disp, glLoadTransposeMatrixdARBWrapper); */
+/*   SET_LoadTransposeMatrixfARB(disp, glLoadTransposeMatrixfARBWrapper); */
+/*   SET_MultTransposeMatrixdARB(disp, glMultTransposeMatrixdARBWrapper); */
+/*   SET_MultTransposeMatrixfARB(disp, glMultTransposeMatrixfARBWrapper); */
 #endif
 
 #if GL_ARB_vertex_buffer_object
-/*   SET_BindBufferARB(disp, glBindBufferARB); */
-/*   SET_BufferDataARB(disp, glBufferDataARB); */
-/*   SET_BufferSubDataARB(disp, glBufferSubDataARB); */
-/*   SET_DeleteBuffersARB(disp, glDeleteBuffersARB); */
-/*   SET_GenBuffersARB(disp, glGenBuffersARB); */
-/*   SET_GetBufferParameterivARB(disp, glGetBufferParameterivARB); */
-/*   SET_GetBufferPointervARB(disp, glGetBufferPointervARB); */
-/*   SET_GetBufferSubDataARB(disp, glGetBufferSubDataARB); */
-/*   SET_IsBufferARB(disp, glIsBufferARB); */
-/*   SET_MapBufferARB(disp, glMapBufferARB); */
-/*   SET_UnmapBufferARB(disp, glUnmapBufferARB); */
+/*   SET_BindBufferARB(disp, glBindBufferARBWrapper); */
+/*   SET_BufferDataARB(disp, glBufferDataARBWrapper); */
+/*   SET_BufferSubDataARB(disp, glBufferSubDataARBWrapper); */
+/*   SET_DeleteBuffersARB(disp, glDeleteBuffersARBWrapper); */
+/*   SET_GenBuffersARB(disp, glGenBuffersARBWrapper); */
+/*   SET_GetBufferParameterivARB(disp, glGetBufferParameterivARBWrapper); */
+/*   SET_GetBufferPointervARB(disp, glGetBufferPointervARBWrapper); */
+/*   SET_GetBufferSubDataARB(disp, glGetBufferSubDataARBWrapper); */
+/*   SET_IsBufferARB(disp, glIsBufferARBWrapper); */
+/*   SET_MapBufferARB(disp, glMapBufferARBWrapper); */
+/*   SET_UnmapBufferARB(disp, glUnmapBufferARBWrapper); */
 #endif
 
 #if GL_ARB_vertex_program
-/*   SET_DisableVertexAttribArrayARB(disp, glDisableVertexAttribArrayARB); */
-/*   SET_EnableVertexAttribArrayARB(disp, glEnableVertexAttribArrayARB); */
-/*   SET_GetProgramEnvParameterdvARB(disp, glGetProgramEnvParameterdvARB); */
-/*   SET_GetProgramEnvParameterfvARB(disp, glGetProgramEnvParameterfvARB); */
-/*   SET_GetProgramLocalParameterdvARB(disp, glGetProgramLocalParameterdvARB); */
-/*   SET_GetProgramLocalParameterfvARB(disp, glGetProgramLocalParameterfvARB); */
-/*   SET_GetProgramStringARB(disp, glGetProgramStringARB); */
-/*   SET_GetProgramivARB(disp, glGetProgramivARB); */
-/*   SET_GetVertexAttribdvARB(disp, glGetVertexAttribdvARB); */
-/*   SET_GetVertexAttribfvARB(disp, glGetVertexAttribfvARB); */
-/*   SET_GetVertexAttribivARB(disp, glGetVertexAttribivARB); */
-/*   SET_ProgramEnvParameter4dARB(disp, glProgramEnvParameter4dARB); */
-/*   SET_ProgramEnvParameter4dvARB(disp, glProgramEnvParameter4dvARB); */
-/*   SET_ProgramEnvParameter4fARB(disp, glProgramEnvParameter4fARB); */
-/*   SET_ProgramEnvParameter4fvARB(disp, glProgramEnvParameter4fvARB); */
-/*   SET_ProgramLocalParameter4dARB(disp, glProgramLocalParameter4dARB); */
-/*   SET_ProgramLocalParameter4dvARB(disp, glProgramLocalParameter4dvARB); */
-/*   SET_ProgramLocalParameter4fARB(disp, glProgramLocalParameter4fARB); */
-/*   SET_ProgramLocalParameter4fvARB(disp, glProgramLocalParameter4fvARB); */
-/*   SET_ProgramStringARB(disp, glProgramStringARB); */
-/*   SET_VertexAttrib1dARB(disp, glVertexAttrib1dARB); */
-/*   SET_VertexAttrib1dvARB(disp, glVertexAttrib1dvARB); */
-/*   SET_VertexAttrib1fARB(disp, glVertexAttrib1fARB); */
-/*   SET_VertexAttrib1fvARB(disp, glVertexAttrib1fvARB); */
-/*   SET_VertexAttrib1sARB(disp, glVertexAttrib1sARB); */
-/*   SET_VertexAttrib1svARB(disp, glVertexAttrib1svARB); */
-/*   SET_VertexAttrib2dARB(disp, glVertexAttrib2dARB); */
-/*   SET_VertexAttrib2dvARB(disp, glVertexAttrib2dvARB); */
-/*   SET_VertexAttrib2fARB(disp, glVertexAttrib2fARB); */
-/*   SET_VertexAttrib2fvARB(disp, glVertexAttrib2fvARB); */
-/*   SET_VertexAttrib2sARB(disp, glVertexAttrib2sARB); */
-/*   SET_VertexAttrib2svARB(disp, glVertexAttrib2svARB); */
-/*   SET_VertexAttrib3dARB(disp, glVertexAttrib3dARB); */
-/*   SET_VertexAttrib3dvARB(disp, glVertexAttrib3dvARB); */
-/*   SET_VertexAttrib3fARB(disp, glVertexAttrib3fARB); */
-/*   SET_VertexAttrib3fvARB(disp, glVertexAttrib3fvARB); */
-/*   SET_VertexAttrib3sARB(disp, glVertexAttrib3sARB); */
-/*   SET_VertexAttrib3svARB(disp, glVertexAttrib3svARB); */
-/*   SET_VertexAttrib4NbvARB(disp, glVertexAttrib4NbvARB); */
-/*   SET_VertexAttrib4NivARB(disp, glVertexAttrib4NivARB); */
-/*   SET_VertexAttrib4NsvARB(disp, glVertexAttrib4NsvARB); */
-/*   SET_VertexAttrib4NubARB(disp, glVertexAttrib4NubARB); */
-/*   SET_VertexAttrib4NubvARB(disp, glVertexAttrib4NubvARB); */
-/*   SET_VertexAttrib4NuivARB(disp, glVertexAttrib4NuivARB); */
-/*   SET_VertexAttrib4NusvARB(disp, glVertexAttrib4NusvARB); */
-/*   SET_VertexAttrib4bvARB(disp, glVertexAttrib4bvARB); */
-/*   SET_VertexAttrib4dARB(disp, glVertexAttrib4dARB); */
-/*   SET_VertexAttrib4dvARB(disp, glVertexAttrib4dvARB); */
-/*   SET_VertexAttrib4fARB(disp, glVertexAttrib4fARB); */
-/*   SET_VertexAttrib4fvARB(disp, glVertexAttrib4fvARB); */
-/*   SET_VertexAttrib4ivARB(disp, glVertexAttrib4ivARB); */
-/*   SET_VertexAttrib4sARB(disp, glVertexAttrib4sARB); */
-/*   SET_VertexAttrib4svARB(disp, glVertexAttrib4svARB); */
-/*   SET_VertexAttrib4ubvARB(disp, glVertexAttrib4ubvARB); */
-/*   SET_VertexAttrib4uivARB(disp, glVertexAttrib4uivARB); */
-/*   SET_VertexAttrib4usvARB(disp, glVertexAttrib4usvARB); */
-/*   SET_VertexAttribPointerARB(disp, glVertexAttribPointerARB); */
+/*   SET_DisableVertexAttribArrayARB(disp, glDisableVertexAttribArrayARBWrapper); */
+/*   SET_EnableVertexAttribArrayARB(disp, glEnableVertexAttribArrayARBWrapper); */
+/*   SET_GetProgramEnvParameterdvARB(disp, glGetProgramEnvParameterdvARBWrapper); */
+/*   SET_GetProgramEnvParameterfvARB(disp, glGetProgramEnvParameterfvARBWrapper); */
+/*   SET_GetProgramLocalParameterdvARB(disp, glGetProgramLocalParameterdvARBWrapper); */
+/*   SET_GetProgramLocalParameterfvARB(disp, glGetProgramLocalParameterfvARBWrapper); */
+/*   SET_GetProgramStringARB(disp, glGetProgramStringARBWrapper); */
+  SET_GetProgramivARB(disp, glGetProgramivARBWrapper);
+/*   SET_GetVertexAttribdvARB(disp, glGetVertexAttribdvARBWrapper); */
+/*   SET_GetVertexAttribfvARB(disp, glGetVertexAttribfvARBWrapper); */
+/*   SET_GetVertexAttribivARB(disp, glGetVertexAttribivARBWrapper); */
+/*   SET_ProgramEnvParameter4dARB(disp, glProgramEnvParameter4dARBWrapper); */
+/*   SET_ProgramEnvParameter4dvARB(disp, glProgramEnvParameter4dvARBWrapper); */
+/*   SET_ProgramEnvParameter4fARB(disp, glProgramEnvParameter4fARBWrapper); */
+/*   SET_ProgramEnvParameter4fvARB(disp, glProgramEnvParameter4fvARBWrapper); */
+/*   SET_ProgramLocalParameter4dARB(disp, glProgramLocalParameter4dARBWrapper); */
+/*   SET_ProgramLocalParameter4dvARB(disp, glProgramLocalParameter4dvARBWrapper); */
+/*   SET_ProgramLocalParameter4fARB(disp, glProgramLocalParameter4fARBWrapper); */
+/*   SET_ProgramLocalParameter4fvARB(disp, glProgramLocalParameter4fvARBWrapper); */
+/*   SET_ProgramStringARB(disp, glProgramStringARBWrapper); */
+/*   SET_VertexAttrib1dARB(disp, glVertexAttrib1dARBWrapper); */
+/*   SET_VertexAttrib1dvARB(disp, glVertexAttrib1dvARBWrapper); */
+/*   SET_VertexAttrib1fARB(disp, glVertexAttrib1fARBWrapper); */
+/*   SET_VertexAttrib1fvARB(disp, glVertexAttrib1fvARBWrapper); */
+/*   SET_VertexAttrib1sARB(disp, glVertexAttrib1sARBWrapper); */
+/*   SET_VertexAttrib1svARB(disp, glVertexAttrib1svARBWrapper); */
+/*   SET_VertexAttrib2dARB(disp, glVertexAttrib2dARBWrapper); */
+/*   SET_VertexAttrib2dvARB(disp, glVertexAttrib2dvARBWrapper); */
+/*   SET_VertexAttrib2fARB(disp, glVertexAttrib2fARBWrapper); */
+/*   SET_VertexAttrib2fvARB(disp, glVertexAttrib2fvARBWrapper); */
+/*   SET_VertexAttrib2sARB(disp, glVertexAttrib2sARBWrapper); */
+/*   SET_VertexAttrib2svARB(disp, glVertexAttrib2svARBWrapper); */
+/*   SET_VertexAttrib3dARB(disp, glVertexAttrib3dARBWrapper); */
+/*   SET_VertexAttrib3dvARB(disp, glVertexAttrib3dvARBWrapper); */
+/*   SET_VertexAttrib3fARB(disp, glVertexAttrib3fARBWrapper); */
+/*   SET_VertexAttrib3fvARB(disp, glVertexAttrib3fvARBWrapper); */
+/*   SET_VertexAttrib3sARB(disp, glVertexAttrib3sARBWrapper); */
+/*   SET_VertexAttrib3svARB(disp, glVertexAttrib3svARBWrapper); */
+/*   SET_VertexAttrib4NbvARB(disp, glVertexAttrib4NbvARBWrapper); */
+/*   SET_VertexAttrib4NivARB(disp, glVertexAttrib4NivARBWrapper); */
+/*   SET_VertexAttrib4NsvARB(disp, glVertexAttrib4NsvARBWrapper); */
+/*   SET_VertexAttrib4NubARB(disp, glVertexAttrib4NubARBWrapper); */
+/*   SET_VertexAttrib4NubvARB(disp, glVertexAttrib4NubvARBWrapper); */
+/*   SET_VertexAttrib4NuivARB(disp, glVertexAttrib4NuivARBWrapper); */
+/*   SET_VertexAttrib4NusvARB(disp, glVertexAttrib4NusvARBWrapper); */
+/*   SET_VertexAttrib4bvARB(disp, glVertexAttrib4bvARBWrapper); */
+/*   SET_VertexAttrib4dARB(disp, glVertexAttrib4dARBWrapper); */
+/*   SET_VertexAttrib4dvARB(disp, glVertexAttrib4dvARBWrapper); */
+/*   SET_VertexAttrib4fARB(disp, glVertexAttrib4fARBWrapper); */
+/*   SET_VertexAttrib4fvARB(disp, glVertexAttrib4fvARBWrapper); */
+/*   SET_VertexAttrib4ivARB(disp, glVertexAttrib4ivARBWrapper); */
+/*   SET_VertexAttrib4sARB(disp, glVertexAttrib4sARBWrapper); */
+/*   SET_VertexAttrib4svARB(disp, glVertexAttrib4svARBWrapper); */
+/*   SET_VertexAttrib4ubvARB(disp, glVertexAttrib4ubvARBWrapper); */
+/*   SET_VertexAttrib4uivARB(disp, glVertexAttrib4uivARBWrapper); */
+/*   SET_VertexAttrib4usvARB(disp, glVertexAttrib4usvARBWrapper); */
+/*   SET_VertexAttribPointerARB(disp, glVertexAttribPointerARBWrapper); */
 #endif
 
 #if GL_ARB_vertex_shader
-/*   SET_BindAttribLocationARB(disp, glBindAttribLocationARB); */
-/*   SET_GetActiveAttribARB(disp, glGetActiveAttribARB); */
-/*   SET_GetAttribLocationARB(disp, glGetAttribLocationARB); */
+/*   SET_BindAttribLocationARB(disp, glBindAttribLocationARBWrapper); */
+/*   SET_GetActiveAttribARB(disp, glGetActiveAttribARBWrapper); */
+/*   SET_GetAttribLocationARB(disp, glGetAttribLocationARBWrapper); */
 #endif
 
 #if GL_ARB_window_pos
-/*   SET_WindowPos2dMESA(disp, glWindowPos2dARB); */
-/*   SET_WindowPos2dvMESA(disp, glWindowPos2dvARB); */
-/*   SET_WindowPos2fMESA(disp, glWindowPos2fARB); */
-/*   SET_WindowPos2fvMESA(disp, glWindowPos2fvARB); */
-/*   SET_WindowPos2iMESA(disp, glWindowPos2iARB); */
-/*   SET_WindowPos2ivMESA(disp, glWindowPos2ivARB); */
-/*   SET_WindowPos2sMESA(disp, glWindowPos2sARB); */
-/*   SET_WindowPos2svMESA(disp, glWindowPos2svARB); */
-/*   SET_WindowPos3dMESA(disp, glWindowPos3dARB); */
-/*   SET_WindowPos3dvMESA(disp, glWindowPos3dvARB); */
-/*   SET_WindowPos3fMESA(disp, glWindowPos3fARB); */
-/*   SET_WindowPos3fvMESA(disp, glWindowPos3fvARB); */
-/*   SET_WindowPos3iMESA(disp, glWindowPos3iARB); */
-/*   SET_WindowPos3ivMESA(disp, glWindowPos3ivARB); */
-/*   SET_WindowPos3sMESA(disp, glWindowPos3sARB); */
-/*   SET_WindowPos3svMESA(disp, glWindowPos3svARB); */
+/*   SET_WindowPos2dMESA(disp, glWindowPos2dARBWrapper); */
+/*   SET_WindowPos2dvMESA(disp, glWindowPos2dvARBWrapper); */
+/*   SET_WindowPos2fMESA(disp, glWindowPos2fARBWrapper); */
+/*   SET_WindowPos2fvMESA(disp, glWindowPos2fvARBWrapper); */
+/*   SET_WindowPos2iMESA(disp, glWindowPos2iARBWrapper); */
+/*   SET_WindowPos2ivMESA(disp, glWindowPos2ivARBWrapper); */
+/*   SET_WindowPos2sMESA(disp, glWindowPos2sARBWrapper); */
+/*   SET_WindowPos2svMESA(disp, glWindowPos2svARBWrapper); */
+/*   SET_WindowPos3dMESA(disp, glWindowPos3dARBWrapper); */
+/*   SET_WindowPos3dvMESA(disp, glWindowPos3dvARBWrapper); */
+  SET_WindowPos3fMESA(disp, glWindowPos3fARBWrapper);
+/*   SET_WindowPos3fvMESA(disp, glWindowPos3fvARBWrapper); */
+/*   SET_WindowPos3iMESA(disp, glWindowPos3iARBWrapper); */
+/*   SET_WindowPos3ivMESA(disp, glWindowPos3ivARBWrapper); */
+/*   SET_WindowPos3sMESA(disp, glWindowPos3sARBWrapper); */
+/*   SET_WindowPos3svMESA(disp, glWindowPos3svARBWrapper); */
 #endif
 
 #if GL_ATI_fragment_shader
-/*   SET_AlphaFragmentOp1ATI(disp, glAlphaFragmentOp1ATI); */
-/*   SET_AlphaFragmentOp2ATI(disp, glAlphaFragmentOp2ATI); */
-/*   SET_AlphaFragmentOp3ATI(disp, glAlphaFragmentOp3ATI); */
-/*   SET_BeginFragmentShaderATI(disp, glBeginFragmentShaderATI); */
-/*   SET_BindFragmentShaderATI(disp, glBindFragmentShaderATI); */
-/*   SET_ColorFragmentOp1ATI(disp, glColorFragmentOp1ATI); */
-/*   SET_ColorFragmentOp2ATI(disp, glColorFragmentOp2ATI); */
-/*   SET_ColorFragmentOp3ATI(disp, glColorFragmentOp3ATI); */
-/*   SET_DeleteFragmentShaderATI(disp, glDeleteFragmentShaderATI); */
-/*   SET_EndFragmentShaderATI(disp, glEndFragmentShaderATI); */
-/*   SET_GenFragmentShadersATI(disp, glGenFragmentShadersATI); */
-/*   SET_PassTexCoordATI(disp, glPassTexCoordATI); */
-/*   SET_SampleMapATI(disp, glSampleMapATI); */
-/*   SET_SetFragmentShaderConstantATI(disp, glSetFragmentShaderConstantATI); */
+/*   SET_AlphaFragmentOp1ATI(disp, glAlphaFragmentOp1ATIWrapper); */
+/*   SET_AlphaFragmentOp2ATI(disp, glAlphaFragmentOp2ATIWrapper); */
+/*   SET_AlphaFragmentOp3ATI(disp, glAlphaFragmentOp3ATIWrapper); */
+/*   SET_BeginFragmentShaderATI(disp, glBeginFragmentShaderATIWrapper); */
+/*   SET_BindFragmentShaderATI(disp, glBindFragmentShaderATIWrapper); */
+/*   SET_ColorFragmentOp1ATI(disp, glColorFragmentOp1ATIWrapper); */
+/*   SET_ColorFragmentOp2ATI(disp, glColorFragmentOp2ATIWrapper); */
+/*   SET_ColorFragmentOp3ATI(disp, glColorFragmentOp3ATIWrapper); */
+/*   SET_DeleteFragmentShaderATI(disp, glDeleteFragmentShaderATIWrapper); */
+/*   SET_EndFragmentShaderATI(disp, glEndFragmentShaderATIWrapper); */
+/*   SET_GenFragmentShadersATI(disp, glGenFragmentShadersATIWrapper); */
+/*   SET_PassTexCoordATI(disp, glPassTexCoordATIWrapper); */
+/*   SET_SampleMapATI(disp, glSampleMapATIWrapper); */
+/*   SET_SetFragmentShaderConstantATI(disp, glSetFragmentShaderConstantATIWrapper); */
 #elif GL_EXT_fragment_shader
-  SET_AlphaFragmentOp1ATI(disp, glAlphaFragmentOp1EXT);
-  SET_AlphaFragmentOp2ATI(disp, glAlphaFragmentOp2EXT);
-  SET_AlphaFragmentOp3ATI(disp, glAlphaFragmentOp3EXT);
-  SET_BeginFragmentShaderATI(disp, glBeginFragmentShaderEXT);
-  SET_BindFragmentShaderATI(disp, glBindFragmentShaderEXT);
-  SET_ColorFragmentOp1ATI(disp, glColorFragmentOp1EXT);
-  SET_ColorFragmentOp2ATI(disp, glColorFragmentOp2EXT);
-  SET_ColorFragmentOp3ATI(disp, glColorFragmentOp3EXT);
-  SET_DeleteFragmentShaderATI(disp, glDeleteFragmentShaderEXT);
-  SET_EndFragmentShaderATI(disp, glEndFragmentShaderEXT);
-  SET_GenFragmentShadersATI(disp, glGenFragmentShadersEXT);
-  SET_PassTexCoordATI(disp, glPassTexCoordEXT);
-  SET_SampleMapATI(disp, glSampleMapEXT);
-  SET_SetFragmentShaderConstantATI(disp, glSetFragmentShaderConstantEXT);
+  SET_AlphaFragmentOp1ATI(disp, glAlphaFragmentOp1EXTWrapper);
+  SET_AlphaFragmentOp2ATI(disp, glAlphaFragmentOp2EXTWrapper);
+  SET_AlphaFragmentOp3ATI(disp, glAlphaFragmentOp3EXTWrapper);
+  SET_BeginFragmentShaderATI(disp, glBeginFragmentShaderEXTWrapper);
+  SET_BindFragmentShaderATI(disp, glBindFragmentShaderEXTWrapper);
+  SET_ColorFragmentOp1ATI(disp, glColorFragmentOp1EXTWrapper);
+  SET_ColorFragmentOp2ATI(disp, glColorFragmentOp2EXTWrapper);
+  SET_ColorFragmentOp3ATI(disp, glColorFragmentOp3EXTWrapper);
+  SET_DeleteFragmentShaderATI(disp, glDeleteFragmentShaderEXTWrapper);
+  SET_EndFragmentShaderATI(disp, glEndFragmentShaderEXTWrapper);
+  SET_GenFragmentShadersATI(disp, glGenFragmentShadersEXTWrapper);
+  SET_PassTexCoordATI(disp, glPassTexCoordEXTWrapper);
+  SET_SampleMapATI(disp, glSampleMapEXTWrapper);
+  SET_SetFragmentShaderConstantATI(disp, glSetFragmentShaderConstantEXTWrapper);
 #endif
 
 #if GL_ATI_separate_stencil
-/*   SET_StencilFuncSeparateATI(disp, glStencilFuncSeparateATI); */
+/*   SET_StencilFuncSeparateATI(disp, glStencilFuncSeparateATIWrapper); */
 #endif
 
 #if GL_EXT_blend_equation_separate
-/*   SET_BlendEquationSeparateEXT(disp, glBlendEquationSeparateEXT); */
+/*   SET_BlendEquationSeparateEXT(disp, glBlendEquationSeparateEXTWrapper); */
 #endif
 
 #if GL_EXT_blend_func_separate
-/*   SET_BlendFuncSeparateEXT(disp, glBlendFuncSeparateEXT); */
+  SET_BlendFuncSeparateEXT(disp, glBlendFuncSeparateWrapper);
 #endif
 
 #if GL_EXT_depth_bounds_test
-/*   SET_DepthBoundsEXT(disp, glDepthBoundsEXT); */
+/*   SET_DepthBoundsEXT(disp, glDepthBoundsEXTWrapper); */
 #endif
 
 #if GL_EXT_compiled_vertex_array
-/*   SET_LockArraysEXT(disp, glLockArraysEXT); */
-/*   SET_UnlockArraysEXT(disp, glUnlockArraysEXT); */
+/*   SET_LockArraysEXT(disp, glLockArraysEXTWrapper); */
+/*   SET_UnlockArraysEXT(disp, glUnlockArraysEXTWrapper); */
 #endif
 
 #if GL_EXT_cull_vertex
-/*   SET_CullParameterdvEXT(disp, glCullParameterdvEXT); */
-/*   SET_CullParameterfvEXT(disp, glCullParameterfvEXT); */
+/*   SET_CullParameterdvEXT(disp, glCullParameterdvEXTWrapper); */
+/*   SET_CullParameterfvEXT(disp, glCullParameterfvEXTWrapper); */
 #endif
 
 #if GL_EXT_fog_coord
-/*   SET_FogCoordPointerEXT(disp, glFogCoordPointerEXT); */
-/*   SET_FogCoorddEXT(disp, glFogCoorddEXT); */
-/*   SET_FogCoorddvEXT(disp, glFogCoorddvEXT); */
-/*   SET_FogCoordfEXT(disp, glFogCoordfEXT); */
-/*   SET_FogCoordfvEXT(disp, glFogCoordfvEXT); */
+  SET_FogCoordPointerEXT(disp, glFogCoordPointerWrapper);
+/*   SET_FogCoorddEXT(disp, glFogCoorddWrapper); */
+  SET_FogCoorddvEXT(disp, glFogCoorddvWrapper);
+/*   SET_FogCoordfEXT(disp, glFogCoordfWrapper); */
+  SET_FogCoordfvEXT(disp, glFogCoordfvWrapper);
 #endif
 
 #if GL_EXT_framebuffer_blit
-/*   SET_BlitFramebufferEXT(disp, glBlitFramebufferEXT); */
+/*   SET_BlitFramebufferEXT(disp, glBlitFramebufferEXTWrapper); */
 #endif
 
 #if GL_EXT_framebuffer_object
-/*   SET_BindFramebufferEXT(disp, glBindFramebufferEXT); */
-/*   SET_BindRenderbufferEXT(disp, glBindRenderbufferEXT); */
-/*   SET_CheckFramebufferStatusEXT(disp, glCheckFramebufferStatusEXT); */
-/*   SET_DeleteFramebuffersEXT(disp, glDeleteFramebuffersEXT); */
-/*   SET_DeleteRenderbuffersEXT(disp, glDeleteRenderbuffersEXT); */
-/*   SET_FramebufferRenderbufferEXT(disp, glFramebufferRenderbufferEXT); */
-/*   SET_FramebufferTexture1DEXT(disp, glFramebufferTexture1DEXT); */
-/*   SET_FramebufferTexture2DEXT(disp, glFramebufferTexture2DEXT); */
-/*   SET_FramebufferTexture3DEXT(disp, glFramebufferTexture3DEXT); */
-/*   SET_GenerateMipmapEXT(disp, glGenerateMipmapEXT); */
-/*   SET_GenFramebuffersEXT(disp, glGenFramebuffersEXT); */
-/*   SET_GenRenderbuffersEXT(disp, glGenRenderbuffersEXT); */
-/*   SET_GetFramebufferAttachmentParameterivEXT(disp, glGetFramebufferAttachmentParameterivEXT); */
-/*   SET_GetRenderbufferParameterivEXT(disp, glGetRenderbufferParameterivEXT); */
-/*   SET_IsFramebufferEXT(disp, glIsFramebufferEXT); */
-/*   SET_IsRenderbufferEXT(disp, glIsRenderbufferEXT); */
-/*   SET_RenderbufferStorageEXT(disp, glRenderbufferStorageEXT); */
+/*   SET_BindFramebufferEXT(disp, glBindFramebufferEXTWrapper); */
+/*   SET_BindRenderbufferEXT(disp, glBindRenderbufferEXTWrapper); */
+/*   SET_CheckFramebufferStatusEXT(disp, glCheckFramebufferStatusEXTWrapper); */
+/*   SET_DeleteFramebuffersEXT(disp, glDeleteFramebuffersEXTWrapper); */
+/*   SET_DeleteRenderbuffersEXT(disp, glDeleteRenderbuffersEXTWrapper); */
+/*   SET_FramebufferRenderbufferEXT(disp, glFramebufferRenderbufferEXTWrapper); */
+/*   SET_FramebufferTexture1DEXT(disp, glFramebufferTexture1DEXTWrapper); */
+/*   SET_FramebufferTexture2DEXT(disp, glFramebufferTexture2DEXTWrapper); */
+/*   SET_FramebufferTexture3DEXT(disp, glFramebufferTexture3DEXTWrapper); */
+/*   SET_GenerateMipmapEXT(disp, glGenerateMipmapEXTWrapper); */
+/*   SET_GenFramebuffersEXT(disp, glGenFramebuffersEXTWrapper); */
+/*   SET_GenRenderbuffersEXT(disp, glGenRenderbuffersEXTWrapper); */
+/*   SET_GetFramebufferAttachmentParameterivEXT(disp, glGetFramebufferAttachmentParameterivEXTWrapper); */
+/*   SET_GetRenderbufferParameterivEXT(disp, glGetRenderbufferParameterivEXTWrapper); */
+/*   SET_IsFramebufferEXT(disp, glIsFramebufferEXTWrapper); */
+/*   SET_IsRenderbufferEXT(disp, glIsRenderbufferEXTWrapper); */
+/*   SET_RenderbufferStorageEXT(disp, glRenderbufferStorageEXTWrapper); */
 #endif
 
 #if GL_EXT_gpu_program_parameters
-/*   SET_ProgramEnvParameters4fvEXT(disp, glProgramEnvParameters4fvEXT); */
-/*   SET_ProgramLocalParameters4fvEXT(disp, glProgramLocalParameters4fvEXT); */
+/*   SET_ProgramEnvParameters4fvEXT(disp, glProgramEnvParameters4fvEXTWrapper); */
+/*   SET_ProgramLocalParameters4fvEXT(disp, glProgramLocalParameters4fvEXTWrapper); */
 #endif
 
 #if GL_EXT_multi_draw_arrays
-/*   SET_MultiDrawArraysEXT(disp, glMultiDrawArraysEXT); */
-/*   SET_MultiDrawElementsEXT(disp, glMultiDrawElementsEXT); */
+/*   SET_MultiDrawArraysEXT(disp, glMultiDrawArraysEXTWrapper); */
+/*   SET_MultiDrawElementsEXT(disp, glMultiDrawElementsEXTWrapper); */
 #endif
 
 #if GL_EXT_point_parameters
-/*   SET_PointParameterfEXT(disp, glPointParameterfEXT); */
-/*   SET_PointParameterfvEXT(disp, glPointParameterfvEXT); */
+/*   SET_PointParameterfEXT(disp, glPointParameterfEXTWrapper); */
+/*   SET_PointParameterfvEXT(disp, glPointParameterfvEXTWrapper); */
 #elif GL_ARB_point_parameters
-  SET_PointParameterfEXT(disp, glPointParameterfARB);
-  SET_PointParameterfvEXT(disp, glPointParameterfvARB);
+  SET_PointParameterfEXT(disp, glPointParameterfARBWrapper);
+  SET_PointParameterfvEXT(disp, glPointParameterfvARBWrapper);
 #endif
 
 #if GL_EXT_polygon_offset
-/*   SET_PolygonOffsetEXT(disp, glPolygonOffsetEXT); */
+/*   SET_PolygonOffsetEXT(disp, glPolygonOffsetEXTWrapper); */
 #endif
 
 #if GL_EXT_secondary_color
-/*   SET_SecondaryColor3bEXT(disp, glSecondaryColor3bEXT); */
-/*   SET_SecondaryColor3bvEXT(disp, glSecondaryColor3bvEXT); */
-/*   SET_SecondaryColor3dEXT(disp, glSecondaryColor3dEXT); */
-/*   SET_SecondaryColor3dvEXT(disp, glSecondaryColor3dvEXT); */
-/*   SET_SecondaryColor3fEXT(disp, glSecondaryColor3fEXT); */
-/*   SET_SecondaryColor3fvEXT(disp, glSecondaryColor3fvEXT); */
-/*   SET_SecondaryColor3iEXT(disp, glSecondaryColor3iEXT); */
-/*   SET_SecondaryColor3ivEXT(disp, glSecondaryColor3ivEXT); */
-/*   SET_SecondaryColor3sEXT(disp, glSecondaryColor3sEXT); */
-/*   SET_SecondaryColor3svEXT(disp, glSecondaryColor3svEXT); */
-/*   SET_SecondaryColor3ubEXT(disp, glSecondaryColor3ubEXT); */
-/*   SET_SecondaryColor3ubvEXT(disp, glSecondaryColor3ubvEXT); */
-/*   SET_SecondaryColor3uiEXT(disp, glSecondaryColor3uiEXT); */
-/*   SET_SecondaryColor3uivEXT(disp, glSecondaryColor3uivEXT); */
-/*   SET_SecondaryColor3usEXT(disp, glSecondaryColor3usEXT); */
-/*   SET_SecondaryColor3usvEXT(disp, glSecondaryColor3usvEXT); */
-/*   SET_SecondaryColorPointerEXT(disp, glSecondaryColorPointerEXT); */
+/*   SET_SecondaryColor3bEXT(disp, glSecondaryColor3bWrapper); */
+  SET_SecondaryColor3bvEXT(disp, glSecondaryColor3bvWrapper);
+/*   SET_SecondaryColor3dEXT(disp, glSecondaryColor3dWrapper); */
+  SET_SecondaryColor3dvEXT(disp, glSecondaryColor3dvWrapper);
+/*   SET_SecondaryColor3fEXT(disp, glSecondaryColor3fWrapper); */
+  SET_SecondaryColor3fvEXT(disp, glSecondaryColor3fvWrapper);
+/*   SET_SecondaryColor3iEXT(disp, glSecondaryColor3iWrapper); */
+  SET_SecondaryColor3ivEXT(disp, glSecondaryColor3ivWrapper);
+/*   SET_SecondaryColor3sEXT(disp, glSecondaryColor3sWrapper); */
+  SET_SecondaryColor3svEXT(disp, glSecondaryColor3svWrapper);
+/*   SET_SecondaryColor3ubEXT(disp, glSecondaryColor3ubWrapper); */
+  SET_SecondaryColor3ubvEXT(disp, glSecondaryColor3ubvWrapper);
+/*   SET_SecondaryColor3uiEXT(disp, glSecondaryColor3uiWrapper); */
+  SET_SecondaryColor3uivEXT(disp, glSecondaryColor3uivWrapper);
+/*   SET_SecondaryColor3usEXT(disp, glSecondaryColor3usWrapper); */
+  SET_SecondaryColor3usvEXT(disp, glSecondaryColor3usvWrapper);
+  SET_SecondaryColorPointerEXT(disp, glSecondaryColorPointerWrapper);
 #endif
 
 #if GL_EXT_stencil_two_side
-  SET_ActiveStencilFaceEXT(disp, glActiveStencilFaceEXT);
+  SET_ActiveStencilFaceEXT(disp, glActiveStencilFaceEXTWrapper);
 #endif
 
 #if GL_EXT_timer_query
-/*   SET_GetQueryObjecti64vEXT(disp, glGetQueryObjecti64vEXT); */
-/*   SET_GetQueryObjectui64vEXT(disp, glGetQueryObjectui64vEXT); */
+/*   SET_GetQueryObjecti64vEXT(disp, glGetQueryObjecti64vEXTWrapper); */
+/*   SET_GetQueryObjectui64vEXT(disp, glGetQueryObjectui64vEXTWrapper); */
 #endif
 
 #if GL_EXT_vertex_array
-/*   SET_ColorPointerEXT(disp, glColorPointerEXT); */
-/*   SET_EdgeFlagPointerEXT(disp, glEdgeFlagPointerEXT); */
-/*   SET_IndexPointerEXT(disp, glIndexPointerEXT); */
-/*   SET_NormalPointerEXT(disp, glNormalPointerEXT); */
-/*   SET_TexCoordPointerEXT(disp, glTexCoordPointerEXT); */
-/*   SET_VertexPointerEXT(disp, glVertexPointerEXT); */
+/*   SET_ColorPointerEXT(disp, glColorPointerEXTWrapper); */
+/*   SET_EdgeFlagPointerEXT(disp, glEdgeFlagPointerEXTWrapper); */
+/*   SET_IndexPointerEXT(disp, glIndexPointerEXTWrapper); */
+/*   SET_NormalPointerEXT(disp, glNormalPointerEXTWrapper); */
+/*   SET_TexCoordPointerEXT(disp, glTexCoordPointerEXTWrapper); */
+/*   SET_VertexPointerEXT(disp, glVertexPointerEXTWrapper); */
 #endif
 
 #if GL_IBM_multimode_draw_arrays
-/*   SET_MultiModeDrawArraysIBM(disp, glMultiModeDrawArraysIBM); */
-/*   SET_MultiModeDrawElementsIBM(disp, glMultiModeDrawElementsIBM); */
+/*   SET_MultiModeDrawArraysIBM(disp, glMultiModeDrawArraysIBMWrapper); */
+/*   SET_MultiModeDrawElementsIBM(disp, glMultiModeDrawElementsIBMWrapper); */
 #endif
 
 #if GL_MESA_resize_buffers
-/*   SET_ResizeBuffersMESA(disp, glResizeBuffersMESA); */
+/*   SET_ResizeBuffersMESA(disp, glResizeBuffersMESAWrapper); */
 #endif
 
 #if GL_MESA_window_pos
-/*   SET_WindowPos4dMESA(disp, glWindowPos4dMESA); */
-/*   SET_WindowPos4dvMESA(disp, glWindowPos4dvMESA); */
-/*   SET_WindowPos4fMESA(disp, glWindowPos4fMESA); */
-/*   SET_WindowPos4fvMESA(disp, glWindowPos4fvMESA); */
-/*   SET_WindowPos4iMESA(disp, glWindowPos4iMESA); */
-/*   SET_WindowPos4ivMESA(disp, glWindowPos4ivMESA); */
-/*   SET_WindowPos4sMESA(disp, glWindowPos4sMESA); */
-/*   SET_WindowPos4svMESA(disp, glWindowPos4svMESA); */
+/*   SET_WindowPos4dMESA(disp, glWindowPos4dMESAWrapper); */
+/*   SET_WindowPos4dvMESA(disp, glWindowPos4dvMESAWrapper); */
+/*   SET_WindowPos4fMESA(disp, glWindowPos4fMESAWrapper); */
+/*   SET_WindowPos4fvMESA(disp, glWindowPos4fvMESAWrapper); */
+/*   SET_WindowPos4iMESA(disp, glWindowPos4iMESAWrapper); */
+/*   SET_WindowPos4ivMESA(disp, glWindowPos4ivMESAWrapper); */
+/*   SET_WindowPos4sMESA(disp, glWindowPos4sMESAWrapper); */
+/*   SET_WindowPos4svMESA(disp, glWindowPos4svMESAWrapper); */
 #endif
 
 #if GL_NV_fence
-/*   SET_DeleteFencesNV(disp, glDeleteFencesNV); */
-/*   SET_FinishFenceNV(disp, glFinishFenceNV); */
-/*   SET_GenFencesNV(disp, glGenFencesNV); */
-/*   SET_GetFenceivNV(disp, glGetFenceivNV); */
-/*   SET_IsFenceNV(disp, glIsFenceNV); */
-/*   SET_SetFenceNV(disp, glSetFenceNV); */
-/*   SET_TestFenceNV(disp, glTestFenceNV); */
+/*   SET_DeleteFencesNV(disp, glDeleteFencesNVWrapper); */
+/*   SET_FinishFenceNV(disp, glFinishFenceNVWrapper); */
+/*   SET_GenFencesNV(disp, glGenFencesNVWrapper); */
+/*   SET_GetFenceivNV(disp, glGetFenceivNVWrapper); */
+/*   SET_IsFenceNV(disp, glIsFenceNVWrapper); */
+/*   SET_SetFenceNV(disp, glSetFenceNVWrapper); */
+/*   SET_TestFenceNV(disp, glTestFenceNVWrapper); */
 #endif
 
 #if GL_NV_fragment_program
-/*   SET_GetProgramNamedParameterdvNV(disp, glGetProgramNamedParameterdvNV); */
-/*   SET_GetProgramNamedParameterfvNV(disp, glGetProgramNamedParameterfvNV); */
-/*   SET_ProgramNamedParameter4dNV(disp, glProgramNamedParameter4dNV); */
-/*   SET_ProgramNamedParameter4dvNV(disp, glProgramNamedParameter4dvNV); */
-/*   SET_ProgramNamedParameter4fNV(disp, glProgramNamedParameter4fNV); */
-/*   SET_ProgramNamedParameter4fvNV(disp, glProgramNamedParameter4fvNV); */
+/*   SET_GetProgramNamedParameterdvNV(disp, glGetProgramNamedParameterdvNVWrapper); */
+/*   SET_GetProgramNamedParameterfvNV(disp, glGetProgramNamedParameterfvNVWrapper); */
+/*   SET_ProgramNamedParameter4dNV(disp, glProgramNamedParameter4dNVWrapper); */
+/*   SET_ProgramNamedParameter4dvNV(disp, glProgramNamedParameter4dvNVWrapper); */
+/*   SET_ProgramNamedParameter4fNV(disp, glProgramNamedParameter4fNVWrapper); */
+/*   SET_ProgramNamedParameter4fvNV(disp, glProgramNamedParameter4fvNVWrapper); */
 #endif
 
 #if GL_NV_geometry_program4
-/*   SET_FramebufferTextureLayerEXT(disp, glFramebufferTextureLayerEXT); */
+/*   SET_FramebufferTextureLayerEXT(disp, glFramebufferTextureLayerEXTWrapper); */
 #endif
 
 #if GL_NV_point_sprite
-  SET_PointParameteriNV(disp, glPointParameteriNV);
-  SET_PointParameterivNV(disp, glPointParameterivNV);
+  SET_PointParameteriNV(disp, glPointParameteriNVWrapper);
+  SET_PointParameterivNV(disp, glPointParameterivNVWrapper);
 #endif
 
 #if GL_NV_register_combiners
-/*   SET_CombinerInputNV(disp, glCombinerInputNV); */
-/*   SET_CombinerOutputNV(disp, glCombinerOutputNV); */
-/*   SET_CombinerParameterfNV(disp, glCombinerParameterfNV); */
-/*   SET_CombinerParameterfvNV(disp, glCombinerParameterfvNV); */
-/*   SET_CombinerParameteriNV(disp, glCombinerParameteriNV); */
-/*   SET_CombinerParameterivNV(disp, glCombinerParameterivNV); */
-/*   SET_FinalCombinerInputNV(disp, glFinalCombinerInputNV); */
-/*   SET_GetCombinerInputParameterfvNV(disp, glGetCombinerInputParameterfvNV); */
-/*   SET_GetCombinerInputParameterivNV(disp, glGetCombinerInputParameterivNV); */
-/*   SET_GetCombinerOutputParameterfvNV(disp, glGetCombinerOutputParameterfvNV); */
-/*   SET_GetCombinerOutputParameterivNV(disp, glGetCombinerOutputParameterivNV); */
-/*   SET_GetFinalCombinerInputParameterfvNV(disp, glGetFinalCombinerInputParameterfvNV); */
-/*   SET_GetFinalCombinerInputParameterivNV(disp, glGetFinalCombinerInputParameterivNV); */
+/*   SET_CombinerInputNV(disp, glCombinerInputNVWrapper); */
+/*   SET_CombinerOutputNV(disp, glCombinerOutputNVWrapper); */
+/*   SET_CombinerParameterfNV(disp, glCombinerParameterfNVWrapper); */
+/*   SET_CombinerParameterfvNV(disp, glCombinerParameterfvNVWrapper); */
+/*   SET_CombinerParameteriNV(disp, glCombinerParameteriNVWrapper); */
+/*   SET_CombinerParameterivNV(disp, glCombinerParameterivNVWrapper); */
+/*   SET_FinalCombinerInputNV(disp, glFinalCombinerInputNVWrapper); */
+/*   SET_GetCombinerInputParameterfvNV(disp, glGetCombinerInputParameterfvNVWrapper); */
+/*   SET_GetCombinerInputParameterivNV(disp, glGetCombinerInputParameterivNVWrapper); */
+/*   SET_GetCombinerOutputParameterfvNV(disp, glGetCombinerOutputParameterfvNVWrapper); */
+/*   SET_GetCombinerOutputParameterivNV(disp, glGetCombinerOutputParameterivNVWrapper); */
+/*   SET_GetFinalCombinerInputParameterfvNV(disp, glGetFinalCombinerInputParameterfvNVWrapper); */
+/*   SET_GetFinalCombinerInputParameterivNV(disp, glGetFinalCombinerInputParameterivNVWrapper); */
 #endif
 
 #if GL_NV_vertex_array_range
-/*   SET_FlushVertexArrayRangeNV(disp, glFlushVertexArrayRangeNV); */
-/*   SET_VertexArrayRangeNV(disp, glVertexArrayRangeNV); */
+/*   SET_FlushVertexArrayRangeNV(disp, glFlushVertexArrayRangeNVWrapper); */
+/*   SET_VertexArrayRangeNV(disp, glVertexArrayRangeNVWrapper); */
 #endif
 
 #if GL_NV_vertex_program
-/*   SET_AreProgramsResidentNV(disp, glAreProgramsResidentNV); */
-/*   SET_BindProgramNV(disp, glBindProgramNV); */
-/*   SET_DeleteProgramsNV(disp, glDeleteProgramsNV); */
-/*   SET_ExecuteProgramNV(disp, glExecuteProgramNV); */
-/*   SET_GenProgramsNV(disp, glGenProgramsNV); */
-/*   SET_GetProgramParameterdvNV(disp, glGetProgramParameterdvNV); */
-/*   SET_GetProgramParameterfvNV(disp, glGetProgramParameterfvNV); */
-/*   SET_GetProgramStringNV(disp, glGetProgramStringNV); */
-/*   SET_GetProgramivNV(disp, glGetProgramivNV); */
-/*   SET_GetTrackMatrixivNV(disp, glGetTrackMatrixivNV); */
-/*   SET_GetVertexAttribPointervNV(disp, glGetVertexAttribPointervNV); */
-/*   SET_GetVertexAttribdvNV(disp, glGetVertexAttribdvNV); */
-/*   SET_GetVertexAttribfvNV(disp, glGetVertexAttribfvNV); */
-/*   SET_GetVertexAttribivNV(disp, glGetVertexAttribivNV); */
-/*   SET_IsProgramNV(disp, glIsProgramNV); */
-/*   SET_LoadProgramNV(disp, glLoadProgramNV); */
-/*   SET_ProgramParameters4dvNV(disp, glProgramParameters4dvNV); */
-/*   SET_ProgramParameters4fvNV(disp, glProgramParameters4fvNV); */
-/*   SET_RequestResidentProgramsNV(disp, glRequestResidentProgramsNV); */
-/*   SET_TrackMatrixNV(disp, glTrackMatrixNV); */
+/*   SET_AreProgramsResidentNV(disp, glAreProgramsResidentNVWrapper); */
+/*   SET_BindProgramNV(disp, glBindProgramNVWrapper); */
+/*   SET_DeleteProgramsNV(disp, glDeleteProgramsNVWrapper); */
+/*   SET_ExecuteProgramNV(disp, glExecuteProgramNVWrapper); */
+/*   SET_GenProgramsNV(disp, glGenProgramsNVWrapper); */
+/*   SET_GetProgramParameterdvNV(disp, glGetProgramParameterdvNVWrapper); */
+/*   SET_GetProgramParameterfvNV(disp, glGetProgramParameterfvNVWrapper); */
+/*   SET_GetProgramStringNV(disp, glGetProgramStringNVWrapper); */
+/*   SET_GetProgramivNV(disp, glGetProgramivNVWrapper); */
+/*   SET_GetTrackMatrixivNV(disp, glGetTrackMatrixivNVWrapper); */
+/*   SET_GetVertexAttribPointervNV(disp, glGetVertexAttribPointervNVWrapper); */
+/*   SET_GetVertexAttribdvNV(disp, glGetVertexAttribdvNVWrapper); */
+/*   SET_GetVertexAttribfvNV(disp, glGetVertexAttribfvNVWrapper); */
+/*   SET_GetVertexAttribivNV(disp, glGetVertexAttribivNVWrapper); */
+/*   SET_IsProgramNV(disp, glIsProgramNVWrapper); */
+/*   SET_LoadProgramNV(disp, glLoadProgramNVWrapper); */
+/*   SET_ProgramParameters4dvNV(disp, glProgramParameters4dvNVWrapper); */
+/*   SET_ProgramParameters4fvNV(disp, glProgramParameters4fvNVWrapper); */
+/*   SET_RequestResidentProgramsNV(disp, glRequestResidentProgramsNVWrapper); */
+/*   SET_TrackMatrixNV(disp, glTrackMatrixNVWrapper); */
 /*   SET_VertexAttrib1dNV(disp, glVertexAttrib1dNV) */
 /*     SET_VertexAttrib1dvNV(disp, glVertexAttrib1dvNV) */
 /*     SET_VertexAttrib1fNV(disp, glVertexAttrib1fNV) */
@@ -1514,18 +1519,18 @@ void setup_dispatch_table(void)
   /*
      Pointer Incompatability:
   */
-  SET_SampleMaskSGIS(disp, glSampleMaskSGIS);
-  SET_SamplePatternSGIS(disp, glSamplePatternSGIS);
+  SET_SampleMaskSGIS(disp, glSampleMaskSGISWrapper);
+  SET_SamplePatternSGIS(disp, glSamplePatternSGISWrapper);
 #endif
 
 #if GL_SGIS_pixel_texture
-/*   SET_GetPixelTexGenParameterfvSGIS(disp, glGetPixelTexGenParameterfvSGIS); */
-/*   SET_GetPixelTexGenParameterivSGIS(disp, glGetPixelTexGenParameterivSGIS); */
-/*   SET_PixelTexGenParameterfSGIS(disp, glPixelTexGenParameterfSGIS); */
-/*   SET_PixelTexGenParameterfvSGIS(disp, glPixelTexGenParameterfvSGIS); */
-/*   SET_PixelTexGenParameteriSGIS(disp, glPixelTexGenParameteriSGIS); */
-/*   SET_PixelTexGenParameterivSGIS(disp, glPixelTexGenParameterivSGIS); */
-/*   SET_PixelTexGenSGIX(disp, glPixelTexGenSGIX); */
+/*   SET_GetPixelTexGenParameterfvSGIS(disp, glGetPixelTexGenParameterfvSGISWrapper); */
+/*   SET_GetPixelTexGenParameterivSGIS(disp, glGetPixelTexGenParameterivSGISWrapper); */
+/*   SET_PixelTexGenParameterfSGIS(disp, glPixelTexGenParameterfSGISWrapper); */
+/*   SET_PixelTexGenParameterfvSGIS(disp, glPixelTexGenParameterfvSGISWrapper); */
+/*   SET_PixelTexGenParameteriSGIS(disp, glPixelTexGenParameteriSGISWrapper); */
+/*   SET_PixelTexGenParameterivSGIS(disp, glPixelTexGenParameterivSGISWrapper); */
+/*   SET_PixelTexGenSGIX(disp, glPixelTexGenSGIXWrapper); */
 #endif
 }
 
