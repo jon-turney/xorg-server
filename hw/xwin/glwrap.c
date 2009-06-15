@@ -14,10 +14,10 @@
 #include <X11/Xwindows.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <glxserver.h>
-#include <glxext.h>
-#include <glapi.h>
-#include <dispatch.h>
+#include <glx/glxserver.h>
+#include <glx/glxext.h>
+#include <glx/glapi.h>
+#include <glx/dispatch.h>
 
 #define RESOLVE_RET(procname, symbol, retval) \
     static Bool init = TRUE; \

@@ -6,21 +6,21 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#include <glxserver.h>
-#include <glxext.h>
+#include <glx/glxserver.h>
+#include <glx/glxext.h>
 
 #include <windowstr.h>
 #include <resource.h>
 #include <GL/glxint.h>
 #include <GL/glxtokens.h>
 #include <scrnintstr.h>
-#include <glxserver.h>
-#include <glxscreens.h>
-#include <glxdrawable.h>
-#include <glxcontext.h>
-#include <glxext.h>
-#include <glxutil.h>
-#include <glxscreens.h>
+//#include <glx/glxserver.h>
+#include <glx/glxscreens.h>
+#include <glx/glxdrawable.h>
+#include <glx/glxcontext.h>
+//#include <glx/glxext.h>
+#include <glx/glxutil.h>
+//#include <glx/glxscreens.h>
 #include <GL/internal/glcore.h>
 #include <stdlib.h>
 
