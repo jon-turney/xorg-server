@@ -48,7 +48,7 @@
 #endif
 
 #include "glwindows.h"
-#include <glcontextmodes.h>
+//#include <glcontextmodes.h>
 #include <stdint.h>
 
 #include <winpriv.h>
