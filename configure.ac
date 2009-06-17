@@ -717,6 +717,9 @@ case $host_os in
 			XF86VIDMODE=no
 		fi
 		;;
+        cygwin*)
+                DRI2=no
+                ;;
 	*) XQUARTZ=no ;;
 esac
 
