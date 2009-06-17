@@ -12,7 +12,7 @@
 /* Cygwin has /dev/windows for signaling new win32 messages */
 #undef HAS_DEVWINDOWS
 
-/* Switch on debug messages */ 
+/* Switch on debug messages */
 #undef CYGDEBUG
 #undef CYGWINDOWING_DEBUG
 #undef CYGMULTIWINDOW_DEBUG
@@ -32,3 +32,5 @@
 /* Location of system.XWinrc */
 #undef SYSCONFDIR
 
+/* enable DDX specific GLX provider push hook */
+#define DDXPUSHPROVIDER
