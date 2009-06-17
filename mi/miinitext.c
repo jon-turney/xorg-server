@@ -78,6 +78,10 @@ SOFTWARE.
 #undef XF86VIDMODE
 #endif
 
+#ifdef HAVE_XWIN_CONFIG_H
+#include <xwin-config.h>
+#endif
+
 #include "misc.h"
 #include "extension.h"
 #include "micmap.h"
@@ -474,7 +478,12 @@ InitExtensions(int argc, char *argv[])
 
 #ifdef GLXEXT
     if (serverGeneration == 1)
-	GlxPushProvider(&__glXDRISWRastProvider);
+      {
+        GlxPushProvider(&__glXDRISWRastProvider);
+#ifdef DDXPUSHPROVIDER
+        ddxPushProviders(); // a chance for DDX to install providers better than swrast...
+#endif
+      }
     if (!noGlxExtension) GlxExtensionInit();
 #endif
 }

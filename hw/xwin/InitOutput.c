@@ -98,8 +98,8 @@ extern HMODULE			g_hmodCommonControls;
 extern FARPROC			g_fpTrackMouseEvent;
 extern Bool			g_fNoHelpMessageBox;                     
 extern Bool			g_fSilentDupError;                     
-  
-  
+extern Bool                     g_fNativeGl;
+
 /*
  * Function prototypes
  */
@@ -188,6 +188,17 @@ winClipboardShutdown (void)
 }
 #endif
 
+void
+ddxPushProviders(void)
+{
+#ifdef XWIN_GLX_WINDOWS
+  if (g_fNativeGl)
+    {
+      /* install the native GL provider */
+      glWinPushNativeProvider();
+    }
+#endif
+}
 
 #if defined(DDXBEFORERESET)
 /*
@@ -892,6 +903,11 @@ winUseMsg (void)
   ErrorF ("-swcursor\n"
 	  "\tDisable the usage of the windows cursor and use the X11 software "
 	  "cursor instead\n");
+
+#ifdef XWIN_GLX_WINDOWS
+  ErrorF ("+wgl\n"
+	  "\tEnable use of the native Windows WGL accelerated OpenGL by the GLX extension\n");
+#endif
 }
 
 /* See Porting Layer Definition - p. 57 */
@@ -1017,8 +1033,6 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   if (g_fXdmcpEnabled || g_fAuthEnabled)
     winGenerateAuthorization ();
 
-#endif
-
   /* Perform some one time initialization */
   if (1 == serverGeneration)
     {
@@ -1029,12 +1043,8 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
       setlocale (LC_ALL, "");
 
       glx_debugging();
-
-#ifdef XWIN_GLX_WINDOWS
-      /* install the native GL provider */
-      glWinPushNativeProvider();
-#endif
     }
+#endif
 
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");

@@ -19,6 +19,22 @@
 #include <glx/glapi.h>
 #include <glx/dispatch.h>
 
+/*
+ * Not sure why these typedefs aren't provided by gl.h/glext.h...
+ */
+typedef void (APIENTRYP PFNGLBLENDEQUATIONPROC) (GLenum mode);
+typedef void (APIENTRYP PFNGLBLENDCOLORPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+typedef void (APIENTRYP PFNGLSAMPLECOVERAGEPROC) (GLclampf value, GLboolean invert);
+typedef void (APIENTRYP PFNGLACTIVETEXTUREPROC) (GLenum texture);
+typedef void (APIENTRYP PFNGLCOMPRESSEDTEXIMAGE3DPROC) (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid *data);
+typedef void (APIENTRYP PFNGLCOMPRESSEDTEXIMAGE2DPROC) (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid *data);
+typedef void (APIENTRYP PFNGLCOMPRESSEDTEXIMAGE1DPROC) (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *data);
+typedef void (APIENTRYP PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC) (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const GLvoid *data);
+typedef void (APIENTRYP PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC) (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid *data);
+typedef void (APIENTRYP PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC) (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const GLvoid *data);
+typedef void (APIENTRYP PFNGLGETCOMPRESSEDTEXIMAGEPROC) (GLenum target, GLint level, GLvoid *img);
+#define PFNGLDELETEOBJECTBUFFERATIPROC PFNGLFREEOBJECTBUFFERATIPROC
+
 #define RESOLVE_RET(procname, symbol, retval) \
     static Bool init = TRUE; \
     static __stdcall procname proc = NULL; \
@@ -40,445 +56,43 @@
  *  cdecl wrappers for stdcall gl*() functions in opengl32.dll
  */
 
-#include "glwrap_api.c"
-
 /*
    OpenGL 1.2 and upward is treated as extensions, function address must
    found using wglGetProcAddress() - still stdcall so still need wrappers...
  */
 
-/*
- * GL_ARB_imaging
- */
-
-static void glColorTableWrapper( GLenum target, GLenum internalformat,
-                                    GLsizei width, GLenum format,
-                                    GLenum type, const GLvoid *table)
-{
-    RESOLVE(PFNGLCOLORTABLEPROC, "glColorTable");
-    proc(target, internalformat, width, format, type, table);
-}
-
-static void glColorSubTableWrapper( GLenum target,
-                                       GLsizei start, GLsizei count,
-                                       GLenum format, GLenum type,
-                                       const GLvoid *data)
-{
-    RESOLVE(PFNGLCOLORSUBTABLEPROC, "glColorSubTable");
-    proc(target, start, count, format, type, data);
-}
-
-static void glColorTableParameterivWrapper(GLenum target, GLenum pname,
-                                              const GLint *params)
-{
-    RESOLVE(PFNGLCOLORTABLEPARAMETERIVPROC, "glColorTableParameteriv");
-    proc(target, pname, params);
-}
-
-static void glColorTableParameterfvWrapper(GLenum target, GLenum pname,
-                                              const GLfloat *params)
-{
-    RESOLVE(PFNGLCOLORTABLEPARAMETERFVPROC, "glColorTableParameterfv");
-    proc(target, pname, params);
-}
-
-static void glCopyColorSubTableWrapper(GLenum target, GLsizei start,
-                                           GLint x, GLint y, GLsizei width)
-{
-    RESOLVE(PFNGLCOPYCOLORSUBTABLEPROC, "glCopyColorSubTable");
-    proc(target, start, x, y, width);
-}
-
-static void glCopyColorTableWrapper(GLenum target, GLenum internalformat,
-                                        GLint x, GLint y, GLsizei width)
-{
-    RESOLVE(PFNGLCOPYCOLORTABLEPROC, "glCopyColorTable");
-    proc(target, internalformat, x, y, width);
-}
-
-
-static void glGetColorTableWrapper(GLenum target, GLenum format,
-                                       GLenum type, GLvoid *table)
-{
-    RESOLVE(PFNGLGETCOLORTABLEPROC, "glGetColorTable");
-    proc(target, format, type, table);
-}
-
-static void glGetColorTableParameterfvWrapper(GLenum target, GLenum pname,
-                                                  GLfloat *params)
-{
-    RESOLVE(PFNGLGETCOLORTABLEPARAMETERFVPROC, "glGetColorTableParameterfv");
-    proc(target, pname, params);
-}
-
-static void glGetColorTableParameterivWrapper(GLenum target, GLenum pname,
-                                                  GLint *params)
-{
-    RESOLVE(PFNGLGETCOLORTABLEPARAMETERIVPROC, "glGetColorTableParameteriv");
-    proc(target, pname, params);
-}
+#include "glwrap_api.c"
 
 /*
- * Not sure why these typedefs aren't provided by gl.h...
- */
-typedef void (APIENTRYP PFNGLBLENDEQUATIONPROC) (GLenum mode);
-typedef void (APIENTRYP PFNGLBLENDCOLORPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-
-static void glBlendEquationWrapper(GLenum mode)
-{
-    RESOLVE(PFNGLBLENDEQUATIONPROC, "glBlendEquation");
-    proc(mode);
-}
-
-static void glBlendColorWrapper(GLclampf red, GLclampf green,
-                                GLclampf blue, GLclampf alpha)
-{
-    RESOLVE(PFNGLBLENDCOLORPROC, "glBlendColor");
-    proc(red, green, blue, alpha);
-}
-
-static void glHistogramWrapper(GLenum target, GLsizei width,
-				   GLenum internalformat, GLboolean sink)
-{
-    RESOLVE(PFNGLHISTOGRAMPROC, "glHistogram");
-    proc(target, width, internalformat, sink);
-}
-
-static void glResetHistogramWrapper(GLenum target)
-{
-    RESOLVE(PFNGLRESETHISTOGRAMPROC, "glResetHistogram");
-    proc(target);
-}
-
-static void glGetHistogramWrapper(GLenum target, GLboolean reset,
-				      GLenum format, GLenum type,
-				      GLvoid *values)
-{
-    RESOLVE(PFNGLGETHISTOGRAMPROC, "glGetHistogram");
-    proc(target, reset, format, type, values);
-};
-
-static void glGetHistogramParameterfvWrapper(GLenum target, GLenum pname,
-						 GLfloat *params)
-{
-    RESOLVE(PFNGLGETHISTOGRAMPARAMETERFVPROC, "glGetHistogramParameterfv");
-    proc(target, pname, params);
-}
-
-static void glGetHistogramParameterivWrapper(GLenum target, GLenum pname,
-						 GLint *params)
-{
-    RESOLVE(PFNGLGETHISTOGRAMPARAMETERIVPROC, "glGetHistogramParameteriv");
-    proc(target, pname, params);
-}
-
-static void glMinmaxWrapper(GLenum target, GLenum internalformat,
-				GLboolean sink)
-{
-    RESOLVE(PFNGLMINMAXPROC, "glMinmax");
-    proc(target, internalformat, sink);
-}
-
-static void glResetMinmaxWrapper(GLenum target)
-{
-    RESOLVE(PFNGLRESETMINMAXPROC, "glResetMinmax");
-    proc(target);
-}
-
-static void glGetMinmaxWrapper(GLenum target, GLboolean reset,
-                                   GLenum format, GLenum types,
-                                   GLvoid *values)
-{
-    RESOLVE(PFNGLGETMINMAXPROC, "glGetMinmax");
-    proc(target, reset, format, types, values);
-}
-
-static void glGetMinmaxParameterfvWrapper(GLenum target, GLenum pname,
-					      GLfloat *params)
-{
-    RESOLVE(PFNGLGETMINMAXPARAMETERFVPROC, "glGetMinmaxParameterfv");
-    proc(target, pname, params);
-}
-
-static void glGetMinmaxParameterivWrapper(GLenum target, GLenum pname,
-					      GLint *params)
-{
-    RESOLVE(PFNGLGETMINMAXPARAMETERIVPROC, "glGetMinmaxParameteriv");
-    proc(target, pname, params);
-}
-
-static void glConvolutionFilter1DWrapper(GLenum target,
-	GLenum internalformat, GLsizei width, GLenum format, GLenum type,
-	const GLvoid *image)
-{
-    RESOLVE(PFNGLCONVOLUTIONFILTER1DPROC, "glConvolutionFilter1D");
-    proc(target, internalformat, width, format, type, image);
-}
-
-static void glConvolutionFilter2DWrapper(GLenum target,
-	GLenum internalformat, GLsizei width, GLsizei height, GLenum format,
-	GLenum type, const GLvoid *image)
-{
-    RESOLVE(PFNGLCONVOLUTIONFILTER2DPROC, "glConvolutionFilter2D");
-    proc(target, internalformat, width, height, format, type, image);
-}
-
-static void glConvolutionParameterfWrapper(GLenum target, GLenum pname,
-	GLfloat params)
-{
-    RESOLVE(PFNGLCONVOLUTIONPARAMETERFPROC, "glConvolutionParameterf");
-    proc(target, pname, params);
-}
-
-static void glConvolutionParameterfvWrapper(GLenum target, GLenum pname,
-	const GLfloat *params)
-{
-    RESOLVE(PFNGLCONVOLUTIONPARAMETERFVPROC, "glConvolutionParameterfv");
-    proc(target, pname, params);
-}
-
-static void glConvolutionParameteriWrapper(GLenum target, GLenum pname,
-	GLint params)
-{
-    RESOLVE(PFNGLCONVOLUTIONPARAMETERIPROC, "glConvolutionParameteri");
-    proc(target, pname, params);
-}
-
-static void glConvolutionParameterivWrapper(GLenum target, GLenum pname,
-	const GLint *params)
-{
-    RESOLVE(PFNGLCONVOLUTIONPARAMETERIVPROC, "glConvolutionParameteriv");
-    proc(target, pname, params);
-}
-
-static void glCopyConvolutionFilter1DWrapper(GLenum target,
-	GLenum internalformat, GLint x, GLint y, GLsizei width)
-{
-    RESOLVE(PFNGLCOPYCONVOLUTIONFILTER1DPROC, "glCopyConvolutionFilter1D");
-    proc(target, internalformat, x, y, width);
-}
-
-static void glCopyConvolutionFilter2DWrapper(GLenum target,
-	GLenum internalformat, GLint x, GLint y, GLsizei width,
-	GLsizei height)
-{
-    RESOLVE(PFNGLCOPYCONVOLUTIONFILTER2DPROC, "glCopyConvolutionFilter2D");
-    proc(target, internalformat, x, y, width, height);
-}
-
-static void glGetConvolutionFilterWrapper(GLenum target, GLenum format,
-	GLenum type, GLvoid *image)
-{
-    RESOLVE(PFNGLGETCONVOLUTIONFILTERPROC, "glGetConvolutionFilter");
-    proc(target, format, type, image);
-}
-
-static void glGetConvolutionParameterfvWrapper(GLenum target, GLenum pname,
-	GLfloat *params)
-{
-    RESOLVE(PFNGLGETCONVOLUTIONPARAMETERFVPROC, "glGetConvolutionParameterfv");
-    proc(target, pname, params);
-}
-
-static void glGetConvolutionParameterivWrapper(GLenum target, GLenum pname,
-	GLint *params)
-{
-    RESOLVE(PFNGLGETCONVOLUTIONPARAMETERIVPROC, "glGetConvolutionParameteriv");
-    proc(target, pname, params);
-}
-
-static void glSeparableFilter2DWrapper(GLenum target,
-	GLenum internalformat, GLsizei width, GLsizei height, GLenum format,
-	GLenum type, const GLvoid *row, const GLvoid *column)
-{
-    RESOLVE(PFNGLSEPARABLEFILTER2DPROC, "glSeparableFilter2D");
-    proc(target, internalformat, width, height, format, type, row, column);
-}
-
-static void glGetSeparableFilterWrapper(GLenum target, GLenum format,
-	GLenum type, GLvoid *row, GLvoid *column, GLvoid *span)
-{
-    RESOLVE(PFNGLGETSEPARABLEFILTERPROC, "glGetSeparableFilter");
-    proc(target, format, type, row, column, span);
-}
-
-/*
- * OpenGL 1.2
+ *
  */
 
-static void glTexImage3DWrapper(GLenum target, GLint level,
-                                      GLint internalFormat,
-                                      GLsizei width, GLsizei height,
-                                      GLsizei depth, GLint border,
-                                      GLenum format, GLenum type,
-                                      const GLvoid *pixels)
+static
+void glGetProgramivARBWrapper(GLenum target, GLenum pname, GLint *params)
 {
-    RESOLVE(PFNGLTEXIMAGE3DPROC, "glTexImage3D");
-    proc(target, level, internalFormat, width, height, depth, border, format, type, pixels);
+  RESOLVE(PFNGLGETPROGRAMIVARBPROC, "glGetProgramivARB");
+  proc(target, pname, params);
 }
 
-static void glTexSubImage3DWrapper(GLenum target, GLint level,
-                                         GLint xoffset, GLint yoffset,
-                                         GLint zoffset, GLsizei width,
-                                         GLsizei height, GLsizei depth,
-                                         GLenum format,
-                                         GLenum type, const GLvoid *pixels)
+static void glBlendFuncSeparateWrapper(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
 {
-    RESOLVE(PFNGLTEXSUBIMAGE3DPROC, "glTexSubImage3D");
-    proc(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+    RESOLVE(PFNGLBLENDFUNCSEPARATEPROC, "glBlendFuncSeparate");
+    proc(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 }
-
-static void glCopyTexSubImage3DWrapper(GLenum target, GLint level,
-                                             GLint xoffset, GLint yoffset,
-                                             GLint zoffset, GLint x,
-                                             GLint y, GLsizei width,
-                                             GLsizei height)
+static void glFogCoordfvWrapper(const GLfloat *coord)
 {
-    RESOLVE(PFNGLCOPYTEXSUBIMAGE3DPROC, "glCopyTexSubImage3D");
-    proc(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+    RESOLVE(PFNGLFOGCOORDFVPROC, "glFogCoordfv");
+    proc(coord);
 }
-
-/*
- * GL_ARB_multitexture (ARB extension 1 and OpenGL 1.2.1)
- */
-
-static void glActiveTextureARBWrapper(GLenum texture)
+static void glFogCoorddvWrapper(const GLdouble *coord)
 {
-    RESOLVE(PFNGLACTIVETEXTUREARBPROC, "glActiveTextureARB");
-    proc(texture);
+    RESOLVE(PFNGLFOGCOORDDVPROC, "glFogCoorddv");
+    proc(coord);
 }
-
-static void glMultiTexCoord1dvARBWrapper(GLenum target, const GLdouble *v)
+static void glFogCoordPointerWrapper(GLenum type, GLsizei stride, const GLvoid *pointer)
 {
-    RESOLVE(PFNGLMULTITEXCOORD1DVARBPROC, "glMultiTexCoord1dvARB");
-    proc(target, v);
-}
-
-static void glMultiTexCoord1fvARBWrapper(GLenum target, const GLfloat *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD1FVARBPROC, "glMultiTexCoord1fvARB");
-    proc(target, v);
-}
-
-static void glMultiTexCoord1ivARBWrapper(GLenum target, const GLint *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD1IVARBPROC, "glMultiTexCoord1ivARB");
-    proc(target, v);
-}
-
-static void glMultiTexCoord1svARBWrapper(GLenum target, const GLshort *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
-    proc(target, v);
-}
-static void glMultiTexCoord2dvARBWrapper(GLenum target, const GLdouble *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD2DVARBPROC, "glMultiTexCoord2dvARB");
-    proc(target, v);
-}
-static void glMultiTexCoord2fvARBWrapper(GLenum target, const GLfloat *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD2FVARBPROC, "glMultiTexCoord2fvARB");
-    proc(target, v);
-}
-static void glMultiTexCoord2ivARBWrapper(GLenum target, const GLint *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD2IVARBPROC, "glMultiTexCoord2ivARB");
-    proc(target, v);
-}
-static void glMultiTexCoord2svARBWrapper(GLenum target, const GLshort *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
-    proc(target, v);
-}
-static void glMultiTexCoord3dvARBWrapper(GLenum target, const GLdouble *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD3DVARBPROC, "glMultiTexCoord3dvARB");
-    proc(target, v);
-}
-static void glMultiTexCoord3fvARBWrapper(GLenum target, const GLfloat *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD3FVARBPROC, "glMultiTexCoord3fvARB");
-    proc(target, v);
-}
-static void glMultiTexCoord3ivARBWrapper(GLenum target, const GLint *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD3IVARBPROC, "glMultiTexCoord3ivARB");
-    proc(target, v);
-}
-static void glMultiTexCoord3svARBWrapper(GLenum target, const GLshort *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
-    proc(target, v);
-}
-static void glMultiTexCoord4dvARBWrapper(GLenum target, const GLdouble *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD4DVARBPROC, "glMultiTexCoord4dvARB");
-    proc(target, v);
-}
-static void glMultiTexCoord4fvARBWrapper(GLenum target, const GLfloat *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD4FVARBPROC, "glMultiTexCoord4fvARB");
-    proc(target, v);
-}
-static void glMultiTexCoord4ivARBWrapper(GLenum target, const GLint *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD4IVARBPROC, "glMultiTexCoord4ivARB");
-    proc(target, v);
-}
-static void glMultiTexCoord4svARBWrapper(GLenum target, const GLshort *v)
-{
-    RESOLVE(PFNGLMULTITEXCOORD1SVARBPROC, "glMultiTexCoord1svARB");
-    proc(target, v);
-}
-
-static void glActiveStencilFaceEXTWrapper(GLenum face)
-{
-    RESOLVE(PFNGLACTIVESTENCILFACEEXTPROC, "glActiveStencilFaceEXT");
-    proc(face);
-}
-
-static void glPointParameterfARBWrapper(GLenum pname, GLfloat param)
-{
-    RESOLVE(PFNGLPOINTPARAMETERFARBPROC, "glPointParameterfARB");
-    proc(pname, param);
-}
-
-static void glPointParameterfvARBWrapper(GLenum pname, const GLfloat *params)
-{
-    RESOLVE(PFNGLPOINTPARAMETERFVARBPROC, "glPointParameterfvARB");
-    proc(pname, params);
-}
-
-
-static void glWindowPos3fARBWrapper(GLfloat x, GLfloat y, GLfloat z)
-{
-    RESOLVE(PFNGLWINDOWPOS3FARBPROC, "glWindowPos3fARB");
-    proc(x, y, z);
-}
-
-static void glPointParameteriWrapper(GLenum pname, GLint param)
-{
-    RESOLVE(PFNGLPOINTPARAMETERIPROC, "glPointParameteri");
-    proc(pname, param);
-}
-
-static void glPointParameterivWrapper(GLenum pname, const GLint *params)
-{
-    RESOLVE(PFNGLPOINTPARAMETERIVPROC, "glPointParameteriv");
-    proc(pname, params);
-}
-
-static void glPointParameteriNVWrapper(GLenum pname, GLint param)
-{
-    RESOLVE(PFNGLPOINTPARAMETERINVPROC, "glPointParameteriNV");
-    proc(pname, param);
-}
-
-static void glPointParameterivNVWrapper(GLenum pname, const GLint *params)
-{
-    RESOLVE(PFNGLPOINTPARAMETERIVNVPROC, "glPointParameterivNV");
-    proc(pname, params);
+    RESOLVE(PFNGLFOGCOORDPOINTERPROC, "glFogCoordPointer");
+    proc(type, stride, pointer);
 }
 
 static void glSecondaryColor3bvWrapper(const GLbyte *v)
@@ -527,59 +141,10 @@ static void glSecondaryColorPointerWrapper(GLint size, GLenum type, GLsizei stri
     proc(size, type, stride, pointer);
 }
 
-static void glBlendFuncSeparateWrapper(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+static void glActiveStencilFaceEXTWrapper(GLenum face)
 {
-    RESOLVE(PFNGLBLENDFUNCSEPARATEPROC, "glBlendFuncSeparate");
-    proc(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
-}
-static void glFogCoordfvWrapper(const GLfloat *coord)
-{
-    RESOLVE(PFNGLFOGCOORDFVPROC, "glFogCoordfv");
-    proc(coord);
-}
-static void glFogCoorddvWrapper(const GLdouble *coord)
-{
-    RESOLVE(PFNGLFOGCOORDDVPROC, "glFogCoorddv");
-    proc(coord);
-}
-static void glFogCoordPointerWrapper(GLenum type, GLsizei stride, const GLvoid *pointer)
-{
-    RESOLVE(PFNGLFOGCOORDPOINTERPROC, "glFogCoordPointer");
-    proc(type, stride, pointer);
-}
-
-static void glSampleCoverageARBWrapper(GLclampf value, GLboolean invert)
-{
-    RESOLVE(PFNGLSAMPLECOVERAGEARBPROC, "glSampleCoverageARB");
-    proc(value, invert);
-}
-static void glSampleMaskSGISWrapper(GLclampf value, GLboolean invert)
-{
-    RESOLVE(PFNGLSAMPLEMASKSGISPROC, "glSampleMaskSGIS");
-    proc(value, invert);
-}
-static void glSamplePatternSGISWrapper(GLenum pattern)
-{
-    RESOLVE(PFNGLSAMPLEPATTERNSGISPROC, "glSamplePatternSGIS");
-    proc(pattern);
-}
-
-/*
- *
- */
-
-static
-void glGetProgramivARBWrapper(GLenum target, GLenum pname, GLint *params)
-{
-  RESOLVE(PFNGLGETPROGRAMIVARBPROC, "glGetProgramivARB");
-  proc(target, pname, params);
-}
-
-static
-void glDrawRangeElementsWrapper(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid *indices)
-{
-  RESOLVE(PFNGLDRAWRANGEELEMENTSPROC, "glDrawRangeElementsWrapper");
-  proc(mode, start, end, count, type, indices);
+    RESOLVE(PFNGLACTIVESTENCILFACEEXTPROC, "glActiveStencilFaceEXT");
+    proc(face);
 }
 
 /*
@@ -1024,44 +589,44 @@ void setup_dispatch_table(void)
 #endif
 
 #if GL_ARB_multisample
-  SET_SampleCoverageARB(disp, glSampleCoverageARBWrapper);
+  SET_SampleCoverageARB(disp, glSampleCoverageWrapper);
 #endif
 
 #if GL_ARB_multitexture
-  SET_ActiveTextureARB(disp, glActiveTextureARBWrapper);
-/*   SET_ClientActiveTextureARB(disp, glClientActiveTextureARBWrapper); */
-/*    SET_MultiTexCoord1dARB(disp, glMultiTexCoord1dARBWrapper); */
-  SET_MultiTexCoord1dvARB(disp, glMultiTexCoord1dvARBWrapper);
-/*   SET_MultiTexCoord1fARB(disp, glMultiTexCoord1fARBWrapper); */
-  SET_MultiTexCoord1fvARB(disp, glMultiTexCoord1fvARBWrapper);
-/*   SET_MultiTexCoord1iARB(disp, glMultiTexCoord1iARBWrapper); */
-  SET_MultiTexCoord1ivARB(disp, glMultiTexCoord1ivARBWrapper);
-/*   SET_MultiTexCoord1sARB(disp, glMultiTexCoord1sARBWrapper); */
-  SET_MultiTexCoord1svARB(disp, glMultiTexCoord1svARBWrapper);
-/*   SET_MultiTexCoord2dARB(disp, glMultiTexCoord2dARBWrapper); */
-  SET_MultiTexCoord2dvARB(disp, glMultiTexCoord2dvARBWrapper);
-/*   SET_MultiTexCoord2fARB(disp, glMultiTexCoord2fARBWrapper); */
-  SET_MultiTexCoord2fvARB(disp, glMultiTexCoord2fvARBWrapper);
-/*   SET_MultiTexCoord2iARB(disp, glMultiTexCoord2iARBWrapper); */
-  SET_MultiTexCoord2ivARB(disp, glMultiTexCoord2ivARBWrapper);
-/*   SET_MultiTexCoord2sARB(disp, glMultiTexCoord2sARBWrapper); */
-  SET_MultiTexCoord2svARB(disp, glMultiTexCoord2svARBWrapper);
-/*   SET_MultiTexCoord3dARB(disp, glMultiTexCoord3dARBWrapper); */
-  SET_MultiTexCoord3dvARB(disp, glMultiTexCoord3dvARBWrapper);
-/*   SET_MultiTexCoord3fARB(disp, glMultiTexCoord3fARBWrapper); */
-  SET_MultiTexCoord3fvARB(disp, glMultiTexCoord3fvARBWrapper);
-/*   SET_MultiTexCoord3iARB(disp, glMultiTexCoord3iARBWrapper); */
-  SET_MultiTexCoord3ivARB(disp, glMultiTexCoord3ivARBWrapper);
-/*   SET_MultiTexCoord3sARB(disp, glMultiTexCoord3sARBWrapper); */
-  SET_MultiTexCoord3svARB(disp, glMultiTexCoord3svARBWrapper);
-/*   SET_MultiTexCoord4dARB(disp, glMultiTexCoord4dARBWrapper); */
-  SET_MultiTexCoord4dvARB(disp, glMultiTexCoord4dvARBWrapper);
-/*   SET_MultiTexCoord4fARB(disp, glMultiTexCoord4fARBWrapper); */
-  SET_MultiTexCoord4fvARB(disp, glMultiTexCoord4fvARBWrapper);
-/*   SET_MultiTexCoord4iARB(disp, glMultiTexCoord4iARBWrapper); */
-  SET_MultiTexCoord4ivARB(disp, glMultiTexCoord4ivARBWrapper);
-/*   SET_MultiTexCoord4sARB(disp, glMultiTexCoord4sARBWrapper); */
-  SET_MultiTexCoord4svARB(disp, glMultiTexCoord4svARBWrapper);
+  SET_ActiveTextureARB(disp, glActiveTextureWrapper);
+  SET_ClientActiveTextureARB(disp, glClientActiveTextureWrapper);
+  SET_MultiTexCoord1dARB(disp, glMultiTexCoord1dWrapper);
+  SET_MultiTexCoord1dvARB(disp, glMultiTexCoord1dvWrapper);
+  SET_MultiTexCoord1fARB(disp, glMultiTexCoord1fWrapper);
+  SET_MultiTexCoord1fvARB(disp, glMultiTexCoord1fvWrapper);
+  SET_MultiTexCoord1iARB(disp, glMultiTexCoord1iWrapper);
+  SET_MultiTexCoord1ivARB(disp, glMultiTexCoord1ivWrapper);
+  SET_MultiTexCoord1sARB(disp, glMultiTexCoord1sWrapper);
+  SET_MultiTexCoord1svARB(disp, glMultiTexCoord1svWrapper);
+  SET_MultiTexCoord2dARB(disp, glMultiTexCoord2dWrapper);
+  SET_MultiTexCoord2dvARB(disp, glMultiTexCoord2dvWrapper);
+  SET_MultiTexCoord2fARB(disp, glMultiTexCoord2fWrapper);
+  SET_MultiTexCoord2fvARB(disp, glMultiTexCoord2fvWrapper);
+  SET_MultiTexCoord2iARB(disp, glMultiTexCoord2iWrapper);
+  SET_MultiTexCoord2ivARB(disp, glMultiTexCoord2ivWrapper);
+  SET_MultiTexCoord2sARB(disp, glMultiTexCoord2sWrapper);
+  SET_MultiTexCoord2svARB(disp, glMultiTexCoord2svWrapper);
+  SET_MultiTexCoord3dARB(disp, glMultiTexCoord3dWrapper);
+  SET_MultiTexCoord3dvARB(disp, glMultiTexCoord3dvWrapper);
+  SET_MultiTexCoord3fARB(disp, glMultiTexCoord3fWrapper);
+  SET_MultiTexCoord3fvARB(disp, glMultiTexCoord3fvWrapper);
+  SET_MultiTexCoord3iARB(disp, glMultiTexCoord3iWrapper);
+  SET_MultiTexCoord3ivARB(disp, glMultiTexCoord3ivWrapper);
+  SET_MultiTexCoord3sARB(disp, glMultiTexCoord3sWrapper);
+  SET_MultiTexCoord3svARB(disp, glMultiTexCoord3svWrapper);
+  SET_MultiTexCoord4dARB(disp, glMultiTexCoord4dWrapper);
+  SET_MultiTexCoord4dvARB(disp, glMultiTexCoord4dvWrapper);
+  SET_MultiTexCoord4fARB(disp, glMultiTexCoord4fWrapper);
+  SET_MultiTexCoord4fvARB(disp, glMultiTexCoord4fvWrapper);
+  SET_MultiTexCoord4iARB(disp, glMultiTexCoord4iWrapper);
+  SET_MultiTexCoord4ivARB(disp, glMultiTexCoord4ivWrapper);
+  SET_MultiTexCoord4sARB(disp, glMultiTexCoord4sWrapper);
+  SET_MultiTexCoord4svARB(disp, glMultiTexCoord4svWrapper);
 #endif
 
 #if GL_ARB_occlusion_query
@@ -1118,20 +683,20 @@ void setup_dispatch_table(void)
 #endif
 
 #if GL_ARB_texture_compression
-/*   SET_CompressedTexImage1DARB(disp, glCompressedTexImage1DARBWrapper); */
-/*   SET_CompressedTexImage2DARB(disp, glCompressedTexImage2DARBWrapper); */
-/*   SET_CompressedTexImage3DARB(disp, glCompressedTexImage3DARBWrapper); */
-/*   SET_CompressedTexSubImage1DARB(disp, glCompressedTexSubImage1DARBWrapper); */
-/*   SET_CompressedTexSubImage2DARB(disp, glCompressedTexSubImage2DARBWrapper); */
-/*   SET_CompressedTexSubImage3DARB(disp, glCompressedTexSubImage3DARBWrapper); */
-/*   SET_GetCompressedTexImageARB(disp, glGetCompressedTexImageARBWrapper); */
+  SET_CompressedTexImage1DARB(disp, glCompressedTexImage1DWrapper);
+  SET_CompressedTexImage2DARB(disp, glCompressedTexImage2DWrapper);
+  SET_CompressedTexImage3DARB(disp, glCompressedTexImage3DWrapper);
+  SET_CompressedTexSubImage1DARB(disp, glCompressedTexSubImage1DWrapper);
+  SET_CompressedTexSubImage2DARB(disp, glCompressedTexSubImage2DWrapper);
+  SET_CompressedTexSubImage3DARB(disp, glCompressedTexSubImage3DWrapper);
+  SET_GetCompressedTexImageARB(disp, glGetCompressedTexImageWrapper);
 #endif
 
 #if GL_ARB_transpose_matrix
-/*   SET_LoadTransposeMatrixdARB(disp, glLoadTransposeMatrixdARBWrapper); */
-/*   SET_LoadTransposeMatrixfARB(disp, glLoadTransposeMatrixfARBWrapper); */
-/*   SET_MultTransposeMatrixdARB(disp, glMultTransposeMatrixdARBWrapper); */
-/*   SET_MultTransposeMatrixfARB(disp, glMultTransposeMatrixfARBWrapper); */
+  SET_LoadTransposeMatrixdARB(disp, glLoadTransposeMatrixdWrapper);
+  SET_LoadTransposeMatrixfARB(disp, glLoadTransposeMatrixfWrapper);
+  SET_MultTransposeMatrixdARB(disp, glMultTransposeMatrixdWrapper);
+  SET_MultTransposeMatrixfARB(disp, glMultTransposeMatrixfWrapper);
 #endif
 
 #if GL_ARB_vertex_buffer_object
