@@ -59,20 +59,21 @@ typedef struct {
     unsigned dumpHWND : 1;
     unsigned dumpDC : 1;
     unsigned enableGLcallTrace : 1;
-} glWinDebugSettingsRec, *glWinDebugSettingsPtr;
-extern glWinDebugSettingsRec glWinDebugSettings;
+} glxWinDebugSettingsRec;
 
-extern unsigned int glWinIndirectProcCalls;
-extern unsigned int glWinDirectProcCalls;
+extern glxWinDebugSettingsRec glxWinDebugSettings;
+
+//extern unsigned int glWinIndirectProcCalls;
+//extern unsigned int glWinDirectProcCalls;
 
 void glWinCallDelta(void);
 void setup_dispatch_table(void);
-void glWinPushNativeProvider(void);
+void glxWinPushNativeProvider(void);
 const GLubyte* glGetStringWrapperNonstatic(GLenum name);
 
 #if 1
-#define GLWIN_TRACE_MSG(msg, args...) if (glWinDebugSettings.enableTrace) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )
-#define GLWIN_DEBUG_MSG(msg, args...) if (glWinDebugSettings.enableDebug) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )
+#define GLWIN_TRACE_MSG(msg, args...) if (glxWinDebugSettings.enableTrace) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )
+#define GLWIN_DEBUG_MSG(msg, args...) if (glxWinDebugSettings.enableDebug) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )
 #else
 #define GLWIN_TRACE_MSG(a, ...)
 #define GLWIN_DEBUG_MSG(a, ...)
