@@ -1,9 +1,44 @@
 /*
- * GLX implementation that uses Win32's OpenGL
- * Wrapper functions for Win32's OpenGL
+ * File: glwrap.c
+ * Purpose: Wrapper functions for Win32 OpenGL functions
  *
  * Authors: Alexander Gottwald
  *          Jon TURNEY
+ *
+ * Copyright (c) Jon TURNEY 2009
+ * Copyright (c) Alexander Gottwald 2004
+ *
+ * Portions of this file are copied from GL/apple/indirect.c,
+ * which contains the following copyright:
+ *
+ * Copyright (c) 2007, 2008, 2009 Apple Inc.
+ * Copyright (c) 2004 Torrey T. Lyons. All Rights Reserved.
+ * Copyright (c) 2002 Greg Parker. All Rights Reserved.
+ *
+ * Portions of this file are copied from Mesa's xf86glx.c,
+ * which contains the following copyright:
+ *
+ * Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
+ * All Rights Reserved.
+ *
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE ABOVE LISTED COPYRIGHT HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 #define USE_OPENGL32
