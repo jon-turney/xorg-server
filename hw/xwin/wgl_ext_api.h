@@ -31,5 +31,6 @@
 
 const char *wglGetExtensionsStringARBWrapper(HDC hdc);
 wBOOL wglMakeContextCurrentARBWrapper(HDC hDrawDC, HDC hReadDC, HGLRC hglrc);
+HDC wglGetCurrentReadDCARBWrapper(VOID);
 
 #endif /* wgl_ext_api_h */
