@@ -28,8 +28,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
-#include <dix-config.h>
+#ifdef HAVE_XWIN_CONFIG_H
+#include <xwin-config.h>
 #endif
 
 #include <X11/Xwindows.h>
@@ -58,6 +58,7 @@ typedef struct {
     unsigned dumpPFD : 1;
     unsigned dumpHWND : 1;
     unsigned dumpDC : 1;
+    unsigned enableGLcallTrace : 1;
 } glWinDebugSettingsRec, *glWinDebugSettingsPtr;
 extern glWinDebugSettingsRec glWinDebugSettings;
 
@@ -67,6 +68,7 @@ extern unsigned int glWinDirectProcCalls;
 void glWinCallDelta(void);
 void setup_dispatch_table(void);
 void glWinPushNativeProvider(void);
+const GLubyte* glGetStringWrapperNonstatic(GLenum name);
 
 #if 1
 #define GLWIN_TRACE_MSG(msg, args...) if (glWinDebugSettings.enableTrace) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )

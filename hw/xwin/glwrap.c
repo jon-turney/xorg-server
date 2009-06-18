@@ -8,21 +8,8 @@
  * Copyright (c) Jon TURNEY 2009
  * Copyright (c) Alexander Gottwald 2004
  *
- * Portions of this file are copied from GL/apple/indirect.c,
- * which contains the following copyright:
  *
- * Copyright (c) 2007, 2008, 2009 Apple Inc.
- * Copyright (c) 2004 Torrey T. Lyons. All Rights Reserved.
- * Copyright (c) 2002 Greg Parker. All Rights Reserved.
- *
- * Portions of this file are copied from Mesa's xf86glx.c,
- * which contains the following copyright:
- *
- * Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
- * All Rights Reserved.
- *
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
+ * Permission is hereby granted, free of chabrge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -43,8 +30,8 @@
 
 #define USE_OPENGL32
 
-#ifdef HAVE_DIX_CONFIG_H
-#include <dix-config.h>
+#ifdef HAVE_XWIN_CONFIG_H
+#include <xwin-config.h>
 #endif
 
 #include <X11/Xwindows.h>
@@ -120,6 +107,15 @@ typedef void (APIENTRYP PFNGLGETCOMPRESSEDTEXIMAGEPROC) (GLenum target, GLint le
  */
 
 #include "glwrap_api.c"
+
+/*
+  Special non-static wrapper for glGetString for debug output
+*/
+
+const GLubyte* glGetStringWrapperNonstatic(GLenum name)
+{
+  return glGetString(name);
+}
 
 /*
  *
@@ -849,7 +845,7 @@ void setup_dispatch_table(void)
 /*   SET_WindowPos3dMESA(disp, glWindowPos3dARBWrapper); */
 /*   SET_WindowPos3dvMESA(disp, glWindowPos3dvARBWrapper); */
   SET_WindowPos3fMESA(disp, glWindowPos3fARBWrapper);
-/*   SET_WindowPos3fvMESA(disp, glWindowPos3fvARBWrapper); */
+  SET_WindowPos3fvMESA(disp, glWindowPos3fvARBWrapper);
 /*   SET_WindowPos3iMESA(disp, glWindowPos3iARBWrapper); */
 /*   SET_WindowPos3ivMESA(disp, glWindowPos3ivARBWrapper); */
 /*   SET_WindowPos3sMESA(disp, glWindowPos3sARBWrapper); */

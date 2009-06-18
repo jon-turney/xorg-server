@@ -256,7 +256,7 @@ LogSetParameter(LogParameter param, int value)
 void
 LogVWrite(int verb, const char *f, va_list args)
 {
-    static char tmpBuffer[1024];
+    static char tmpBuffer[4096];
     int len = 0;
 
     /*
@@ -312,8 +312,8 @@ LogVWrite(int verb, const char *f, va_list args)
 	     * xalloc() and friends can't be used.
 	     */
 	    if (len > bufferUnused) {
-		bufferSize += 1024;
-		bufferUnused += 1024;
+		bufferSize += sizeof(tmpBuffer);
+		bufferUnused += sizeof(tmpBuffer);
 		if (saveBuffer)
 		    saveBuffer = realloc(saveBuffer, bufferSize);
 		else
