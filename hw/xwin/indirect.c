@@ -199,19 +199,17 @@ typedef struct __GLXWinDrawable __GLXWinDrawable;
 struct __GLXWinContext {
   __GLXcontext base;
   HGLRC ctx;                         /* Windows GL Context */
-  // HDC dc;                            /* Windows Device Context */
   __GLXWinContext *shareContext;     /* Context with which we will share display lists and textures */
-  // winWindowInfoRec winInfo;          /* Window info from XWin DDX - all we actually use at the moment is the HWND, and that changes if the window is unmapped/mapped.... */
-  HWND hwnd;                         /* For detecting when HWND has changed (debug output)... */
+  HWND hwnd;                         /* For detecting when HWND has changed */
   PIXELFORMATDESCRIPTOR pfd;         /* Pixel format descriptor */
-  //  int pixelFormat;                   /* Pixel format index */
-  unsigned isAttached :1;            /* Flag to track if context is attached */
+  unsigned isAttached :1;            /* Flag to track if context is attached (i.e. ctx is not null) */
 };
 
 struct __GLXWinDrawable
 {
   __GLXdrawable base;
-  __GLXWinContext *context;
+  __GLXWinContext *drawContext;
+  __GLXWinContext *readContext;
 };
 
 typedef struct {
@@ -352,13 +350,15 @@ glxWinScreenProbe(ScreenPtr pScreen)
       ReleaseDC(NULL, hdc);
     }
 
+    //
     // Based on the WGL extensions available, we might want to
-    // override GLX version after __glXScreenInit() sets it to "1.2"
+    // decline this screen, enable code paths, and override the
+    // GLX version after __glXScreenInit() sets it to "1.2"
+    //
     // screen->base.GLXversion = xstrdup("1.4");
     /* We may wish to adjust screen->base.GLXextensions as well */
     // XXX: remove "GLX_SGIX_hyperpipe", "GLX_SGIX_swap_barrier"
     // XXX: remove "GLX_MESA_copy_sub_buffer" unless we implement it
-    // __glXEnableExtension() ???
 
     return &screen->base;
 }
@@ -371,8 +371,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
 static Bool
 glxWinRealizeWindow(WindowPtr pWin)
 {
-    /* If this window has GL contexts, tell them to reattach */
-    /* reattaching is bad: display lists and parameters get lost */
     Bool result;
     ScreenPtr pScreen = pWin->drawable.pScreen;
     glxWinScreen *screenPriv = (glxWinScreen *) glxGetScreen(pScreen);
@@ -383,52 +381,6 @@ glxWinRealizeWindow(WindowPtr pWin)
     pScreen->RealizeWindow = screenPriv->RealizeWindow;
     result = pScreen->RealizeWindow(pWin);
     pScreen->RealizeWindow = glxWinRealizeWindow;
-
-#if 0
-    __GLXdrawablePrivate *glxPriv;
-    /* Re-attach this window's GL contexts, if any. */
-    glxPriv = __glXFindDrawablePrivate(pWin->drawable.id);
-    if (glxPriv) {
-        __GLXcontext *gx;
-        __GLcontext *gc;
-        __GLdrawablePrivate *glPriv = &glxPriv->glPriv;
-        GLWIN_DEBUG_MSG("glxWinRealizeWindow is GL drawable!");
-
-#if 0
-        /* GL contexts bound to this window for drawing */
-        for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
-            gc = (__GLcontext *)gx->gc;
-            if (gc->isAttached)
-#if 1
-            {
-                GLWIN_DEBUG_MSG("context is already bound! Adjusting HWND");
-                glxWinAdjustHWND(gc, pWin);
-                continue;
-            }
-#else
-                unattach(gc);
-#endif
-            attach(gc, glPriv);
-        }
-
-        /* GL contexts bound to this window for reading */
-        for (gx = glxPriv->readGlxc; gx != NULL; gx = gx->next) {
-            gc = (__GLcontext *)gx->gc;
-            if (gc->isAttached)
-#if 1
-            {
-                GLWIN_DEBUG_MSG("context is already bound! Adjusting HWND.");
-                glxWinAdjustHWND(gc, pWin);
-                continue;
-            }
-#else
-                unattach(gc);
-#endif
-            attach(gc, glPriv);
-        }
-#endif
-    }
-#endif
 
     return result;
 }
@@ -442,28 +394,10 @@ glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 
     GLWIN_TRACE_MSG("glxWinCopyWindow pWindow %p", pWindow);
 
-#if 0
-    __GLXdrawablePrivate *glxPriv;
-    /* Check if the window is attached and discard any drawing request */
-    glxPriv = __glXFindDrawablePrivate(pWindow->drawable.id);
-    if (glxPriv) {
-        __GLXcontext *gx;
-
-        /* GL contexts bound to this window for drawing */
-        for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
-/*
-            GLWIN_DEBUG_MSG("glxWinCopyWindow - calling glDrawBuffer");
-            glDrawBuffer(GL_FRONT);
-*/
-            return;
-        }
-
-        /* GL contexts bound to this window for reading */
-        for (gx = glxPriv->readGlxc; gx != NULL; gx = gx->next) {
-            return;
-        }
-    }
-#endif
+    /*
+       We used to discard any normal drawing requests if a GL drawing context
+       was pointing at the window.... Not sure what that helps with...
+    */
 
     GLWIN_DEBUG_MSG("glxWinCopyWindow - passing to hw layer");
 
@@ -475,41 +409,11 @@ glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 static Bool
 glxWinUnrealizeWindow(WindowPtr pWin)
 {
-    /* If this window has GL contexts, tell them to unattach */
     Bool result;
     ScreenPtr pScreen = pWin->drawable.pScreen;
     glxWinScreen *screenPriv = (glxWinScreen *)glxGetScreen(pScreen);
 
     GLWIN_DEBUG_MSG("glxWinUnrealizeWindow");
-
-#if 0
-    __GLXdrawablePrivate *glxPriv;
-    /* The native window may have already been destroyed (windows
-     * are unrealized from top down)
-     */
-
-    /* Unattach this window's GL contexts, if any. */
-    glxPriv = __glXFindDrawablePrivate(pWin->drawable.id);
-    if (glxPriv) {
-        __GLXcontext *gx;
-        __GLcontext *gc;
-        GLWIN_DEBUG_MSG("glxWinUnrealizeWindow is GL drawable!");
-
-#if 0
-        /* GL contexts bound to this window for drawing */
-        for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
-            gc = (__GLcontext *)gx->gc;
-            unattach(gc);
-        }
-
-        /* GL contexts bound to this window for reading */
-        for (gx = glxPriv->readGlxc; gx != NULL; gx = gx->next) {
-            gc = (__GLcontext *)gx->gc;
-            unattach(gc);
-        }
-#endif
-    }
-#endif
 
     pScreen->UnrealizeWindow = screenPriv->UnrealizeWindow;
     result = pScreen->UnrealizeWindow(pWin);
@@ -532,25 +436,21 @@ glxWinDrawableSwapBuffers(__GLXdrawable *base)
     __GLXWinDrawable *draw = (__GLXWinDrawable *)base;
 
     /* Swap buffers on the last active context for drawing on the drawable */
-    if (draw->context == NULL)
+    if (draw->drawContext == NULL)
       {
         GLWIN_TRACE_MSG("glxWinSwapBuffers - no context for drawable");
-        return TRUE;
-/*         return GL_FALSE; */
+        return GL_FALSE;
       }
 
-    GLWIN_TRACE_MSG("glxWinSwapBuffers on drawable %p, last context %p (native ctx %p)", base, draw->context, draw->context->ctx);
+    GLWIN_TRACE_MSG("glxWinSwapBuffers on drawable %p, last context %p (native ctx %p)", base, draw->drawContext, draw->drawContext->ctx);
 
     /*
-       draw->context->base.drawPriv will not be set if the context is not current anymore,
+       draw->drawContext->base.drawPriv will not be set if the context is not current anymore,
        but if it is, it should point to this drawable....
     */
-    if (draw->context->base.drawPriv)
-      {
-        assert(draw->context->base.drawPriv == base);
-      }
+    assert((draw->drawContext->base.drawPriv == NULL) || (draw->drawContext->base.drawPriv == base));
 
-    dc = glxWinMakeDC(draw->context, base, &dc, &hwnd);
+    dc = glxWinMakeDC(draw->drawContext, base, &dc, &hwnd);
     if (dc == NULL)
       return GL_FALSE;
 
@@ -581,8 +481,8 @@ glxWinDrawableDestroy(__GLXdrawable *base)
   __GLXWinDrawable *glxPriv = (__GLXWinDrawable *)base;
 
   // XXX: really we need a list of all contexts pointing at this drawable, not just the last one...
-/*   unattach(glxPriv->context); */
-/*   glxPriv->context = NULL; */
+  glxPriv->drawContext = NULL;
+  glxPriv->readContext = NULL;
 
   GLWIN_DEBUG_MSG("glxWinDestroyDrawable");
   xfree(glxPriv);
@@ -662,7 +562,6 @@ int glxWinReleaseTexImage(__GLXcontext  *baseContext,
 static HDC
 glxWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
 {
-  HDC dc;
   winWindowInfoRec winInfo;
   WindowPtr pWin;
 
@@ -691,13 +590,13 @@ glxWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
       return NULL;
     }
 
-  dc = GetDC(winInfo.hwnd);
+  *hdc = GetDC(winInfo.hwnd);
 
-  if (dc == NULL)
+  if (*hdc == NULL)
     ErrorF("GetDC error: %s\n", glxWinErrorMessage());
 
   if (glxWinDebugSettings.dumpDC)
-      GLWIN_DEBUG_MSG("Got HDC %p", dc);
+      GLWIN_DEBUG_MSG("Got HDC %p", *hdc);
 
   /* Check if the hwnd has changed... */
   if (winInfo.hwnd != gc->hwnd)
@@ -711,21 +610,21 @@ glxWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
       gc->hwnd = winInfo.hwnd;
 
       /* We must select a pixelformat, but SetPixelFormat can only be called once for a window... */
-      pixelFormat = ChoosePixelFormat(dc, &gc->pfd);
+      pixelFormat = ChoosePixelFormat(*hdc, &gc->pfd);
       if (pixelFormat == 0)
         {
           ErrorF("ChoosePixelFormat error: %s\n", glxWinErrorMessage());
-          return dc;
+          return *hdc;
         }
 
-      if (!SetPixelFormat(dc, pixelFormat, &gc->pfd))
+      if (!SetPixelFormat(*hdc, pixelFormat, &gc->pfd))
         {
           ErrorF("SetPixelFormat error: %s\n", glxWinErrorMessage());
-          return dc;
+          return *hdc;
         }
     }
 
-  return dc;
+  return *hdc;
 }
 
 static BOOL
@@ -770,12 +669,6 @@ glxWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
           }
       }
 
-    if (!wglMakeCurrent(dc, gc->ctx)) {
-        ErrorF("glMakeCurrent error: %s\n", glxWinErrorMessage());
-        ReleaseDC(hwnd, dc);
-        return FALSE;
-    }
-
     ReleaseDC(hwnd, dc);
 
     return TRUE;
@@ -795,6 +688,7 @@ attach(__GLXWinContext *gc, __GLXWinDrawable *draw)
     if (draw->base.type == GLX_DRAWABLE_WINDOW)
     {
         WindowPtr pWin = (WindowPtr) draw->base.pDraw;
+
         if (pWin == NULL)
         {
           GLWIN_DEBUG_MSG("Deferring CreateContextReal() until window is created");
@@ -808,8 +702,6 @@ attach(__GLXWinContext *gc, __GLXWinDrawable *draw)
             }
         }
     }
-
-    draw->context = gc;
 }
 
 static void
@@ -847,7 +739,8 @@ glxWinContextMakeCurrent(__GLXcontext *base)
 {
   __GLXWinContext *gc = (__GLXWinContext *)base;
   BOOL ret;
-  HDC dc;
+  HDC drawDC;
+  HDC readDC = NULL;
   HWND hwnd;
 
   GLWIN_TRACE_MSG("glxWinContextMakeCurrent context %p (native ctx %p)", gc, gc->ctx);
@@ -856,25 +749,61 @@ glxWinContextMakeCurrent(__GLXcontext *base)
   if (!gc->isAttached)
     attach(gc, (__GLXWinDrawable *)(gc->base.drawPriv));
 
+  /* Keep a note of the last active context in the drawable */
+  ((__GLXWinDrawable *)(gc->base.drawPriv))->drawContext = gc;
+
   if (gc->ctx == NULL)
     {
       ErrorF("Native context is NULL\n");
       return FALSE;
     }
 
-  dc = glxWinMakeDC(gc, gc->base.drawPriv, &dc, &hwnd);
-  if (dc == NULL)
+  drawDC = glxWinMakeDC(gc, gc->base.drawPriv, &drawDC, &hwnd);
+  if (drawDC == NULL)
     {
-      ErrorF("glxWinMakeDC failed\n");
+      ErrorF("glxWinMakeDC failed for drawDC\n");
       return FALSE;
     }
 
-  // apparently this could fail if the context is current in a different thread,
-  // but that shouldn't be able to happen in the current server...
-  ret = wglMakeCurrent(dc, gc->ctx);
+  /* Otherwise, just use wglMakeCurrent */
+  ret = wglMakeCurrent(drawDC, gc->ctx);
   if (!ret)
-    ErrorF("wglMakeCurrent error: %s\n", glxWinErrorMessage());
-  ReleaseDC(hwnd, dc);
+    {
+      ErrorF("wglMakeCurrent error: %s\n", glxWinErrorMessage());
+    }
+
+  if ((gc->base.readPriv != NULL) && (gc->base.readPriv != gc->base.drawPriv))
+    {
+      /*
+        If there is a separate read drawable, create a separate read DC, and
+        use the wglMakeContextCurrent extension to make the context current drawing
+        to one DC and reading from the other
+
+        NOTE WELL: This isn't a strict alternative to wglMakeCurrent() as we can't
+        look up the extension function until we have a context, hence the lack of
+        an else here (although in practice we cache the look up result for ever...)
+      */
+      readDC = glxWinMakeDC(gc, gc->base.readPriv, &readDC, &hwnd);
+      if (readDC == NULL)
+        {
+          ErrorF("glxWinMakeDC failed for readDC\n");
+          ReleaseDC(hwnd, drawDC);
+          return FALSE;
+        }
+
+      ret = wglMakeContextCurrentARBWrapper(drawDC, readDC, gc->ctx);
+      if (!ret)
+        {
+          ErrorF("wglMakeContextCurrent error: %s\n", glxWinErrorMessage());
+        }
+    }
+
+  // apparently make current could fail if the context is current in a different thread,
+  // but that shouldn't be able to happen in the current server...
+
+  ReleaseDC(hwnd, drawDC);
+  if (readDC)
+    ReleaseDC(hwnd, readDC);
 
   return ret;
 }
@@ -968,7 +897,6 @@ glxWinCreateContext(__GLXscreen *screen,
     context->base.pGlxScreen = screen;
 
     // actual native GL context creation is deferred until attach()
-    // reason???
     context->ctx = NULL;
     context->isAttached = 0;
     context->shareContext = shareContext;

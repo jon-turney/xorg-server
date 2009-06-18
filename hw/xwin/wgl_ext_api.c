@@ -44,9 +44,9 @@
         proc = (procname)wglGetProcAddress(symbol); \
         init = FALSE; \
         if (proc == NULL) { \
-            ErrorF("glwrap: Can't resolve \"%s\"\n", symbol); \
+            ErrorF("wglwrap: Can't resolve \"%s\"\n", symbol); \
         } else \
-            ErrorF("glwrap: resolved \"%s\"\n", symbol); \
+            ErrorF("wglwrap: Resolved \"%s\"\n", symbol); \
     } \
     if (proc == NULL) { \
         __glXErrorCallBack(0); \
@@ -69,6 +69,8 @@ const char *wglGetExtensionsStringARBWrapper(HDC hdc)
   return proc(hdc);
 }
 
+
+// WGL_ARB_make_current_read
 typedef wBOOL (__stdcall *PFNWGLMAKECONTEXTCURRENTARB)(HDC hDrawDC, HDC hReadDC, HGLRC hglrc);
 
 wBOOL wglMakeContextCurrentARBWrapper(HDC hDrawDC, HDC hReadDC, HGLRC hglrc)
@@ -77,3 +79,10 @@ wBOOL wglMakeContextCurrentARBWrapper(HDC hDrawDC, HDC hReadDC, HGLRC hglrc)
   return proc(hDrawDC, hReadDC, hglrc);
 }
 
+typedef HDC (__stdcall *PFNWGLGETCURRENTREADDCARB)(VOID);
+
+HDC wglGetCurrentReadDCARBWrapper(VOID)
+{
+  RESOLVE_RET(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB", NULL);
+  return proc();
+}
