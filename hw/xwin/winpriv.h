@@ -8,7 +8,7 @@
 typedef struct
 {
     HWND    hwnd;
-    HRGN    hrgn;
+  //    HRGN    hrgn;
     RECT    rect;
 } winWindowInfoRec, *winWindowInfoPtr;
 

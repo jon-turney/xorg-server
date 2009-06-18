@@ -50,7 +50,7 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
         }
 
         pWinInfo->hwnd = pWinScreen->hwndScreen;
-        pWinInfo->hrgn = NULL;
+        //        pWinInfo->hrgn = NULL;
         pWinInfo->rect = rect;
 
         pScreenInfo = pWinScreen->pScreenInfo;
@@ -78,11 +78,11 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
                 pWinInfo->hwnd = pWinPriv->hWnd;
 
                 /* Copy window region */
-                if (pWinInfo->hrgn)
-                    DeleteObject(pWinInfo->hrgn);
-                pWinInfo->hrgn = CreateRectRgn(0,0,0,0);
-                CombineRgn(pWinInfo->hrgn, pWinPriv->hRgn, pWinPriv->hRgn,
-                        RGN_COPY);
+                //                if (pWinInfo->hrgn)
+                //                    DeleteObject(pWinInfo->hrgn);
+                //                pWinInfo->hrgn = CreateRectRgn(0,0,0,0);
+                //CombineRgn(pWinInfo->hrgn, pWinPriv->hRgn, pWinPriv->hRgn,
+                //RGN_COPY);
             }
 
             return;
@@ -117,7 +117,7 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
         winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
 
         pWinInfo->hwnd = NULL;
-        pWinInfo->hrgn = NULL;
+        //        pWinInfo->hrgn = NULL;
         pWinInfo->rect = rect;
 
         if (pWinScreen == NULL)

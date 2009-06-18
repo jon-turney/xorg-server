@@ -57,6 +57,7 @@ for line in gldoth :
                 print 'static ' + returntype + ' ' + funcname + 'Wrapper(' + arglist + ')'
                 print '{'
 #                print '  ErrorF("'+ funcname + ' wrapper\\n");'
+                print '  glWinDirectProcCalls++;'
                 if returntype == 'void' :
                         print '  ' +  funcname + '(',
                 else :
