@@ -3,6 +3,7 @@
  * Wrapper functions for Win32's OpenGL
  *
  * Authors: Alexander Gottwald
+ *          Jon TURNEY
  */
 
 #define USE_OPENGL32
@@ -18,6 +19,26 @@
 #include <glx/glxext.h>
 #include <glx/glapi.h>
 #include <glx/dispatch.h>
+#include <glwindows.h>
+
+unsigned int glWinIndirectProcCalls = 0;
+unsigned int glWinDirectProcCalls = 0;
+
+void
+glWinCallDelta(void)
+{
+  static unsigned int glWinIndirectProcCallsLast = 0;
+  static unsigned int glWinDirectProcCallsLast = 0;
+  if ((glWinIndirectProcCalls != glWinIndirectProcCallsLast) ||
+      (glWinDirectProcCalls != glWinDirectProcCallsLast))
+    {
+      ErrorF("after %d direct and %d indirect GL calls\n",
+             glWinDirectProcCalls - glWinDirectProcCallsLast,
+             glWinIndirectProcCalls - glWinIndirectProcCallsLast);
+      glWinDirectProcCallsLast = glWinDirectProcCalls;
+      glWinIndirectProcCallsLast = glWinIndirectProcCalls;
+    }
+}
 
 /*
  * Not sure why these typedefs aren't provided by gl.h/glext.h...
@@ -49,7 +70,9 @@ typedef void (APIENTRYP PFNGLGETCOMPRESSEDTEXIMAGEPROC) (GLenum target, GLint le
     if (proc == NULL) { \
         __glXErrorCallBack(0); \
         return retval; \
-    }
+    } \
+    glWinIndirectProcCalls++;
+
 #define RESOLVE(procname, symbol) RESOLVE_RET(procname, symbol,)
 
 /*
