@@ -160,9 +160,13 @@ XWin_LDFLAGS = -mwindows
 
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
+glwrap.c: generated_gl_wrappers.c
 
-BUILT_SOURCES = winprefsyacc.h winprefsyacc.c winprefslex.c
+BUILT_SOURCES = winprefsyacc.h winprefsyacc.c winprefslex.c generated_gl_wrappers.c
 CLEANFILES = $(BUILT_SOURCES)
+
+generated_gl_wrappers.c: gen_gl_wrappers.py
+	./gen_gl_wrappers.py >generated_gl_wrappers.c
 
 AM_YFLAGS = -d
 AM_LFLAGS = -i

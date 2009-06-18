@@ -57,58 +57,58 @@
  */
 
 #define GLWIN_DEBUG_HWND(hwnd)  \
-    if (glWinDebugSettings.dumpHWND) { \
+    if (glxWinDebugSettings.dumpHWND) { \
         char buffer[1024]; \
         if (GetWindowText(hwnd, buffer, sizeof(buffer))==0) *buffer=0; \
         GLWIN_DEBUG_MSG("Got HWND %p for window '%s'", hwnd, buffer); \
     }
 
-glWinDebugSettingsRec glWinDebugSettings = { 1, 1, 0, 1, 0, 0};
+glxWinDebugSettingsRec glxWinDebugSettings = { 0, 0, 0, 0, 0, 0};
 
-static void glWinInitDebugSettings(void)
+static void glxWinInitDebugSettings(void)
 {
     char *envptr;
 
     envptr = getenv("GLWIN_ENABLE_DEBUG");
     if (envptr != NULL)
-        glWinDebugSettings.enableDebug = (atoi(envptr) == 1);
+        glxWinDebugSettings.enableDebug = (atoi(envptr) == 1);
 
     envptr = getenv("GLWIN_ENABLE_TRACE");
     if (envptr != NULL)
-        glWinDebugSettings.enableTrace = (atoi(envptr) == 1);
+        glxWinDebugSettings.enableTrace = (atoi(envptr) == 1);
 
     envptr = getenv("GLWIN_DUMP_PFD");
     if (envptr != NULL)
-        glWinDebugSettings.dumpPFD = (atoi(envptr) == 1);
+        glxWinDebugSettings.dumpPFD = (atoi(envptr) == 1);
 
     envptr = getenv("GLWIN_DUMP_HWND");
     if (envptr != NULL)
-        glWinDebugSettings.dumpHWND = (atoi(envptr) == 1);
+        glxWinDebugSettings.dumpHWND = (atoi(envptr) == 1);
 
     envptr = getenv("GLWIN_DUMP_DC");
     if (envptr != NULL)
-        glWinDebugSettings.dumpDC = (atoi(envptr) == 1);
+        glxWinDebugSettings.dumpDC = (atoi(envptr) == 1);
 
     envptr = getenv("GLWIN_ENABLE_GLCALL_TRACE");
     if (envptr != NULL)
-        glWinDebugSettings.enableGLcallTrace = (atoi(envptr) == 1);
+        glxWinDebugSettings.enableGLcallTrace = (atoi(envptr) == 1);
 
     envptr = getenv("GLWIN_DEBUG_ALL");
     if (envptr != NULL)
       {
-        glWinDebugSettings.enableDebug = 1;
-        glWinDebugSettings.enableTrace = 1;
-        glWinDebugSettings.dumpPFD = 1;
-        glWinDebugSettings.dumpHWND = 1;
-        glWinDebugSettings.dumpDC = 1;
-        glWinDebugSettings.enableGLcallTrace = 1;
+        glxWinDebugSettings.enableDebug = 1;
+        glxWinDebugSettings.enableTrace = 1;
+        glxWinDebugSettings.dumpPFD = 1;
+        glxWinDebugSettings.dumpHWND = 1;
+        glxWinDebugSettings.dumpDC = 1;
+        glxWinDebugSettings.enableGLcallTrace = 1;
       }
 }
 
 static char errorbuffer[1024];
 
 static
-const char *glWinErrorMessage(void)
+const char *glxWinErrorMessage(void)
 {
     if (!FormatMessage(
                 FORMAT_MESSAGE_FROM_SYSTEM |
@@ -225,30 +225,30 @@ typedef struct {
     RealizeWindowProcPtr RealizeWindow;
     UnrealizeWindowProcPtr UnrealizeWindow;
     CopyWindowProcPtr CopyWindow;
-} glWinScreen;
+} glxWinScreen;
 
 /* ---------------------------------------------------------------------- */
 /*
  * Forward declarations
  */
 
-static __GLXscreen *glWinScreenProbe(ScreenPtr pScreen);
-static __GLXcontext *glWinCreateContext(__GLXscreen *screen,
+static __GLXscreen *glxWinScreenProbe(ScreenPtr pScreen);
+static __GLXcontext *glxWinCreateContext(__GLXscreen *screen,
                                         __GLXconfig *modes,
                                         __GLXcontext *baseShareContext);
-static __GLXdrawable *glWinCreateDrawable(__GLXscreen *screen,
+static __GLXdrawable *glxWinCreateDrawable(__GLXscreen *screen,
                                           DrawablePtr pDraw,
                                           int type,
                                           XID drawId,
                                           __GLXconfig *conf);
 
-static Bool glWinRealizeWindow(WindowPtr pWin);
-static Bool glWinUnrealizeWindow(WindowPtr pWin);
-static void glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
+static Bool glxWinRealizeWindow(WindowPtr pWin);
+static Bool glxWinUnrealizeWindow(WindowPtr pWin);
+static void glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
 
-static HDC glWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd);
+static HDC glxWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd);
 
-static __GLXconfig *glWinCreateConfigs(int *numConfigsPtr, int screenNumber);
+static __GLXconfig *glxWinCreateConfigs(int *numConfigsPtr, int screenNumber);
 static int fbConfigToPixelFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdret);
 
 
@@ -258,13 +258,13 @@ static int fbConfigToPixelFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdre
  */
 
 __GLXprovider __glXWGLProvider = {
-    glWinScreenProbe,
+    glxWinScreenProbe,
     "Win32 native WGL",
     NULL
 };
 
 void
-glWinPushNativeProvider(void)
+glxWinPushNativeProvider(void)
 {
   GlxPushProvider(&__glXWGLProvider);
 }
@@ -275,39 +275,39 @@ glWinPushNativeProvider(void)
  */
 
 static void
-glWinScreenDestroy(__GLXscreen *screen)
+glxWinScreenDestroy(__GLXscreen *screen)
 {
-    GLWIN_DEBUG_MSG("glWinScreenDestroy(%p)", screen);
+    GLWIN_DEBUG_MSG("glxWinScreenDestroy(%p)", screen);
     __glXScreenDestroy(screen);
     xfree(screen);
 }
 
 /* This is called by GlxExtensionInit() asksing the GLX provider if it can handle the screen... */
 static __GLXscreen *
-glWinScreenProbe(ScreenPtr pScreen)
+glxWinScreenProbe(ScreenPtr pScreen)
 {
-    glWinScreen *screen;
+    glxWinScreen *screen;
 
-    GLWIN_DEBUG_MSG("glWinScreenProbe");
+    GLWIN_DEBUG_MSG("glxWinScreenProbe");
 
-    glWinInitDebugSettings();
+    glxWinInitDebugSettings();
 
     if (pScreen == NULL)
 	return NULL;
 
-    screen = xcalloc(1, sizeof(glWinScreen));
+    screen = xcalloc(1, sizeof(glxWinScreen));
 
     if (NULL == screen)
 	return NULL;
 
-    screen->base.destroy = glWinScreenDestroy;
-    screen->base.createContext = glWinCreateContext;
-    screen->base.createDrawable = glWinCreateDrawable;
+    screen->base.destroy = glxWinScreenDestroy;
+    screen->base.createContext = glxWinCreateContext;
+    screen->base.createDrawable = glxWinCreateDrawable;
     screen->base.swapInterval = NULL;
     screen->base.hyperpipeFuncs = NULL;
     screen->base.swapBarrierFuncs = NULL;
     screen->base.pScreen = pScreen;
-    screen->base.fbconfigs = glWinCreateConfigs(&screen->base.numFBConfigs,
+    screen->base.fbconfigs = glxWinCreateConfigs(&screen->base.numFBConfigs,
                                                 pScreen->myNum);
     // Note that screen->base.numFBConfigs is also initialized by that
 
@@ -319,11 +319,11 @@ glWinScreenProbe(ScreenPtr pScreen)
 
     /* Wrap RealizeWindow, UnrealizeWindow and CopyWindow on this screen */
     screen->RealizeWindow = pScreen->RealizeWindow;
-    pScreen->RealizeWindow = glWinRealizeWindow;
+    pScreen->RealizeWindow = glxWinRealizeWindow;
     screen->UnrealizeWindow = pScreen->UnrealizeWindow;
-    pScreen->UnrealizeWindow = glWinUnrealizeWindow;
+    pScreen->UnrealizeWindow = glxWinUnrealizeWindow;
     screen->CopyWindow = pScreen->CopyWindow;
-    pScreen->CopyWindow = glWinCopyWindow;
+    pScreen->CopyWindow = glxWinCopyWindow;
 
     {
       /* Dump out some useful information about the native renderer */
@@ -369,20 +369,20 @@ glWinScreenProbe(ScreenPtr pScreen)
  */
 
 static Bool
-glWinRealizeWindow(WindowPtr pWin)
+glxWinRealizeWindow(WindowPtr pWin)
 {
     /* If this window has GL contexts, tell them to reattach */
     /* reattaching is bad: display lists and parameters get lost */
     Bool result;
     ScreenPtr pScreen = pWin->drawable.pScreen;
-    glWinScreen *screenPriv = (glWinScreen *) glxGetScreen(pScreen);
+    glxWinScreen *screenPriv = (glxWinScreen *) glxGetScreen(pScreen);
 
-    GLWIN_DEBUG_MSG("glWinRealizeWindow");
+    GLWIN_DEBUG_MSG("glxWinRealizeWindow");
 
     /* Allow the window to be created (RootlessRealizeWindow is inside our wrap) */
     pScreen->RealizeWindow = screenPriv->RealizeWindow;
     result = pScreen->RealizeWindow(pWin);
-    pScreen->RealizeWindow = glWinRealizeWindow;
+    pScreen->RealizeWindow = glxWinRealizeWindow;
 
 #if 0
     __GLXdrawablePrivate *glxPriv;
@@ -392,7 +392,7 @@ glWinRealizeWindow(WindowPtr pWin)
         __GLXcontext *gx;
         __GLcontext *gc;
         __GLdrawablePrivate *glPriv = &glxPriv->glPriv;
-        GLWIN_DEBUG_MSG("glWinRealizeWindow is GL drawable!");
+        GLWIN_DEBUG_MSG("glxWinRealizeWindow is GL drawable!");
 
 #if 0
         /* GL contexts bound to this window for drawing */
@@ -402,7 +402,7 @@ glWinRealizeWindow(WindowPtr pWin)
 #if 1
             {
                 GLWIN_DEBUG_MSG("context is already bound! Adjusting HWND");
-                glWinAdjustHWND(gc, pWin);
+                glxWinAdjustHWND(gc, pWin);
                 continue;
             }
 #else
@@ -418,7 +418,7 @@ glWinRealizeWindow(WindowPtr pWin)
 #if 1
             {
                 GLWIN_DEBUG_MSG("context is already bound! Adjusting HWND.");
-                glWinAdjustHWND(gc, pWin);
+                glxWinAdjustHWND(gc, pWin);
                 continue;
             }
 #else
@@ -435,12 +435,12 @@ glWinRealizeWindow(WindowPtr pWin)
 
 
 static void
-glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
+glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 {
     ScreenPtr pScreen = pWindow->drawable.pScreen;
-    glWinScreen *screenPriv = (glWinScreen *) glxGetScreen(pScreen);
+    glxWinScreen *screenPriv = (glxWinScreen *) glxGetScreen(pScreen);
 
-    GLWIN_TRACE_MSG("glWinCopyWindow pWindow %p", pWindow);
+    GLWIN_TRACE_MSG("glxWinCopyWindow pWindow %p", pWindow);
 
 #if 0
     __GLXdrawablePrivate *glxPriv;
@@ -452,7 +452,7 @@ glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
         /* GL contexts bound to this window for drawing */
         for (gx = glxPriv->drawGlxc; gx != NULL; gx = gx->next) {
 /*
-            GLWIN_DEBUG_MSG("glWinCopyWindow - calling glDrawBuffer");
+            GLWIN_DEBUG_MSG("glxWinCopyWindow - calling glDrawBuffer");
             glDrawBuffer(GL_FRONT);
 */
             return;
@@ -465,22 +465,22 @@ glWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     }
 #endif
 
-    GLWIN_DEBUG_MSG("glWinCopyWindow - passing to hw layer");
+    GLWIN_DEBUG_MSG("glxWinCopyWindow - passing to hw layer");
 
     pScreen->CopyWindow = screenPriv->CopyWindow;
     pScreen->CopyWindow(pWindow, ptOldOrg, prgnSrc);
-    pScreen->CopyWindow = glWinCopyWindow;
+    pScreen->CopyWindow = glxWinCopyWindow;
 }
 
 static Bool
-glWinUnrealizeWindow(WindowPtr pWin)
+glxWinUnrealizeWindow(WindowPtr pWin)
 {
     /* If this window has GL contexts, tell them to unattach */
     Bool result;
     ScreenPtr pScreen = pWin->drawable.pScreen;
-    glWinScreen *screenPriv = (glWinScreen *)glxGetScreen(pScreen);
+    glxWinScreen *screenPriv = (glxWinScreen *)glxGetScreen(pScreen);
 
-    GLWIN_DEBUG_MSG("glWinUnrealizeWindow");
+    GLWIN_DEBUG_MSG("glxWinUnrealizeWindow");
 
 #if 0
     __GLXdrawablePrivate *glxPriv;
@@ -493,7 +493,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
     if (glxPriv) {
         __GLXcontext *gx;
         __GLcontext *gc;
-        GLWIN_DEBUG_MSG("glWinUnrealizeWindow is GL drawable!");
+        GLWIN_DEBUG_MSG("glxWinUnrealizeWindow is GL drawable!");
 
 #if 0
         /* GL contexts bound to this window for drawing */
@@ -513,7 +513,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
 
     pScreen->UnrealizeWindow = screenPriv->UnrealizeWindow;
     result = pScreen->UnrealizeWindow(pWin);
-    pScreen->UnrealizeWindow = glWinUnrealizeWindow;
+    pScreen->UnrealizeWindow = glxWinUnrealizeWindow;
 
     return result;
 }
@@ -524,7 +524,7 @@ glWinUnrealizeWindow(WindowPtr pWin)
  */
 
 static GLboolean
-glWinDrawableSwapBuffers(__GLXdrawable *base)
+glxWinDrawableSwapBuffers(__GLXdrawable *base)
 {
     HDC dc;
     HWND hwnd;
@@ -534,12 +534,12 @@ glWinDrawableSwapBuffers(__GLXdrawable *base)
     /* Swap buffers on the last active context for drawing on the drawable */
     if (draw->context == NULL)
       {
-        GLWIN_TRACE_MSG("glWinSwapBuffers - no context for drawable");
+        GLWIN_TRACE_MSG("glxWinSwapBuffers - no context for drawable");
         return TRUE;
 /*         return GL_FALSE; */
       }
 
-    GLWIN_TRACE_MSG("glWinSwapBuffers on drawable %p, last context %p (native ctx %p)", base, draw->context, draw->context->ctx);
+    GLWIN_TRACE_MSG("glxWinSwapBuffers on drawable %p, last context %p (native ctx %p)", base, draw->context, draw->context->ctx);
 
     /*
        draw->context->base.drawPriv will not be set if the context is not current anymore,
@@ -550,7 +550,7 @@ glWinDrawableSwapBuffers(__GLXdrawable *base)
         assert(draw->context->base.drawPriv == base);
       }
 
-    dc = glWinMakeDC(draw->context, base, &dc, &hwnd);
+    dc = glxWinMakeDC(draw->context, base, &dc, &hwnd);
     if (dc == NULL)
       return GL_FALSE;
 
@@ -560,7 +560,7 @@ glWinDrawableSwapBuffers(__GLXdrawable *base)
 
     if (!ret)
       {
-        ErrorF("wglSwapBuffers failed: %s\n", glWinErrorMessage());
+        ErrorF("wglSwapBuffers failed: %s\n", glxWinErrorMessage());
         return GL_FALSE;
       }
 
@@ -568,15 +568,15 @@ glWinDrawableSwapBuffers(__GLXdrawable *base)
 }
 
 static void
-glWinDrawableCopySubBuffer(__GLXdrawable *drawable,
+glxWinDrawableCopySubBuffer(__GLXdrawable *drawable,
                             int x, int y, int w, int h)
 {
-  ErrorF(" glWinDrawableCopySubBuffer: not implemented\n");
+  ErrorF(" glxWinDrawableCopySubBuffer: not implemented\n");
   /*TODO finish me*/
 }
 
 static void
-glWinDrawableDestroy(__GLXdrawable *base)
+glxWinDrawableDestroy(__GLXdrawable *base)
 {
   __GLXWinDrawable *glxPriv = (__GLXWinDrawable *)base;
 
@@ -584,12 +584,12 @@ glWinDrawableDestroy(__GLXdrawable *base)
 /*   unattach(glxPriv->context); */
 /*   glxPriv->context = NULL; */
 
-  GLWIN_DEBUG_MSG("glWinDestroyDrawable");
+  GLWIN_DEBUG_MSG("glxWinDestroyDrawable");
   xfree(glxPriv);
 }
 
 static __GLXdrawable *
-glWinCreateDrawable(__GLXscreen *screen,
+glxWinCreateDrawable(__GLXscreen *screen,
                     DrawablePtr pDraw,
                     int type,
                     XID drawId,
@@ -609,13 +609,13 @@ glWinCreateDrawable(__GLXscreen *screen,
     return NULL;
   }
 
-  glxPriv->base.destroy       = glWinDrawableDestroy;
-  glxPriv->base.swapBuffers   = glWinDrawableSwapBuffers;
-  glxPriv->base.copySubBuffer = glWinDrawableCopySubBuffer;
+  glxPriv->base.destroy       = glxWinDrawableDestroy;
+  glxPriv->base.swapBuffers   = glxWinDrawableSwapBuffers;
+  glxPriv->base.copySubBuffer = glxWinDrawableCopySubBuffer;
   // glxPriv->base.waitX  what are these for?
   // glxPriv->base.waitGL
 
-  GLWIN_DEBUG_MSG("glWinCreateDrawable %p", glxPriv);
+  GLWIN_DEBUG_MSG("glxWinCreateDrawable %p", glxPriv);
 
   return &glxPriv->base;
 }
@@ -628,20 +628,20 @@ glWinCreateDrawable(__GLXscreen *screen,
 // XXX: don't offer GLX_EXT_texture_from_pixmap if we can't implement these..
 
 static
-int glWinBindTexImage(__GLXcontext  *baseContext,
+int glxWinBindTexImage(__GLXcontext  *baseContext,
                       int            buffer,
                       __GLXdrawable *pixmap)
 {
-  ErrorF("glWinBindTexImage: not implemented\n");
+  ErrorF("glxWinBindTexImage: not implemented\n");
   return FALSE;
 }
 
 static
-int glWinReleaseTexImage(__GLXcontext  *baseContext,
+int glxWinReleaseTexImage(__GLXcontext  *baseContext,
                          int            buffer,
                          __GLXdrawable *pixmap)
 {
-  ErrorF(" glWinReleaseTexImage: not implemented\n");
+  ErrorF(" glxWinReleaseTexImage: not implemented\n");
   return FALSE;
 }
 
@@ -650,7 +650,7 @@ int glWinReleaseTexImage(__GLXcontext  *baseContext,
  * Lazy update context implementation
  *
  * WGL contexts are created for a specific HDC, so we cannot create the WGL
- * context in glWinCreateContext(), we must defer creation until the context
+ * context in glxWinCreateContext(), we must defer creation until the context
  * is actually used on a specifc drawable which is connected to a native window.
  *
  * The WGL context may be used on other, compatible HDCs, so we don't need to
@@ -660,7 +660,7 @@ int glWinReleaseTexImage(__GLXcontext  *baseContext,
  */
 
 static HDC
-glWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
+glxWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
 {
   HDC dc;
   winWindowInfoRec winInfo;
@@ -687,16 +687,16 @@ glWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
 
   if (winInfo.hwnd == NULL)
     {
-      ErrorF("No HWND error: %s\n", glWinErrorMessage());
+      ErrorF("No HWND error: %s\n", glxWinErrorMessage());
       return NULL;
     }
 
   dc = GetDC(winInfo.hwnd);
 
   if (dc == NULL)
-    ErrorF("GetDC error: %s\n", glWinErrorMessage());
+    ErrorF("GetDC error: %s\n", glxWinErrorMessage());
 
-  if (glWinDebugSettings.dumpDC)
+  if (glxWinDebugSettings.dumpDC)
       GLWIN_DEBUG_MSG("Got HDC %p", dc);
 
   /* Check if the hwnd has changed... */
@@ -704,7 +704,7 @@ glWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
     {
       int pixelFormat;
 
-      if (glWinDebugSettings.enableTrace)
+      if (glxWinDebugSettings.enableTrace)
         GLWIN_DEBUG_HWND(winInfo.hwnd);
 
       GLWIN_TRACE_MSG("for context %p (native ctx %p), hWnd changed from %p to %p", gc, gc->ctx, gc->hwnd, winInfo.hwnd);
@@ -714,13 +714,13 @@ glWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
       pixelFormat = ChoosePixelFormat(dc, &gc->pfd);
       if (pixelFormat == 0)
         {
-          ErrorF("ChoosePixelFormat error: %s\n", glWinErrorMessage());
+          ErrorF("ChoosePixelFormat error: %s\n", glxWinErrorMessage());
           return dc;
         }
 
       if (!SetPixelFormat(dc, pixelFormat, &gc->pfd))
         {
-          ErrorF("SetPixelFormat error: %s\n", glWinErrorMessage());
+          ErrorF("SetPixelFormat error: %s\n", glxWinErrorMessage());
           return dc;
         }
     }
@@ -729,13 +729,13 @@ glWinMakeDC(__GLXWinContext *gc, __GLXdrawable *draw, HDC *hdc, HWND *hwnd)
 }
 
 static BOOL
-glWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
+glxWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
 {
     HDC dc;
     HWND hwnd;
     winWindowInfoRec winInfo;
 
-    GLWIN_DEBUG_MSG("glWinCreateContextReal (pWin %p)", pWin);
+    GLWIN_DEBUG_MSG("glxWinCreateContextReal (pWin %p)", pWin);
 
     if (pWin == NULL)
     {
@@ -750,28 +750,28 @@ glWinCreateContextReal(__GLXWinContext *gc, WindowPtr pWin)
         return FALSE;
     }
 
-    dc = glWinMakeDC(gc, gc->base.drawPriv, &dc, &hwnd);
+    dc = glxWinMakeDC(gc, gc->base.drawPriv, &dc, &hwnd);
 
     gc->ctx = wglCreateContext(dc);
     if (gc->ctx == NULL) {
-        ErrorF("wglCreateContext error: %s\n", glWinErrorMessage());
+        ErrorF("wglCreateContext error: %s\n", glxWinErrorMessage());
         ReleaseDC(hwnd, dc);
         return FALSE;
     }
 
-    GLWIN_DEBUG_MSG("glWinCreateContextReal (ctx %p)", gc->ctx);
+    GLWIN_DEBUG_MSG("glxWinCreateContextReal (ctx %p)", gc->ctx);
 
     if (gc->shareContext)
       {
-        GLWIN_DEBUG_MSG("glWinCreateContextReal shareLists with context%p (native ctx %p)", gc->shareContext, gc->shareContext->ctx);
+        GLWIN_DEBUG_MSG("glxWinCreateContextReal shareLists with context%p (native ctx %p)", gc->shareContext, gc->shareContext->ctx);
         if (!wglShareLists(gc->shareContext->ctx, gc->ctx))
           {
-            ErrorF("wglShareLists error: %s\n", glWinErrorMessage());
+            ErrorF("wglShareLists error: %s\n", glxWinErrorMessage());
           }
       }
 
     if (!wglMakeCurrent(dc, gc->ctx)) {
-        ErrorF("glMakeCurrent error: %s\n", glWinErrorMessage());
+        ErrorF("glMakeCurrent error: %s\n", glxWinErrorMessage());
         ReleaseDC(hwnd, dc);
         return FALSE;
     }
@@ -801,7 +801,7 @@ attach(__GLXWinContext *gc, __GLXWinDrawable *draw)
         }
         else
         {
-          if (glWinCreateContextReal(gc, pWin))
+          if (glxWinCreateContextReal(gc, pWin))
             {
               gc->isAttached = TRUE;
               GLWIN_DEBUG_MSG("attached context %p to native context %p drawable %p", gc, gc->ctx, draw);
@@ -828,7 +828,7 @@ unattach(__GLXWinContext *gc)
     {
         ret = wglDeleteContext(gc->ctx);
         if (!ret)
-            ErrorF("wglDeleteContext error: %s\n", glWinErrorMessage());
+            ErrorF("wglDeleteContext error: %s\n", glxWinErrorMessage());
         gc->ctx = NULL;
     }
 
@@ -843,14 +843,15 @@ unattach(__GLXWinContext *gc)
 
 /* Context manipulation routines should return TRUE on success, FALSE on failure */
 static int
-glWinContextMakeCurrent(__GLXcontext *base)
+glxWinContextMakeCurrent(__GLXcontext *base)
 {
   __GLXWinContext *gc = (__GLXWinContext *)base;
   BOOL ret;
   HDC dc;
   HWND hwnd;
 
-  GLWIN_TRACE_MSG("glWinContextMakeCurrent context %p (native ctx %p)", gc, gc->ctx);
+  GLWIN_TRACE_MSG("glxWinContextMakeCurrent context %p (native ctx %p)", gc, gc->ctx);
+  glWinCallDelta();
 
   if (!gc->isAttached)
     attach(gc, (__GLXWinDrawable *)(gc->base.drawPriv));
@@ -861,10 +862,10 @@ glWinContextMakeCurrent(__GLXcontext *base)
       return FALSE;
     }
 
-  dc = glWinMakeDC(gc, gc->base.drawPriv, &dc, &hwnd);
+  dc = glxWinMakeDC(gc, gc->base.drawPriv, &dc, &hwnd);
   if (dc == NULL)
     {
-      ErrorF("glWinMakeDC failed\n");
+      ErrorF("glxWinMakeDC failed\n");
       return FALSE;
     }
 
@@ -872,24 +873,24 @@ glWinContextMakeCurrent(__GLXcontext *base)
   // but that shouldn't be able to happen in the current server...
   ret = wglMakeCurrent(dc, gc->ctx);
   if (!ret)
-    ErrorF("wglMakeCurrent error: %s\n", glWinErrorMessage());
+    ErrorF("wglMakeCurrent error: %s\n", glxWinErrorMessage());
   ReleaseDC(hwnd, dc);
 
   return ret;
 }
 
 static int
-glWinContextLoseCurrent(__GLXcontext *base)
+glxWinContextLoseCurrent(__GLXcontext *base)
 {
   BOOL ret;
   __GLXWinContext *gc = (__GLXWinContext *)base;
 
-  GLWIN_TRACE_MSG("glWinContextLoseCurrent context %p (native ctx %p)", gc, gc->ctx);
+  GLWIN_TRACE_MSG("glxWinContextLoseCurrent context %p (native ctx %p)", gc, gc->ctx);
   glWinCallDelta();
 
   ret = wglMakeCurrent(NULL, NULL); /* We don't need a DC when setting no current context */
   if (!ret)
-    ErrorF("glWinContextLoseCurrent error: %s\n", glWinErrorMessage());
+    ErrorF("glxWinContextLoseCurrent error: %s\n", glxWinErrorMessage());
 
   __glXLastContext = NULL; /* Mesa does this; why? */
 
@@ -897,32 +898,32 @@ glWinContextLoseCurrent(__GLXcontext *base)
 }
 
 static int
-glWinContextCopy(__GLXcontext *dst_base, __GLXcontext *src_base, unsigned long mask)
+glxWinContextCopy(__GLXcontext *dst_base, __GLXcontext *src_base, unsigned long mask)
 {
   __GLXWinContext *dst = (__GLXWinContext *)dst_base;
   __GLXWinContext *src = (__GLXWinContext *)src_base;
   BOOL ret;
 
-  GLWIN_DEBUG_MSG("glWinContextCopy");
+  GLWIN_DEBUG_MSG("glxWinContextCopy");
 
   ret = wglCopyContext(src->ctx, dst->ctx, mask);
   if (!ret)
     {
-      ErrorF("wglCopyContext error: %s\n", glWinErrorMessage());
+      ErrorF("wglCopyContext error: %s\n", glxWinErrorMessage());
     }
 
   return ret;
 }
 
 static int
-glWinContextForceCurrent(__GLXcontext *base)
+glxWinContextForceCurrent(__GLXcontext *base)
 {
-  /* wglMakeCurrent always flushes the previous context, so this is equivalent to glWinContextMakeCurrent */
-  return glWinContextMakeCurrent(base);
+  /* wglMakeCurrent always flushes the previous context, so this is equivalent to glxWinContextMakeCurrent */
+  return glxWinContextMakeCurrent(base);
 }
 
 static void
-glWinContextDestroy(__GLXcontext *base)
+glxWinContextDestroy(__GLXcontext *base)
 {
   __GLXWinContext *gc = (__GLXWinContext *)base;
 
@@ -938,17 +939,17 @@ glWinContextDestroy(__GLXcontext *base)
 }
 
 static __GLXcontext *
-glWinCreateContext(__GLXscreen *screen,
+glxWinCreateContext(__GLXscreen *screen,
                    __GLXconfig *modes,
                    __GLXcontext *baseShareContext)
 {
     __GLXWinContext *context;
     __GLXWinContext *shareContext = (__GLXWinContext *)baseShareContext;
 
-    static __GLXtextureFromPixmap glWinTextureFromPixmap =
+    static __GLXtextureFromPixmap glxWinTextureFromPixmap =
       {
-        glWinBindTexImage,
-        glWinReleaseTexImage
+        glxWinBindTexImage,
+        glxWinReleaseTexImage
       };
 
     context = (__GLXWinContext *)xcalloc(1, sizeof(__GLXWinContext));
@@ -957,12 +958,12 @@ glWinCreateContext(__GLXscreen *screen,
         return NULL;
 
     memset(context, 0, sizeof *context);
-    context->base.destroy        = glWinContextDestroy;
-    context->base.makeCurrent    = glWinContextMakeCurrent;
-    context->base.loseCurrent    = glWinContextLoseCurrent;
-    context->base.copy           = glWinContextCopy;
-    context->base.forceCurrent   = glWinContextForceCurrent;
-    context->base.textureFromPixmap = &glWinTextureFromPixmap;
+    context->base.destroy        = glxWinContextDestroy;
+    context->base.makeCurrent    = glxWinContextMakeCurrent;
+    context->base.loseCurrent    = glxWinContextLoseCurrent;
+    context->base.copy           = glxWinContextCopy;
+    context->base.forceCurrent   = glxWinContextForceCurrent;
+    context->base.textureFromPixmap = &glxWinTextureFromPixmap;
     context->base.config = modes;
     context->base.pGlxScreen = screen;
 
@@ -975,12 +976,12 @@ glWinCreateContext(__GLXscreen *screen,
     // convert and store PFD
     if (fbConfigToPixelFormat(modes, &context->pfd))
     {
-        ErrorF("glWinCreateContext: fbConfigToPixelFormat failed\n");
+        ErrorF("glxWinCreateContext: fbConfigToPixelFormat failed\n");
         xfree(context);
         return NULL;
     }
 
-    if (glWinDebugSettings.dumpPFD)
+    if (glxWinDebugSettings.dumpPFD)
         pfdOut(&context->pfd);
 
     setup_dispatch_table();
@@ -1065,7 +1066,7 @@ fbConfigToPixelFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdret)
 /* ---------------------------------------------------------------------- */
 
 static __GLXconfig *
-glWinCreateConfigs(int *numConfigsPtr, int screenNumber)
+glxWinCreateConfigs(int *numConfigsPtr, int screenNumber)
 {
   __GLXconfig *c, *result;
   int numConfigs = 0;
@@ -1074,7 +1075,7 @@ glWinCreateConfigs(int *numConfigsPtr, int screenNumber)
   PIXELFORMATDESCRIPTOR pfd;
   HDC hdc;
 
-  GLWIN_DEBUG_MSG("glWinCreateConfigs");
+  GLWIN_DEBUG_MSG("glxWinCreateConfigs");
 
   // XXX: this is possibly wrong if we are not on the primary monitor...
   hdc = GetDC(NULL);
@@ -1115,7 +1116,7 @@ glWinCreateConfigs(int *numConfigsPtr, int screenNumber)
 
       if (!rc)
         {
-          ErrorF("DescribePixelFormat failed for index %d, error %s\n", i+1, glWinErrorMessage());
+          ErrorF("DescribePixelFormat failed for index %d, error %s\n", i+1, glxWinErrorMessage());
           break;
         }
 
@@ -1125,7 +1126,7 @@ glWinCreateConfigs(int *numConfigsPtr, int screenNumber)
           continue;
         }
 
-      if (glWinDebugSettings.dumpPFD)
+      if (glxWinDebugSettings.dumpPFD)
         pfdOut(&pfd);
 
       c->doubleBufferMode = (pfd.dwFlags & PFD_DOUBLEBUFFER) ? GL_TRUE : GL_FALSE;

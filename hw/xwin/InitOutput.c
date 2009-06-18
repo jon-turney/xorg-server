@@ -195,7 +195,7 @@ ddxPushProviders(void)
   if (g_fNativeGl)
     {
       /* install the native GL provider */
-      glWinPushNativeProvider();
+      glxWinPushNativeProvider();
     }
 #endif
 }

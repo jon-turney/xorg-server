@@ -53,7 +53,7 @@ for line in gldoth :
                 arglist = m1.group(3).strip()
                 print 'static ' + returntype + ' ' + funcname + 'Wrapper(' + arglist + ')'
                 print '{'
-                print '  if (glWinDebugSettings.enableGLcallTrace) ErrorF("'+ funcname + '\\n");'
+                print '  if (glxWinDebugSettings.enableGLcallTrace) ErrorF("'+ funcname + '\\n");'
                 print '  glWinDirectProcCalls++;'
                 if returntype == 'void' :
                         print '  ' +  funcname + '(',
@@ -100,11 +100,11 @@ for line in glextdoth :
 
                 if returntype == 'void' :
                         print '  RESOLVE(PFN' + funcname.upper() + 'PROC, "' + funcname + '");'
-                        print '  if (glWinDebugSettings.enableGLcallTrace) ErrorF("'+ funcname + '\\n");'
+                        print '  if (glxWinDebugSettings.enableGLcallTrace) ErrorF("'+ funcname + '\\n");'
                         print '  proc(',
                 else :
                         print '  RESOLVE_RET(PFN' + funcname.upper() + 'PROC, "' + funcname + '", FALSE);'
-                        print '  if (glWinDebugSettings.enableGLcallTrace) ErrorF("'+ funcname + '\\n");'
+                        print '  if (glxWinDebugSettings.enableGLcallTrace) ErrorF("'+ funcname + '\\n");'
                         print '  return proc(',
 
                 if arglist != 'void' :

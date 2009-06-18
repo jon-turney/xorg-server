@@ -43,8 +43,8 @@
 #include <glx/dispatch.h>
 #include <glwindows.h>
 
-unsigned int glWinIndirectProcCalls = 0;
-unsigned int glWinDirectProcCalls = 0;
+static unsigned int glWinIndirectProcCalls = 0;
+static unsigned int glWinDirectProcCalls = 0;
 
 void
 glWinCallDelta(void)
@@ -54,9 +54,12 @@ glWinCallDelta(void)
   if ((glWinIndirectProcCalls != glWinIndirectProcCallsLast) ||
       (glWinDirectProcCalls != glWinDirectProcCallsLast))
     {
-      ErrorF("after %d direct and %d indirect GL calls\n",
-             glWinDirectProcCalls - glWinDirectProcCallsLast,
-             glWinIndirectProcCalls - glWinIndirectProcCallsLast);
+      if (glxWinDebugSettings.enableTrace)
+        {
+          ErrorF("after %d direct and %d indirect GL calls\n",
+                 glWinDirectProcCalls - glWinDirectProcCallsLast,
+                 glWinIndirectProcCalls - glWinIndirectProcCallsLast);
+        }
       glWinDirectProcCallsLast = glWinDirectProcCalls;
       glWinIndirectProcCallsLast = glWinIndirectProcCalls;
     }
@@ -98,15 +101,13 @@ typedef void (APIENTRYP PFNGLGETCOMPRESSEDTEXIMAGEPROC) (GLenum target, GLint le
 #define RESOLVE(procname, symbol) RESOLVE_RET(procname, symbol,)
 
 /*
- *  cdecl wrappers for stdcall gl*() functions in opengl32.dll
+  Include generated cdecl wrappers for stdcall gl*() functions in opengl32.dll
+
+  OpenGL 1.2 and upward is treated as extensions, function address must
+  found using wglGetProcAddress(), but also stdcall so still need wrappers...
  */
 
-/*
-   OpenGL 1.2 and upward is treated as extensions, function address must
-   found using wglGetProcAddress() - still stdcall so still need wrappers...
- */
-
-#include "glwrap_api.c"
+#include "generated_gl_wrappers.c"
 
 /*
   Special non-static wrapper for glGetString for debug output
@@ -227,22 +228,13 @@ void setup_dispatch_table(void)
   struct _glapi_table *disp=_glapi_get_dispatch();
   glx_debugging();
 
-  SET_GetString(disp, glGetStringWrapper);
-  SET_GetIntegerv(disp, glGetIntegervWrapper);
-
-  SET_GenTextures(disp, glGenTexturesWrapper);
-  SET_DeleteTextures(disp, glDeleteTexturesWrapper);
-  SET_BindTexture(disp, glBindTextureWrapper);
-  SET_PrioritizeTextures(disp, glPrioritizeTexturesWrapper);
-  SET_AreTexturesResident(disp, glAreTexturesResidentWrapper);
-  SET_IsTexture(disp, glIsTextureWrapper);
-
+  // XXX: this should be generated as well...
   SET_Accum(disp, glAccumWrapper);
   SET_AlphaFunc(disp, glAlphaFuncWrapper);
-
+  SET_AreTexturesResident(disp, glAreTexturesResidentWrapper);
   SET_ArrayElement(disp, glArrayElementWrapper);
   SET_Begin(disp, glBeginWrapper);
-
+  SET_BindTexture(disp, glBindTextureWrapper);
   SET_Bitmap(disp, glBitmapWrapper);
   SET_BlendColor(disp, glBlendColorWrapper);
   SET_BlendEquation(disp, glBlendEquationWrapper);
@@ -313,7 +305,7 @@ void setup_dispatch_table(void)
   SET_CopyTexSubImage3D(disp, glCopyTexSubImage3DWrapper);
   SET_CullFace(disp, glCullFaceWrapper);
   SET_DeleteLists(disp, glDeleteListsWrapper);
-
+  SET_DeleteTextures(disp, glDeleteTexturesWrapper);
   SET_DepthFunc(disp, glDepthFuncWrapper);
   SET_DepthMask(disp, glDepthMaskWrapper);
   SET_DepthRange(disp, glDepthRangeWrapper);
@@ -353,6 +345,7 @@ void setup_dispatch_table(void)
   SET_FrontFace(disp, glFrontFaceWrapper);
   SET_Frustum(disp, glFrustumWrapper);
   SET_GenLists(disp, glGenListsWrapper);
+  SET_GenTextures(disp, glGenTexturesWrapper);
   SET_GetBooleanv(disp, glGetBooleanvWrapper);
   SET_GetClipPlane(disp, glGetClipPlaneWrapper);
   SET_GetColorTable(disp, glGetColorTableWrapper);
@@ -367,7 +360,7 @@ void setup_dispatch_table(void)
   SET_GetHistogram(disp, glGetHistogramWrapper);
   SET_GetHistogramParameterfv(disp, glGetHistogramParameterfvWrapper);
   SET_GetHistogramParameteriv(disp, glGetHistogramParameterivWrapper);
-
+  SET_GetIntegerv(disp, glGetIntegervWrapper);
   SET_GetLightfv(disp, glGetLightfvWrapper);
   SET_GetLightiv(disp, glGetLightivWrapper);
   SET_GetMapdv(disp, glGetMapdvWrapper);
@@ -384,6 +377,7 @@ void setup_dispatch_table(void)
   SET_GetPointerv(disp, glGetPointervWrapper);
   SET_GetPolygonStipple(disp, glGetPolygonStippleWrapper);
   SET_GetSeparableFilter(disp, glGetSeparableFilterWrapper);
+  SET_GetString(disp, glGetStringWrapper);
   SET_GetTexEnvfv(disp, glGetTexEnvfvWrapper);
   SET_GetTexEnviv(disp, glGetTexEnvivWrapper);
   SET_GetTexGendv(disp, glGetTexGendvWrapper);
@@ -412,6 +406,7 @@ void setup_dispatch_table(void)
   SET_InterleavedArrays(disp, glInterleavedArraysWrapper);
   SET_IsEnabled(disp, glIsEnabledWrapper);
   SET_IsList(disp, glIsListWrapper);
+  SET_IsTexture(disp, glIsTextureWrapper);
   SET_LightModelf(disp, glLightModelfWrapper);
   SET_LightModelfv(disp, glLightModelfvWrapper);
   SET_LightModeli(disp, glLightModeliWrapper);
@@ -474,6 +469,7 @@ void setup_dispatch_table(void)
   SET_PopClientAttrib(disp, glPopClientAttribWrapper);
   SET_PopMatrix(disp, glPopMatrixWrapper);
   SET_PopName(disp, glPopNameWrapper);
+  SET_PrioritizeTextures(disp, glPrioritizeTexturesWrapper);
   SET_PushAttrib(disp, glPushAttribWrapper);
   SET_PushClientAttrib(disp, glPushClientAttribWrapper);
   SET_PushMatrix(disp, glPushMatrixWrapper);
@@ -608,40 +604,6 @@ void setup_dispatch_table(void)
   SET_VertexPointer(disp, glVertexPointerWrapper);
   SET_Viewport(disp, glViewportWrapper);
 
-#if GL_VERSION_2_0
-/*   SET_AttachShader(disp, glAttachShaderWrapper); */
-/*   SET_DeleteShader(disp, glDeleteShaderWrapper); */
-/*   SET_DetachShader(disp, glDetachShaderWrapper); */
-/*   SET_GetAttachedShaders(disp, glGetAttachedShadersWrapper); */
-/*   SET_GetProgramInfoLog(disp, glGetProgramInfoLogWrapper); */
-/*   SET_GetShaderInfoLog(disp, glGetShaderInfoLogWrapper); */
-/*   SET_GetShaderiv(disp, glGetShaderivWrapper); */
-/*   SET_IsShader(disp, glIsShaderWrapper); */
-/*   SET_StencilFuncSeparate(disp, glStencilFuncSeparateWrapper); */
-/*   SET_StencilMaskSeparate(disp, glStencilMaskSeparateWrapper); */
-/*   SET_StencilOpSeparate(disp, glStencilOpSeparateWrapper); */
-#endif
-
-#if GL_VERSION_2_1
-/*   SET_UniformMatrix2x3fv(disp, glUniformMatrix2x3fvWrapper); */
-/*   SET_UniformMatrix2x4fv(disp, glUniformMatrix2x4fvWrapper); */
-/*   SET_UniformMatrix3x2fv(disp, glUniformMatrix3x2fvWrapper); */
-/*   SET_UniformMatrix3x4fv(disp, glUniformMatrix3x4fvWrapper); */
-/*   SET_UniformMatrix4x2fv(disp, glUniformMatrix4x2fvWrapper); */
-/*   SET_UniformMatrix4x3fv(disp, glUniformMatrix4x3fvWrapper); */
-#endif
-
-#if GL_APPLE_vertex_array_object
-/*   SET_BindVertexArrayAPPLE(disp, glBindVertexArrayAPPLEWrapper); */
-/*   SET_DeleteVertexArraysAPPLE(disp, glDeleteVertexArraysAPPLEWrapper); */
-/*   SET_GenVertexArraysAPPLE(disp, glGenVertexArraysAPPLEWrapper); */
-/*   SET_IsVertexArrayAPPLE(disp, glIsVertexArrayAPPLEWrapper); */
-#endif
-
-#if GL_ARB_draw_buffers
-/*   SET_DrawBuffersARB(disp, glDrawBuffersARBWrapper); */
-#endif
-
 #if GL_ARB_multisample
   SET_SampleCoverageARB(disp, glSampleCoverageWrapper);
 #endif
@@ -683,59 +645,6 @@ void setup_dispatch_table(void)
   SET_MultiTexCoord4svARB(disp, glMultiTexCoord4svWrapper);
 #endif
 
-#if GL_ARB_occlusion_query
-/*   SET_BeginQueryARB(disp, glBeginQueryARBWrapper); */
-/*   SET_DeleteQueriesARB(disp, glDeleteQueriesARBWrapper); */
-/*   SET_EndQueryARB(disp, glEndQueryARBWrapper); */
-/*   SET_GenQueriesARB(disp, glGenQueriesARBWrapper); */
-/*   SET_GetQueryObjectivARB(disp, glGetQueryObjectivARBWrapper); */
-/*   SET_GetQueryObjectuivARB(disp, glGetQueryObjectuivARBWrapper); */
-/*   SET_GetQueryivARB(disp, glGetQueryivARBWrapper); */
-/*   SET_IsQueryARB(disp, glIsQueryARBWrapper); */
-#endif
-
-#if GL_ARB_shader_objects
-/*   SET_AttachObjectARB(disp, glAttachObjectARBWrapper); */
-/*   SET_CompileShaderARB(disp, glCompileShaderARBWrapper); */
-/*   SET_DeleteObjectARB(disp, glDeleteObjectARBWrapper); */
-/*   SET_GetHandleARB(disp, glGetHandleARBWrapper); */
-/*   SET_DetachObjectARB(disp, glDetachObjectARBWrapper); */
-/*   SET_CreateProgramObjectARB(disp, glCreateProgramObjectARBWrapper); */
-/*   SET_CreateShaderObjectARB(disp, glCreateShaderObjectARBWrapper); */
-/*   SET_GetInfoLogARB(disp, glGetInfoLogARBWrapper); */
-/*   SET_GetActiveUniformARB(disp, glGetActiveUniformARBWrapper); */
-/*   SET_GetAttachedObjectsARB(disp, glGetAttachedObjectsARBWrapper); */
-/*   SET_GetObjectParameterfvARB(disp, glGetObjectParameterfvARBWrapper); */
-/*   SET_GetObjectParameterivARB(disp, glGetObjectParameterivARBWrapper); */
-/*   SET_GetShaderSourceARB(disp, glGetShaderSourceARBWrapper); */
-/*   SET_GetUniformLocationARB(disp, glGetUniformLocationARBWrapper); */
-/*   SET_GetUniformfvARB(disp, glGetUniformfvARBWrapper); */
-/*   SET_GetUniformivARB(disp, glGetUniformivARBWrapper); */
-/*   SET_LinkProgramARB(disp, glLinkProgramARBWrapper); */
-/*   SET_ShaderSourceARB(disp, glShaderSourceARBWrapper); */
-/*   SET_Uniform1fARB(disp, glUniform1fARBWrapper); */
-/*   SET_Uniform1fvARB(disp, glUniform1fvARBWrapper); */
-/*   SET_Uniform1iARB(disp, glUniform1iARBWrapper); */
-/*   SET_Uniform1ivARB(disp, glUniform1ivARBWrapper); */
-/*   SET_Uniform2fARB(disp, glUniform2fARBWrapper); */
-/*   SET_Uniform2fvARB(disp, glUniform2fvARBWrapper); */
-/*   SET_Uniform2iARB(disp, glUniform2iARBWrapper); */
-/*   SET_Uniform2ivARB(disp, glUniform2ivARBWrapper); */
-/*   SET_Uniform3fARB(disp, glUniform3fARBWrapper); */
-/*   SET_Uniform3fvARB(disp, glUniform3fvARBWrapper); */
-/*   SET_Uniform3iARB(disp, glUniform3iARBWrapper); */
-/*   SET_Uniform3ivARB(disp, glUniform3ivARBWrapper); */
-/*   SET_Uniform4fARB(disp, glUniform4fARBWrapper); */
-/*   SET_Uniform4fvARB(disp, glUniform4fvARBWrapper); */
-/*   SET_Uniform4iARB(disp, glUniform4iARBWrapper); */
-/*   SET_Uniform4ivARB(disp, glUniform4ivARBWrapper); */
-/*   SET_UniformMatrix2fvARB(disp, glUniformMatrix2fvARBWrapper); */
-/*   SET_UniformMatrix3fvARB(disp, glUniformMatrix3fvARBWrapper); */
-/*   SET_UniformMatrix4fvARB(disp, glUniformMatrix4fvARBWrapper); */
-/*   SET_UseProgramObjectARB(disp, glUseProgramObjectARBWrapper); */
-/*   SET_ValidateProgramARB(disp, glValidateProgramARBWrapper); */
-#endif
-
 #if GL_ARB_texture_compression
   SET_CompressedTexImage1DARB(disp, glCompressedTexImage1DWrapper);
   SET_CompressedTexImage2DARB(disp, glCompressedTexImage2DWrapper);
@@ -751,20 +660,6 @@ void setup_dispatch_table(void)
   SET_LoadTransposeMatrixfARB(disp, glLoadTransposeMatrixfWrapper);
   SET_MultTransposeMatrixdARB(disp, glMultTransposeMatrixdWrapper);
   SET_MultTransposeMatrixfARB(disp, glMultTransposeMatrixfWrapper);
-#endif
-
-#if GL_ARB_vertex_buffer_object
-/*   SET_BindBufferARB(disp, glBindBufferARBWrapper); */
-/*   SET_BufferDataARB(disp, glBufferDataARBWrapper); */
-/*   SET_BufferSubDataARB(disp, glBufferSubDataARBWrapper); */
-/*   SET_DeleteBuffersARB(disp, glDeleteBuffersARBWrapper); */
-/*   SET_GenBuffersARB(disp, glGenBuffersARBWrapper); */
-/*   SET_GetBufferParameterivARB(disp, glGetBufferParameterivARBWrapper); */
-/*   SET_GetBufferPointervARB(disp, glGetBufferPointervARBWrapper); */
-/*   SET_GetBufferSubDataARB(disp, glGetBufferSubDataARBWrapper); */
-/*   SET_IsBufferARB(disp, glIsBufferARBWrapper); */
-/*   SET_MapBufferARB(disp, glMapBufferARBWrapper); */
-/*   SET_UnmapBufferARB(disp, glUnmapBufferARBWrapper); */
 #endif
 
 #if GL_ARB_vertex_program
@@ -827,11 +722,6 @@ void setup_dispatch_table(void)
 /*   SET_VertexAttribPointerARB(disp, glVertexAttribPointerARBWrapper); */
 #endif
 
-#if GL_ARB_vertex_shader
-/*   SET_BindAttribLocationARB(disp, glBindAttribLocationARBWrapper); */
-/*   SET_GetActiveAttribARB(disp, glGetActiveAttribARBWrapper); */
-/*   SET_GetAttribLocationARB(disp, glGetAttribLocationARBWrapper); */
-#endif
 
 #if GL_ARB_window_pos
 /*   SET_WindowPos2dMESA(disp, glWindowPos2dARBWrapper); */
@@ -852,22 +742,7 @@ void setup_dispatch_table(void)
 /*   SET_WindowPos3svMESA(disp, glWindowPos3svARBWrapper); */
 #endif
 
-#if GL_ATI_fragment_shader
-/*   SET_AlphaFragmentOp1ATI(disp, glAlphaFragmentOp1ATIWrapper); */
-/*   SET_AlphaFragmentOp2ATI(disp, glAlphaFragmentOp2ATIWrapper); */
-/*   SET_AlphaFragmentOp3ATI(disp, glAlphaFragmentOp3ATIWrapper); */
-/*   SET_BeginFragmentShaderATI(disp, glBeginFragmentShaderATIWrapper); */
-/*   SET_BindFragmentShaderATI(disp, glBindFragmentShaderATIWrapper); */
-/*   SET_ColorFragmentOp1ATI(disp, glColorFragmentOp1ATIWrapper); */
-/*   SET_ColorFragmentOp2ATI(disp, glColorFragmentOp2ATIWrapper); */
-/*   SET_ColorFragmentOp3ATI(disp, glColorFragmentOp3ATIWrapper); */
-/*   SET_DeleteFragmentShaderATI(disp, glDeleteFragmentShaderATIWrapper); */
-/*   SET_EndFragmentShaderATI(disp, glEndFragmentShaderATIWrapper); */
-/*   SET_GenFragmentShadersATI(disp, glGenFragmentShadersATIWrapper); */
-/*   SET_PassTexCoordATI(disp, glPassTexCoordATIWrapper); */
-/*   SET_SampleMapATI(disp, glSampleMapATIWrapper); */
-/*   SET_SetFragmentShaderConstantATI(disp, glSetFragmentShaderConstantATIWrapper); */
-#elif GL_EXT_fragment_shader
+#if GL_EXT_fragment_shader
   SET_AlphaFragmentOp1ATI(disp, glAlphaFragmentOp1EXTWrapper);
   SET_AlphaFragmentOp2ATI(disp, glAlphaFragmentOp2EXTWrapper);
   SET_AlphaFragmentOp3ATI(disp, glAlphaFragmentOp3EXTWrapper);
@@ -884,30 +759,8 @@ void setup_dispatch_table(void)
   SET_SetFragmentShaderConstantATI(disp, glSetFragmentShaderConstantEXTWrapper);
 #endif
 
-#if GL_ATI_separate_stencil
-/*   SET_StencilFuncSeparateATI(disp, glStencilFuncSeparateATIWrapper); */
-#endif
-
-#if GL_EXT_blend_equation_separate
-/*   SET_BlendEquationSeparateEXT(disp, glBlendEquationSeparateEXTWrapper); */
-#endif
-
 #if GL_EXT_blend_func_separate
   SET_BlendFuncSeparateEXT(disp, glBlendFuncSeparateWrapper);
-#endif
-
-#if GL_EXT_depth_bounds_test
-/*   SET_DepthBoundsEXT(disp, glDepthBoundsEXTWrapper); */
-#endif
-
-#if GL_EXT_compiled_vertex_array
-/*   SET_LockArraysEXT(disp, glLockArraysEXTWrapper); */
-/*   SET_UnlockArraysEXT(disp, glUnlockArraysEXTWrapper); */
-#endif
-
-#if GL_EXT_cull_vertex
-/*   SET_CullParameterdvEXT(disp, glCullParameterdvEXTWrapper); */
-/*   SET_CullParameterfvEXT(disp, glCullParameterfvEXTWrapper); */
 #endif
 
 #if GL_EXT_fog_coord
@@ -918,50 +771,9 @@ void setup_dispatch_table(void)
   SET_FogCoordfvEXT(disp, glFogCoordfvWrapper);
 #endif
 
-#if GL_EXT_framebuffer_blit
-/*   SET_BlitFramebufferEXT(disp, glBlitFramebufferEXTWrapper); */
-#endif
-
-#if GL_EXT_framebuffer_object
-/*   SET_BindFramebufferEXT(disp, glBindFramebufferEXTWrapper); */
-/*   SET_BindRenderbufferEXT(disp, glBindRenderbufferEXTWrapper); */
-/*   SET_CheckFramebufferStatusEXT(disp, glCheckFramebufferStatusEXTWrapper); */
-/*   SET_DeleteFramebuffersEXT(disp, glDeleteFramebuffersEXTWrapper); */
-/*   SET_DeleteRenderbuffersEXT(disp, glDeleteRenderbuffersEXTWrapper); */
-/*   SET_FramebufferRenderbufferEXT(disp, glFramebufferRenderbufferEXTWrapper); */
-/*   SET_FramebufferTexture1DEXT(disp, glFramebufferTexture1DEXTWrapper); */
-/*   SET_FramebufferTexture2DEXT(disp, glFramebufferTexture2DEXTWrapper); */
-/*   SET_FramebufferTexture3DEXT(disp, glFramebufferTexture3DEXTWrapper); */
-/*   SET_GenerateMipmapEXT(disp, glGenerateMipmapEXTWrapper); */
-/*   SET_GenFramebuffersEXT(disp, glGenFramebuffersEXTWrapper); */
-/*   SET_GenRenderbuffersEXT(disp, glGenRenderbuffersEXTWrapper); */
-/*   SET_GetFramebufferAttachmentParameterivEXT(disp, glGetFramebufferAttachmentParameterivEXTWrapper); */
-/*   SET_GetRenderbufferParameterivEXT(disp, glGetRenderbufferParameterivEXTWrapper); */
-/*   SET_IsFramebufferEXT(disp, glIsFramebufferEXTWrapper); */
-/*   SET_IsRenderbufferEXT(disp, glIsRenderbufferEXTWrapper); */
-/*   SET_RenderbufferStorageEXT(disp, glRenderbufferStorageEXTWrapper); */
-#endif
-
-#if GL_EXT_gpu_program_parameters
-/*   SET_ProgramEnvParameters4fvEXT(disp, glProgramEnvParameters4fvEXTWrapper); */
-/*   SET_ProgramLocalParameters4fvEXT(disp, glProgramLocalParameters4fvEXTWrapper); */
-#endif
-
-#if GL_EXT_multi_draw_arrays
-/*   SET_MultiDrawArraysEXT(disp, glMultiDrawArraysEXTWrapper); */
-/*   SET_MultiDrawElementsEXT(disp, glMultiDrawElementsEXTWrapper); */
-#endif
-
-#if GL_EXT_point_parameters
-/*   SET_PointParameterfEXT(disp, glPointParameterfEXTWrapper); */
-/*   SET_PointParameterfvEXT(disp, glPointParameterfvEXTWrapper); */
-#elif GL_ARB_point_parameters
+#if GL_ARB_point_parameters
   SET_PointParameterfEXT(disp, glPointParameterfARBWrapper);
   SET_PointParameterfvEXT(disp, glPointParameterfvARBWrapper);
-#endif
-
-#if GL_EXT_polygon_offset
-/*   SET_PolygonOffsetEXT(disp, glPolygonOffsetEXTWrapper); */
 #endif
 
 #if GL_EXT_secondary_color
@@ -988,150 +800,9 @@ void setup_dispatch_table(void)
   SET_ActiveStencilFaceEXT(disp, glActiveStencilFaceEXTWrapper);
 #endif
 
-#if GL_EXT_timer_query
-/*   SET_GetQueryObjecti64vEXT(disp, glGetQueryObjecti64vEXTWrapper); */
-/*   SET_GetQueryObjectui64vEXT(disp, glGetQueryObjectui64vEXTWrapper); */
-#endif
-
-#if GL_EXT_vertex_array
-/*   SET_ColorPointerEXT(disp, glColorPointerEXTWrapper); */
-/*   SET_EdgeFlagPointerEXT(disp, glEdgeFlagPointerEXTWrapper); */
-/*   SET_IndexPointerEXT(disp, glIndexPointerEXTWrapper); */
-/*   SET_NormalPointerEXT(disp, glNormalPointerEXTWrapper); */
-/*   SET_TexCoordPointerEXT(disp, glTexCoordPointerEXTWrapper); */
-/*   SET_VertexPointerEXT(disp, glVertexPointerEXTWrapper); */
-#endif
-
-#if GL_IBM_multimode_draw_arrays
-/*   SET_MultiModeDrawArraysIBM(disp, glMultiModeDrawArraysIBMWrapper); */
-/*   SET_MultiModeDrawElementsIBM(disp, glMultiModeDrawElementsIBMWrapper); */
-#endif
-
-#if GL_MESA_resize_buffers
-/*   SET_ResizeBuffersMESA(disp, glResizeBuffersMESAWrapper); */
-#endif
-
-#if GL_MESA_window_pos
-/*   SET_WindowPos4dMESA(disp, glWindowPos4dMESAWrapper); */
-/*   SET_WindowPos4dvMESA(disp, glWindowPos4dvMESAWrapper); */
-/*   SET_WindowPos4fMESA(disp, glWindowPos4fMESAWrapper); */
-/*   SET_WindowPos4fvMESA(disp, glWindowPos4fvMESAWrapper); */
-/*   SET_WindowPos4iMESA(disp, glWindowPos4iMESAWrapper); */
-/*   SET_WindowPos4ivMESA(disp, glWindowPos4ivMESAWrapper); */
-/*   SET_WindowPos4sMESA(disp, glWindowPos4sMESAWrapper); */
-/*   SET_WindowPos4svMESA(disp, glWindowPos4svMESAWrapper); */
-#endif
-
-#if GL_NV_fence
-/*   SET_DeleteFencesNV(disp, glDeleteFencesNVWrapper); */
-/*   SET_FinishFenceNV(disp, glFinishFenceNVWrapper); */
-/*   SET_GenFencesNV(disp, glGenFencesNVWrapper); */
-/*   SET_GetFenceivNV(disp, glGetFenceivNVWrapper); */
-/*   SET_IsFenceNV(disp, glIsFenceNVWrapper); */
-/*   SET_SetFenceNV(disp, glSetFenceNVWrapper); */
-/*   SET_TestFenceNV(disp, glTestFenceNVWrapper); */
-#endif
-
-#if GL_NV_fragment_program
-/*   SET_GetProgramNamedParameterdvNV(disp, glGetProgramNamedParameterdvNVWrapper); */
-/*   SET_GetProgramNamedParameterfvNV(disp, glGetProgramNamedParameterfvNVWrapper); */
-/*   SET_ProgramNamedParameter4dNV(disp, glProgramNamedParameter4dNVWrapper); */
-/*   SET_ProgramNamedParameter4dvNV(disp, glProgramNamedParameter4dvNVWrapper); */
-/*   SET_ProgramNamedParameter4fNV(disp, glProgramNamedParameter4fNVWrapper); */
-/*   SET_ProgramNamedParameter4fvNV(disp, glProgramNamedParameter4fvNVWrapper); */
-#endif
-
-#if GL_NV_geometry_program4
-/*   SET_FramebufferTextureLayerEXT(disp, glFramebufferTextureLayerEXTWrapper); */
-#endif
-
 #if GL_NV_point_sprite
   SET_PointParameteriNV(disp, glPointParameteriNVWrapper);
   SET_PointParameterivNV(disp, glPointParameterivNVWrapper);
-#endif
-
-#if GL_NV_register_combiners
-/*   SET_CombinerInputNV(disp, glCombinerInputNVWrapper); */
-/*   SET_CombinerOutputNV(disp, glCombinerOutputNVWrapper); */
-/*   SET_CombinerParameterfNV(disp, glCombinerParameterfNVWrapper); */
-/*   SET_CombinerParameterfvNV(disp, glCombinerParameterfvNVWrapper); */
-/*   SET_CombinerParameteriNV(disp, glCombinerParameteriNVWrapper); */
-/*   SET_CombinerParameterivNV(disp, glCombinerParameterivNVWrapper); */
-/*   SET_FinalCombinerInputNV(disp, glFinalCombinerInputNVWrapper); */
-/*   SET_GetCombinerInputParameterfvNV(disp, glGetCombinerInputParameterfvNVWrapper); */
-/*   SET_GetCombinerInputParameterivNV(disp, glGetCombinerInputParameterivNVWrapper); */
-/*   SET_GetCombinerOutputParameterfvNV(disp, glGetCombinerOutputParameterfvNVWrapper); */
-/*   SET_GetCombinerOutputParameterivNV(disp, glGetCombinerOutputParameterivNVWrapper); */
-/*   SET_GetFinalCombinerInputParameterfvNV(disp, glGetFinalCombinerInputParameterfvNVWrapper); */
-/*   SET_GetFinalCombinerInputParameterivNV(disp, glGetFinalCombinerInputParameterivNVWrapper); */
-#endif
-
-#if GL_NV_vertex_array_range
-/*   SET_FlushVertexArrayRangeNV(disp, glFlushVertexArrayRangeNVWrapper); */
-/*   SET_VertexArrayRangeNV(disp, glVertexArrayRangeNVWrapper); */
-#endif
-
-#if GL_NV_vertex_program
-/*   SET_AreProgramsResidentNV(disp, glAreProgramsResidentNVWrapper); */
-/*   SET_BindProgramNV(disp, glBindProgramNVWrapper); */
-/*   SET_DeleteProgramsNV(disp, glDeleteProgramsNVWrapper); */
-/*   SET_ExecuteProgramNV(disp, glExecuteProgramNVWrapper); */
-/*   SET_GenProgramsNV(disp, glGenProgramsNVWrapper); */
-/*   SET_GetProgramParameterdvNV(disp, glGetProgramParameterdvNVWrapper); */
-/*   SET_GetProgramParameterfvNV(disp, glGetProgramParameterfvNVWrapper); */
-/*   SET_GetProgramStringNV(disp, glGetProgramStringNVWrapper); */
-/*   SET_GetProgramivNV(disp, glGetProgramivNVWrapper); */
-/*   SET_GetTrackMatrixivNV(disp, glGetTrackMatrixivNVWrapper); */
-/*   SET_GetVertexAttribPointervNV(disp, glGetVertexAttribPointervNVWrapper); */
-/*   SET_GetVertexAttribdvNV(disp, glGetVertexAttribdvNVWrapper); */
-/*   SET_GetVertexAttribfvNV(disp, glGetVertexAttribfvNVWrapper); */
-/*   SET_GetVertexAttribivNV(disp, glGetVertexAttribivNVWrapper); */
-/*   SET_IsProgramNV(disp, glIsProgramNVWrapper); */
-/*   SET_LoadProgramNV(disp, glLoadProgramNVWrapper); */
-/*   SET_ProgramParameters4dvNV(disp, glProgramParameters4dvNVWrapper); */
-/*   SET_ProgramParameters4fvNV(disp, glProgramParameters4fvNVWrapper); */
-/*   SET_RequestResidentProgramsNV(disp, glRequestResidentProgramsNVWrapper); */
-/*   SET_TrackMatrixNV(disp, glTrackMatrixNVWrapper); */
-/*   SET_VertexAttrib1dNV(disp, glVertexAttrib1dNV) */
-/*     SET_VertexAttrib1dvNV(disp, glVertexAttrib1dvNV) */
-/*     SET_VertexAttrib1fNV(disp, glVertexAttrib1fNV) */
-/*     SET_VertexAttrib1fvNV(disp, glVertexAttrib1fvNV) */
-/*     SET_VertexAttrib1sNV(disp, glVertexAttrib1sNV) */
-/*     SET_VertexAttrib1svNV(disp, glVertexAttrib1svNV) */
-/*     SET_VertexAttrib2dNV(disp, glVertexAttrib2dNV) */
-/*     SET_VertexAttrib2dvNV(disp, glVertexAttrib2dvNV) */
-/*     SET_VertexAttrib2fNV(disp, glVertexAttrib2fNV) */
-/*     SET_VertexAttrib2fvNV(disp, glVertexAttrib2fvNV) */
-/*     SET_VertexAttrib2sNV(disp, glVertexAttrib2sNV) */
-/*     SET_VertexAttrib2svNV(disp, glVertexAttrib2svNV) */
-/*     SET_VertexAttrib3dNV(disp, glVertexAttrib3dNV) */
-/*     SET_VertexAttrib3dvNV(disp, glVertexAttrib3dvNV) */
-/*     SET_VertexAttrib3fNV(disp, glVertexAttrib3fNV) */
-/*     SET_VertexAttrib3fvNV(disp, glVertexAttrib3fvNV) */
-/*     SET_VertexAttrib3sNV(disp, glVertexAttrib3sNV) */
-/*     SET_VertexAttrib3svNV(disp, glVertexAttrib3svNV) */
-/*     SET_VertexAttrib4dNV(disp, glVertexAttrib4dNV) */
-/*     SET_VertexAttrib4dvNV(disp, glVertexAttrib4dvNV) */
-/*     SET_VertexAttrib4fNV(disp, glVertexAttrib4fNV) */
-/*     SET_VertexAttrib4fvNV(disp, glVertexAttrib4fvNV) */
-/*     SET_VertexAttrib4sNV(disp, glVertexAttrib4sNV) */
-/*     SET_VertexAttrib4svNV(disp, glVertexAttrib4svNV) */
-/*     SET_VertexAttrib4ubNV(disp, glVertexAttrib4ubNV) */
-/*     SET_VertexAttrib4ubvNV(disp, glVertexAttrib4ubvNV) */
-/*     SET_VertexAttribPointerNV(disp, glVertexAttribPointerNV) */
-/*     SET_VertexAttribs1dvNV(disp, glVertexAttribs1dvNV) */
-/*     SET_VertexAttribs1fvNV(disp, glVertexAttribs1fvNV) */
-/*     SET_VertexAttribs1svNV(disp, glVertexAttribs1svNV) */
-/*     SET_VertexAttribs2dvNV(disp, glVertexAttribs2dvNV) */
-/*     SET_VertexAttribs2fvNV(disp, glVertexAttribs2fvNV) */
-/*     SET_VertexAttribs2svNV(disp, glVertexAttribs2svNV) */
-/*     SET_VertexAttribs3dvNV(disp, glVertexAttribs3dvNV) */
-/*     SET_VertexAttribs3fvNV(disp, glVertexAttribs3fvNV) */
-/*     SET_VertexAttribs3svNV(disp, glVertexAttribs3svNV) */
-/*     SET_VertexAttribs4dvNV(disp, glVertexAttribs4dvNV) */
-/*     SET_VertexAttribs4fvNV(disp, glVertexAttribs4fvNV) */
-/*     SET_VertexAttribs4svNV(disp, glVertexAttribs4svNV) */
-/*     SET_VertexAttribs4ubvNV(disp, glVertexAttribs4ubvNV) */
 #endif
 
 #if GL_SGIS_multisample
@@ -1140,16 +811,6 @@ void setup_dispatch_table(void)
   */
   SET_SampleMaskSGIS(disp, glSampleMaskSGISWrapper);
   SET_SamplePatternSGIS(disp, glSamplePatternSGISWrapper);
-#endif
-
-#if GL_SGIS_pixel_texture
-/*   SET_GetPixelTexGenParameterfvSGIS(disp, glGetPixelTexGenParameterfvSGISWrapper); */
-/*   SET_GetPixelTexGenParameterivSGIS(disp, glGetPixelTexGenParameterivSGISWrapper); */
-/*   SET_PixelTexGenParameterfSGIS(disp, glPixelTexGenParameterfSGISWrapper); */
-/*   SET_PixelTexGenParameterfvSGIS(disp, glPixelTexGenParameterfvSGISWrapper); */
-/*   SET_PixelTexGenParameteriSGIS(disp, glPixelTexGenParameteriSGISWrapper); */
-/*   SET_PixelTexGenParameterivSGIS(disp, glPixelTexGenParameterivSGISWrapper); */
-/*   SET_PixelTexGenSGIX(disp, glPixelTexGenSGIXWrapper); */
 #endif
 }
 
