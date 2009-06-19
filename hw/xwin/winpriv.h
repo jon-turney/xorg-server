@@ -11,7 +11,9 @@ typedef struct
 {
     HWND    hwnd;
   //    HRGN    hrgn;
-    RECT    rect;
+  //    RECT    rect;
 } winWindowInfoRec, *winWindowInfoPtr;
 
-extern void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo);
+void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo);
+Bool winCheckScreenIsSupported(ScreenPtr pScreen);
+

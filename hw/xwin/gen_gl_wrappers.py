@@ -3,7 +3,9 @@
 # Comedy python script to generate cdecl to stdcall wrappers for GL functions
 #
 # XXX: this should use the XML description of GL functions in Mesa as it's
-# input, if only I'd noticed that first...
+# input, or http://www.opengl.org/registry/api/gl.spec if only I'd noticed
+# that first...
+#
 #
 # Copyright (c) Jon TURNEY 2009
 #
