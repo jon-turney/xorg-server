@@ -151,7 +151,7 @@ XWin_DEPENDENCIES = $(XWIN_LIBS)
 XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
 
 .rc.o:
-	$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DPROJECT_NAME=\"$(VENDOR_NAME_SHORT)\" -DPROJECT_VERSION=\"$(PACKAGE_VERSION)\"
+	$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DPROJECT_NAME=\"$(VENDOR_NAME_SHORT)\" -DPROJECT_VERSION=\"$(PACKAGE_VERSION)\" -DBUILD_DATE=\"$(BUILD_DATE)\"
 
 XWin_LDFLAGS = -mwindows -static
 
@@ -165,6 +165,7 @@ AM_YFLAGS = -d
 AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
+            -DBUILD_DATE=$(BUILD_DATE) \
             -DXFree86Server
 
 GLX_EXTRAS = \
