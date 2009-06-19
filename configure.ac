@@ -830,7 +830,7 @@ if test "x$GLX" = xyes; then
 	AC_SUBST(XLIB_CFLAGS)
 	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
 	GLX_LIBS='$(top_builddir)/glx/libglx.la'
-	GLX_SYS_LIBS="$GLX_SYS_LIBS $DLOPEN_LIBS"
+	GLX_SYS_LIBS="$GLX_SYS_LIBS $GL_LIBS $DLOPEN_LIBS"
 else
         GLX=no
 fi
@@ -1503,7 +1503,7 @@ if test "x$XWIN" = xyes; then
 			XWIN_SYS_LIBS=-lwinsock2
 			;;
 	esac
-	XWIN_SYS_LIBS="$XWIN_SYS_LIBS $XWINMODULES_LIBS"
+	XWIN_SYS_LIBS="$XWIN_SYS_LIBS $XWINMODULES_LIBS $GLX_SYS_LIBS"
 	AC_SUBST(XWIN_SERVER_NAME)
 	AC_SUBST(XWIN_SYS_LIBS)
 
