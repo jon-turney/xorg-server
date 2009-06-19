@@ -71,6 +71,9 @@ winUpdateRgnMultiWindow (WindowPtr pWin)
 {
   SetWindowRgn (winGetWindowPriv(pWin)->hWnd,
 		winGetWindowPriv(pWin)->hRgn, TRUE);
+
+  /* The system now owns the region specified by the region handle and delete it when it is no longer needed. */
+  winGetWindowPriv(pWin)->hRgn = NULL;
 }
 
 
@@ -205,4 +208,15 @@ winReshapeMultiWindow (WindowPtr pWin)
   REGION_UNINIT(pWin->drawable.pScreen, &rrNewShape);
   
   return;
+}
+
+void
+winShapeRgnUpdateMultiwindow(HWND hwnd)
+{
+  WindowPtr pWin = GetProp (hwnd, WIN_WINDOW_PROP);
+  if (pWin)
+    {
+      winReshapeMultiWindow(pWin);
+      winUpdateRgnMultiWindow(pWin);
+    }
 }
