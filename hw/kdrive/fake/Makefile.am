@@ -19,7 +19,6 @@ Xfake_SOURCES = \
 Xfake_LDADD = 						\
 	libfake.la					\
 	@KDRIVE_LIBS@					\
-        @XSERVER_LIBS@
 
 Xfake_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG) -Wl,-undefined=InitExtensions
 
