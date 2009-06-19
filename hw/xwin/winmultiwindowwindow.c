@@ -509,6 +509,13 @@ winCreateWindowsWindow (WindowPtr pWin)
   iWidth = pWin->drawable.width;
   iHeight = pWin->drawable.height;
 
+  /* ensure window actually ends up somewhere visible */
+  if (iX > GetSystemMetrics (SM_CXVIRTUALSCREEN))
+    iX = CW_USEDEFAULT;
+
+  if (iY > GetSystemMetrics (SM_CYVIRTUALSCREEN))
+    iY = CW_USEDEFAULT;
+
   winSelectIcons(pWin, &hIcon, &hIconSmall); 
 
   /* Set standard class name prefix so we can identify window easily */

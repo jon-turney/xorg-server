@@ -1608,15 +1608,20 @@ winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle)
 
   AdjustWindowRectEx (&rcNew, GetWindowLongPtr (hWnd, GWL_STYLE), FALSE, WS_EX_APPWINDOW);
 
-  /* Calculate position deltas */
-  iDx = pDraw->x - rcNew.left;
-  iDy = pDraw->y - rcNew.top;
+  /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
+  if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN))
+    {
+      iDx = GetSystemMetrics(SM_XVIRTUALSCREEN) - rcNew.left;
+      rcNew.left += iDx;
+      rcNew.right += iDx;
+    }
 
-  /* Calculate new rectangle */
-  rcNew.left += iDx;
-  rcNew.right += iDx;
-  rcNew.top += iDy;
-  rcNew.bottom += iDy;
+  if (rcNew.top < GetSystemMetrics(SM_YVIRTUALSCREEN))
+    {
+      iDy = GetSystemMetrics(SM_YVIRTUALSCREEN) - rcNew.top;
+      rcNew.top += iDy;
+      rcNew.bottom += iDy;
+    }
 
 #if 0
   ErrorF ("winUpdateWindowPosition - (%d, %d)-(%d, %d)\n",
@@ -1627,7 +1632,7 @@ winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle)
   /* Position the Windows window */
   SetWindowPos (hWnd, *zstyle, rcNew.left, rcNew.top,
 	rcNew.right - rcNew.left, rcNew.bottom - rcNew.top,
-	SWP_NOMOVE);
+	0);
 
   if (reshape)
   {
