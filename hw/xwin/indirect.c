@@ -51,8 +51,6 @@
 #include <GL/internal/glcore.h>
 #include <glx/extension_string.h>
 
-// #include <stdint.h>
-
 #include <winpriv.h>
 #include <wgl_ext_api.h>
 
@@ -207,7 +205,6 @@ struct __GLXWinContext {
   __GLXWinContext *shareContext;     /* Context with which we will share display lists and textures */
   HWND hwnd;                         /* For detecting when HWND has changed */
   PIXELFORMATDESCRIPTOR pfd;         /* Pixel format descriptor */
-  unsigned isAttached :1;            /* Flag to track if context is attached (i.e. ctx is not null) */
 };
 
 struct __GLXWinDrawable
@@ -777,12 +774,6 @@ attach(__GLXWinContext *gc, __GLXWinDrawable *draw)
 {
     GLWIN_DEBUG_MSG("attach context %p to drawable %p", gc, draw);
 
-    if (gc->isAttached)
-    {
-        ErrorF("called attach on an attached context\n");
-        return;
-    }
-
     if (draw->base.type == GLX_DRAWABLE_WINDOW)
     {
         WindowPtr pWin = (WindowPtr) draw->base.pDraw;
@@ -795,34 +786,10 @@ attach(__GLXWinContext *gc, __GLXWinDrawable *draw)
         {
           if (glxWinCreateContextReal(gc, pWin))
             {
-              gc->isAttached = TRUE;
               GLWIN_DEBUG_MSG("attached context %p to native context %p drawable %p", gc, gc->ctx, draw);
             }
         }
     }
-}
-
-static void
-unattach(__GLXWinContext *gc)
-{
-    BOOL ret;
-    GLWIN_DEBUG_MSG("unattach (ctx %p)", gc->ctx);
-
-    if (!gc->isAttached)
-    {
-        ErrorF("called unattach on an unattached context\n");
-        return;
-    }
-
-    if (gc->ctx)
-    {
-        ret = wglDeleteContext(gc->ctx);
-        if (!ret)
-            ErrorF("wglDeleteContext error: %s\n", glxWinErrorMessage());
-        gc->ctx = NULL;
-    }
-
-    gc->isAttached = 0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -844,7 +811,7 @@ glxWinContextMakeCurrent(__GLXcontext *base)
   GLWIN_TRACE_MSG("glxWinContextMakeCurrent context %p (native ctx %p)", gc, gc->ctx);
   glWinCallDelta();
 
-  if (!gc->isAttached)
+  if (gc->ctx == NULL)
     attach(gc, (__GLXWinDrawable *)(gc->base.drawPriv));
 
   /* Keep a note of the last active context in the drawable */
@@ -956,8 +923,13 @@ glxWinContextDestroy(__GLXcontext *base)
 
   if (gc != NULL)
     {
-      if (gc->isAttached)
-        unattach(gc);
+      if (gc->ctx)
+        {
+          BOOL ret = wglDeleteContext(gc->ctx);
+          if (!ret)
+            ErrorF("wglDeleteContext error: %s\n", glxWinErrorMessage());
+          gc->ctx = NULL;
+        }
 
       GLWIN_DEBUG_MSG("GLXcontext %p destroyed (native ctx %p)", base, gc->ctx);
 
@@ -996,7 +968,6 @@ glxWinCreateContext(__GLXscreen *screen,
 
     // actual native GL context creation is deferred until attach()
     context->ctx = NULL;
-    context->isAttached = 0;
     context->shareContext = shareContext;
 
     // convert and store PFD
