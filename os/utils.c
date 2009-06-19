@@ -1196,7 +1196,7 @@ XNFstrdup(const char *s)
 }
 
 
-#ifdef SIGVTALRM
+#if defined(SIGVTALRM) && !defined(__CYGWIN__)
 #define SMART_SCHEDULE_POSSIBLE
 #endif
 
