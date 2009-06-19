@@ -1258,11 +1258,10 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
   pWMInfo->atmWmDelete = XInternAtom (pWMInfo->pDisplay,
 				      "WM_DELETE_WINDOW",
 				      False);
-#ifdef XWIN_MULTIWINDOWEXTWM
+
   pWMInfo->atmPrivMap  = XInternAtom (pWMInfo->pDisplay,
-				      WINDOWSWM_NATIVE_HWND,
+				      "_WINDOWSWM_NATIVE_HWND",
 				      False);
-#endif
 
 
   if (1) {
