@@ -64,7 +64,7 @@ extern HWND		g_hwndClipboard;
  * Local function prototypes
  */
 
-static Bool
+static int
 winProcessXEventsTimeout (HWND hwnd, int iWindow, Display *pDisplay,
 			  Bool fUseUnicode, int iTimeoutSec);
 
