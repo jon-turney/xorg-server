@@ -210,6 +210,7 @@ ValidateSizing (HWND hwnd, WindowPtr pWin,
   WinXSizeHints sizeHints;
   RECT *rect;
   int iWidth, iHeight;
+  unsigned long rcStyle;
 
   /* Invalid input checking */
   if (pWin==NULL || lParam==0)
@@ -231,19 +232,31 @@ ValidateSizing (HWND hwnd, WindowPtr pWin,
   iWidth = rect->right - rect->left;
   iHeight = rect->bottom - rect->top;
 
-  /* Now remove size of any borders */
-  iWidth -= 2 * GetSystemMetrics(SM_CXSIZEFRAME);
-  iHeight -= (GetSystemMetrics(SM_CYCAPTION)
-	      + 2 * GetSystemMetrics(SM_CYSIZEFRAME));
-	      
+  /* Now remove size of any borders and title bar */
+  rcStyle = GetWindowLongPtr(hwnd, GWL_STYLE);
+  if (rcStyle & WS_CAPTION)
+    {
+      iHeight -= GetSystemMetrics(SM_CYCAPTION);
+    }
+  if (rcStyle & WS_SIZEBOX)
+    {
+      iWidth -= 2 * GetSystemMetrics(SM_CXSIZEFRAME);
+      iHeight -= 2 * GetSystemMetrics(SM_CYSIZEFRAME);
+    }
 
   /* Constrain the size to legal values */
   ConstrainSize (sizeHints, &iWidth, &iHeight);
 
-  /* Add back the borders */
-  iWidth += 2 * GetSystemMetrics(SM_CXSIZEFRAME);
-  iHeight += (GetSystemMetrics(SM_CYCAPTION)
-	      + 2 * GetSystemMetrics(SM_CYSIZEFRAME));
+  /* Add back the size of borders and title bar */
+  if (rcStyle & WS_CAPTION)
+    {
+      iHeight += GetSystemMetrics(SM_CYCAPTION);
+    }
+  if (rcStyle & WS_SIZEBOX)
+    {
+      iWidth += 2 * GetSystemMetrics(SM_CXSIZEFRAME);
+      iHeight += 2 * GetSystemMetrics(SM_CYSIZEFRAME);
+    }
 
   /* Adjust size according to where we're dragging from */
   switch(wParam) {
@@ -990,6 +1003,17 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       winAdjustXWindow (pWin, hwnd);
       if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
       return 0; /* end of WM_SIZE handler */
+
+    case WM_STYLECHANGED:
+      /* when the style changes, adjust the window size so the client area remains the same */
+      {
+	LONG x,y;
+	DrawablePtr pDraw = &pWin->drawable;
+	x =  pDraw->x - wBorderWidth(pWin);
+	y = pDraw->y - wBorderWidth(pWin);
+	winPositionWindowMultiWindow(pWin, x, y);
+      }
+      return 0;
 
     case WM_MOUSEACTIVATE:
 
