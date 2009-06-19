@@ -43,9 +43,9 @@ typedef struct {
 extern glxWinDebugSettingsRec glxWinDebugSettings;
 
 void glWinCallDelta(void);
-void setup_dispatch_table(void);
 void glxWinPushNativeProvider(void);
 const GLubyte* glGetStringWrapperNonstatic(GLenum name);
+void glWinSetupDispatchTable(void);
 
 #if 1
 #define GLWIN_TRACE_MSG(msg, args...) if (glxWinDebugSettings.enableTrace) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )

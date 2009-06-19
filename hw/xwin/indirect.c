@@ -108,24 +108,27 @@ static void glxWinInitDebugSettings(void)
       }
 }
 
-static char errorbuffer[1024];
-
 static
 const char *glxWinErrorMessage(void)
 {
-    if (!FormatMessage(
-                FORMAT_MESSAGE_FROM_SYSTEM |
-                FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL,
-                GetLastError(),
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &errorbuffer,
-                sizeof(errorbuffer),
-                NULL ))
+  static char errorbuffer[1024];
+
+  if (!FormatMessage(
+                     FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                     NULL,
+                     GetLastError(),
+                     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                     (LPTSTR) &errorbuffer,
+                     sizeof(errorbuffer),
+                     NULL ))
     {
-        snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error in FormatMessage: %08x!", (unsigned)GetLastError());
+      snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error in FormatMessage: %08x!", (unsigned)GetLastError());
     }
-    return errorbuffer;
+
+  if (errorbuffer[strlen(errorbuffer)-1] == '\n')
+    errorbuffer[strlen(errorbuffer)-1] = 0;
+
+  return errorbuffer;
 }
 
 static void pfdOut(const PIXELFORMATDESCRIPTOR *pfd);
@@ -404,7 +407,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
       // Hmm?  screen->texOffset
       if (strstr(wgl_extensions, "WGL_ARB_render_texture"))
         {
-          __glXEnableExtension(screen->glx_enable_bits, "GLX_texture_from_pixmap");
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap");
           LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n");
         }
 
@@ -825,7 +828,7 @@ glxWinContextMakeCurrent(__GLXcontext *base)
 
   if (gc->ctx == NULL)
     {
-      ErrorF("Native context is NULL\n");
+      ErrorF("glxWinContextMakeCurrent: Native context is NULL\n");
       return FALSE;
     }
 
@@ -987,7 +990,7 @@ glxWinCreateContext(__GLXscreen *screen,
     if (glxWinDebugSettings.dumpPFD)
         pfdOut(&context->pfd);
 
-    setup_dispatch_table();
+    glWinSetupDispatchTable();
 
     GLWIN_DEBUG_MSG("GLXcontext %p created", context);
 
