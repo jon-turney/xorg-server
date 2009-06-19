@@ -823,6 +823,7 @@ winMultiWindowWMProc (void *pArg)
 #if CYGMULTIWINDOW_DEBUG
   ErrorF("-winMultiWindowWMProc ()\n");
 #endif
+  return NULL;
 }
 
 
@@ -1083,6 +1084,7 @@ winMultiWindowXMsgProc (void *pArg)
 
   XCloseDisplay (pProcArg->pDisplay);
   pthread_exit (NULL);
+  return NULL;
  
 }
 
