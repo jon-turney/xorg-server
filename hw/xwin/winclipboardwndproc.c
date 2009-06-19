@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include "winclipboard.h"
+#include "misc.h"
 
 extern void		winFixClipboardChain();
 
@@ -259,12 +260,20 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 
     case WM_DRAWCLIPBOARD:
       {
+	static Atom atomClipboard;
+	static int generation;
 	static Bool s_fProcessingDrawClipboard = FALSE;
 	Display	*pDisplay = g_pClipboardDisplay;
 	Window	iWindow = g_iClipboardWindow;
 	int	iReturn;
 
 	winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD: Enter\n");
+
+	if (generation != serverGeneration)
+          {
+            generation = serverGeneration;
+            atomClipboard = XInternAtom (pDisplay, "CLIPBOARD", False);
+          }
 
 	/*
 	 * We've occasionally seen a loop in the clipboard chain.
@@ -353,17 +362,13 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 
 	    /* Release CLIPBOARD selection if owned */
 	    iReturn = XGetSelectionOwner (pDisplay,
-					  XInternAtom (pDisplay,
-						       "CLIPBOARD",
-						       False));
+					  atomClipboard);
 	    if (iReturn == g_iClipboardWindow)
 	      {
 		winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
 			"CLIPBOARD selection is owned by us.\n");
 		XSetSelectionOwner (pDisplay,
-				    XInternAtom (pDisplay,
-						 "CLIPBOARD",
-						 False),
+				    atomClipboard,
 				    None,
 				    CurrentTime);
 	      }
@@ -396,9 +401,7 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	
 	/* Reassert ownership of the CLIPBOARD */	  
 	iReturn = XSetSelectionOwner (pDisplay,
-				      XInternAtom (pDisplay,
-						   "CLIPBOARD",
-						   False),
+				      atomClipboard,
 				      iWindow,
 				      CurrentTime);
 	if (iReturn == BadAtom || iReturn == BadWindow)
