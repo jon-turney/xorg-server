@@ -56,6 +56,7 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #ifdef __CYGWIN__
 #include <stdlib.h>
 #include <signal.h>
+__stdcall unsigned long GetTickCount(void);
 #endif
 
 #if defined(WIN32) && !defined(__CYGWIN__)
@@ -424,7 +425,7 @@ GiveUp(int sig)
     errno = olderrno;
 }
 
-#if defined WIN32 && defined __MINGW32__
+#if (defined WIN32 && defined __MINGW32__) || defined(__CYGWIN__)
 _X_EXPORT CARD32
 GetTimeInMillis (void)
 {
