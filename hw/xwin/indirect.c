@@ -46,7 +46,11 @@
 #endif
 
 #include "glwindows.h"
-#include <stdint.h>
+#include <glx/glxserver.h>
+#include <glx/glxutil.h>
+#include <GL/internal/glcore.h>
+
+// #include <stdint.h>
 
 #include <winpriv.h>
 #include <wgl_ext_api.h>
@@ -215,9 +219,9 @@ struct __GLXWinDrawable
 typedef struct {
     __GLXscreen base;
 
-    int num_vis;
-    __GLcontextModes *modes;
-    void **priv;
+  //    int num_vis;
+  //    __GLcontextModes *modes;
+  //void **priv;
 
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;
@@ -1119,7 +1123,7 @@ glxWinCreateConfigs(int *numConfigsPtr, int screenNumber)
         }
       else
         {
-          c->visualRating = GLX_NONE_EXT;
+          c->visualRating = GLX_NONE;;
         }
 
       /* EXT_visual_info / GLX 1.2 */
