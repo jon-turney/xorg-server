@@ -32,6 +32,9 @@ i?86-pc-cygwin*)
 i?86-apple-darwin*)
     pic_options='-fno-common'
     ;;
+*-*-cygwin*|*-*-mingw32)
+    pic_options='-DDLL_EXPORT'
+    ;;
 *)
     dolt_supported=no
     ;;
