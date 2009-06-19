@@ -49,6 +49,7 @@
 #include <glx/glxserver.h>
 #include <glx/glxutil.h>
 #include <GL/internal/glcore.h>
+#include <glx/extension_string.h>
 
 // #include <stdint.h>
 
@@ -219,9 +220,8 @@ struct __GLXWinDrawable
 typedef struct {
     __GLXscreen base;
 
-  //    int num_vis;
-  //    __GLcontextModes *modes;
-  //void **priv;
+    /* Supported GLX extensions */
+    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
 
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;
@@ -289,6 +289,7 @@ static __GLXscreen *
 glxWinScreenProbe(ScreenPtr pScreen)
 {
     glxWinScreen *screen;
+    const char *wgl_extensions;
 
     GLWIN_DEBUG_MSG("glxWinScreenProbe");
 
@@ -347,22 +348,115 @@ glxWinScreenProbe(ScreenPtr pScreen)
       ErrorF("GL_VENDOR:     %s\n", glGetStringWrapperNonstatic(GL_VENDOR));
       ErrorF("GL_RENDERER:   %s\n", glGetStringWrapperNonstatic(GL_RENDERER));
       ErrorF("GL_EXTENSIONS: %s\n", glGetStringWrapperNonstatic(GL_EXTENSIONS));
-      ErrorF("WGL_EXTENSIONS:%s\n", wglGetExtensionsStringARBWrapper(hdc));
+      wgl_extensions = wglGetExtensionsStringARBWrapper(hdc);
+      ErrorF("WGL_EXTENSIONS:%s\n", wgl_extensions);
+
+      // Can you see the problem here?  The extensions string is DC specific
+      // Different DCs for windows on a multimonitor system driven by multiple cards
+      // might have completely different capabilities.  Of course, good luck getting
+      // those screens to be accelerated in XP and earlier...
 
       wglMakeCurrent(NULL, NULL);
       wglDeleteContext(hglrc);
       ReleaseDC(NULL, hdc);
     }
 
-    //
-    // Based on the WGL extensions available, we might want to
-    // decline this screen, enable code paths, and override the
-    // GLX version after __glXScreenInit() sets it to "1.2"
-    //
-    // screen->base.GLXversion = xstrdup("1.4");
-    /* We may wish to adjust screen->base.GLXextensions as well */
-    // XXX: remove "GLX_SGIX_hyperpipe", "GLX_SGIX_swap_barrier"
-    // XXX: remove "GLX_MESA_copy_sub_buffer" unless we implement it
+    {
+      Bool glx_sgix_pbuffer = FALSE;
+      Bool glx_sgi_make_current_read = FALSE;
+      Bool glx_arb_multisample = FALSE;
+
+      //
+      // Based on the WGL extensions available, enable various GLX extensions
+      // XXX: make this table-driven ?
+      //
+      memset(screen->glx_enable_bits, 0, __GLX_EXT_BYTES);
+
+      __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_info");
+      __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_rating");
+      //    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_import_context"); ???
+      //    __glXEnableExtension(screen->glx_enable_bits, "GLX_OML_swap_method"); ???
+      __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_fbconfig");
+
+      if (strstr(wgl_extensions, "WGL_ARB_make_current_read"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_SGI_make_current_read");
+          LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_make_current_read\n");
+          glx_sgi_make_current_read = TRUE;
+        }
+
+      if (strstr(wgl_extensions, "WGL_???"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
+          LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
+        }
+
+      if (strstr(wgl_extensions, "WGL_EXT_swap_control"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_SGI_swap_control");
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_swap_control");
+          LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_swap_control and GLX_MESA_swap_control\n");
+        }
+
+      // Hmm?  screen->texOffset
+      if (strstr(wgl_extensions, "WGL_ARB_render_texture"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_texture_from_pixmap");
+          LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n");
+        }
+
+      if (strstr(wgl_extensions, "WGL_ARB_pbuffer"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_pbuffer");
+          LogMessage(X_INFO, "AIGLX: enabled GLX_SGIX_pbuffer\n");
+          glx_sgix_pbuffer = TRUE;
+        }
+
+      if (strstr(wgl_extensions, "WGL_ARB_multisample"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_multisample");
+          LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_multisample\n");
+          glx_arb_multisample = TRUE;
+          // also "GLX_SGIS_multisample "?
+        }
+
+      // Generate the GLX extensions string
+      {
+        unsigned int buffer_size = __glXGetExtensionString(screen->glx_enable_bits, NULL);
+        if (buffer_size > 0)
+          {
+            if (screen->base.GLXextensions != NULL)
+              {
+                xfree(screen->base.GLXextensions);
+              }
+
+            screen->base.GLXextensions = xnfalloc(buffer_size);
+            __glXGetExtensionString(screen->glx_enable_bits, screen->base.GLXextensions);
+          }
+      }
+
+      //
+      // Override the GLX version (__glXScreenInit() sets it to "1.2")
+      // if we have all the needed extensionsto operate as a higher version
+      //
+      // SGIX_fbconfig && SGIX_pbuffer && SGI_make_current_read -> 1.3
+      // ARB_multisample -> 1.4
+      //
+      if (glx_sgix_pbuffer && glx_sgi_make_current_read)
+        {
+          xfree(screen->base.GLXversion);
+
+          if (glx_arb_multisample)
+            {
+              screen->base.GLXversion = xstrdup("1.4");
+            }
+          else
+            {
+              screen->base.GLXversion = xstrdup("1.3");
+            }
+          LogMessage(X_INFO, "AIGLX: Set GLX version to %s\n", screen->base.GLXversion);
+        }
+    }
 
     return &screen->base;
 }
