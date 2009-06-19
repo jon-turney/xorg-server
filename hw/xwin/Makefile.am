@@ -165,7 +165,8 @@ AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -DXFree86Server
 
-dist_man1_MANS = XWin.man XWinrc.man
+dist_man1_MANS = XWin.man
+dist_man5_MANS = XWinrc.man
 
 GLX_EXTRAS = \
 	glx/ChangeLog \
