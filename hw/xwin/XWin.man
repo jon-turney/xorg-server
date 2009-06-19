@@ -49,13 +49,13 @@ operations on the individual X windows.
 As it runs \fIXWin\fP writes messages indicating the most relevant events
 to  the console
 from which it was called and to a log file that by default is located at
-\fI/tmp/XWin.log\fP.  This file is mainly for debugging purposes.
+\fI__logdir__/XWin.0.log\fP.  This file is mainly for debugging purposes.
 
 
 .SH PREFERENCES FILE
 On startup \fIXWin\fP looks for the file \fI$HOME/.XWinrc\fP or, if
 the previous file does not exist,
-\fI/usr/X11R6/lib/X11/system.XWinrc\fP.  \fI.XWinrc\fP allows setting
+\fI__sysconfdir__/X11/system.XWinrc\fP.  \fI.XWinrc\fP allows setting
 preferences for the following:
 .br
 1- To include items into the menu associated with the \fIXWin\fP icon
@@ -155,7 +155,7 @@ prevents the Windows mouse cursor from being placed overtop of the X
 cursor.
 .TP 8
 .B "\-logfile \fIFile_Name\fP"
-Change the log file from the default located at \fI/tmp/XWin.log\fP to
+Change the log file from the default located at \fI__logdir__/XWin.0.log\fP to
 the one indicated by \fIFile_Name\fP.
 .TP 8
 .B "\-logverbose \fIlevel\fP"
@@ -245,7 +245,7 @@ exit silently and don't display the error messge.
 These options implement the xkeyboard extension for loading
 a particular keyboard map as the X server starts.  The behavior is similar
 to the \fIsetxkbmap\fP program.  The layout data is located at
-\fI/usr/X11R6/lib/X11/xkb/\fP.  Additional information is found in the
+\fI__datadir__/X11/xkb/\fP.  Additional information is found in the
 README files therein and in the man page of \fIsetxkbmap\fP.  For example
 in order to load a German layout for a pc105 keyboard one uses
 the options:
@@ -258,7 +258,7 @@ keyboard maps.
 
 
 .SH "SEE ALSO"
-X(__miscmansuffix__), Xserver(1), xdm(1), xinit(1), XWinrc(1), setxkbmap(1)
+X(__miscmansuffix__), Xserver(1), xdm(1), xinit(1), XWinrc(__filemansuffix__), setxkbmap(1)
 
 
 .SH BUGS
