@@ -334,7 +334,7 @@ winCheckMount(void)
 
   while ((ent = getmntent(mnt)) != NULL)
   {
-    BOOL system = (strcmp(ent->mnt_type, "system") == 0);
+    BOOL system = (winCheckMntOpt(ent, "user") != NULL);
     BOOL root = (strcmp(ent->mnt_dir, "/") == 0);
     BOOL tmp = (strcmp(ent->mnt_dir, "/tmp") == 0);
     
@@ -361,7 +361,7 @@ winCheckMount(void)
       continue;
     level = curlevel;
 
-    if (winCheckMntOpt(ent, "binmode") == NULL)
+    if (winCheckMntOpt(ent, "binary") == NULL)
       binary = 0;
     else
       binary = 1;
