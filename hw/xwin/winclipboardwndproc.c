@@ -388,7 +388,8 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 				      XA_PRIMARY,
 				      iWindow,
 				      CurrentTime);
-	if (iReturn == BadAtom || iReturn == BadWindow)
+	if (iReturn == BadAtom || iReturn == BadWindow ||
+	    XGetSelectionOwner (pDisplay, XA_PRIMARY) != iWindow)
 	  {
 	    winErrorFVerb (1, "winClipboardWindowProc - WM_DRAWCLIPBOARD - "
 		    "Could not reassert ownership of PRIMARY\n");
@@ -404,7 +405,9 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 				      atomClipboard,
 				      iWindow,
 				      CurrentTime);
-	if (iReturn == BadAtom || iReturn == BadWindow)
+
+	if (iReturn == BadAtom || iReturn == BadWindow ||
+	    XGetSelectionOwner (pDisplay, atomClipboard) != iWindow)
 	  {
 	    winErrorFVerb (1, "winClipboardWindowProc - WM_DRAWCLIPBOARD - "
 		    "Could not reassert ownership of CLIPBOARD\n");
