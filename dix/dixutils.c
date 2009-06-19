@@ -165,6 +165,7 @@ ISOLatin1ToLower (unsigned char source)
 }
 
 
+#ifndef __CYGWIN__
 _X_EXPORT void
 CopyISOLatin1Lowered(unsigned char *dest, unsigned char *source, int length)
 {
@@ -174,6 +175,7 @@ CopyISOLatin1Lowered(unsigned char *dest, unsigned char *source, int length)
 	*dest = ISOLatin1ToLower (*source);
     *dest = '\0';
 }
+#endif
 
 int
 CompareISOLatin1Lowered(unsigned char *s1, int s1len, 
