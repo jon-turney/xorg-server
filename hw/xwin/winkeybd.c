@@ -49,10 +49,6 @@
 
 static Bool g_winKeyState[NUM_KEYCODES];
 
-/* Stored to get internal mode key states.  Must be read-only.  */
-static unsigned short const *g_winInternalModeKeyStatesPtr = NULL;
-
-
 /*
  * Local prototypes
  */
@@ -209,7 +205,6 @@ winKeybdBell (int iPercent, DeviceIntPtr pDeviceInt,
 static void
 winKeybdCtrl (DeviceIntPtr pDevice, KeybdCtrl *pCtrl)
 {
-  g_winInternalModeKeyStatesPtr = &(pDevice->key->state);
 }
 
 
@@ -295,19 +290,15 @@ winKeybdProc (DeviceIntPtr pDeviceInt, int iState)
             }
         }
 #endif
-
-      g_winInternalModeKeyStatesPtr = &(pDeviceInt->key->state);
       break;
       
     case DEVICE_ON: 
       pDevice->on = TRUE;
-      g_winInternalModeKeyStatesPtr = &(pDeviceInt->key->state);
       break;
 
     case DEVICE_CLOSE:
     case DEVICE_OFF: 
       pDevice->on = FALSE;
-      g_winInternalModeKeyStatesPtr = NULL;
       break;
     }
 
@@ -369,7 +360,7 @@ winRestoreModeKeyStates ()
   unsigned short	internalKeyStates;
 
   /* X server is being initialized */
-  if (!g_winInternalModeKeyStatesPtr)
+  if (!inputInfo.keyboard)
     return;
 
   /* Only process events if the rootwindow is mapped. The keyboard events
@@ -382,7 +373,9 @@ winRestoreModeKeyStates ()
     mieqProcessInputEvents ();
   
   /* Read the mode key states of our X server */
-  internalKeyStates = *g_winInternalModeKeyStatesPtr;
+  /* (stored in the virtual core keyboard) */
+  internalKeyStates = inputInfo.keyboard->key->state;
+  winDebug("winRestoreModeKeyStates: state %d\n", internalKeyStates);
 
   /* 
    * NOTE: The C XOR operator, ^, will not work here because it is
