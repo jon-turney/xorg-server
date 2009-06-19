@@ -103,7 +103,7 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
             if (pRLWinPriv->hWnd != NULL)
             {
                 /* copy size and window handle */
-                pWinInfo->rect = rect_extends;
+              //                pWinInfo->rect = rect_extends;
                 pWinInfo->hwnd = pRLWinPriv->hWnd;
             }
             return;

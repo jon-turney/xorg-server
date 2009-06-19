@@ -65,12 +65,6 @@ glWinCallDelta(void)
     }
 }
 
-/*
- * Not sure why these typedefs aren't provided by gl.h/glext.h...
- */
-typedef void (APIENTRYP PFNGLBLENDEQUATIONPROC) (GLenum mode);
-typedef void (APIENTRYP PFNGLBLENDCOLORPROC) (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-
 #define RESOLVE_RET(procname, symbol, retval) \
     static Bool init = TRUE; \
     static __stdcall procname proc = NULL; \
