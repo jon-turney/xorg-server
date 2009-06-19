@@ -101,6 +101,11 @@ ProcessInputEvents (void)
 #endif
 }
 
+void DDXRingBell(int volume, int pitch, int duration)
+{
+  /* winKeybdBell is used instead */
+  return;
+}
 
 int
 TimeSinceLastInputEvent ()
