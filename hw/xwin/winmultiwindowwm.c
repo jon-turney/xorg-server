@@ -64,7 +64,7 @@
 #include "window.h"
 #include "windowstr.h"
 #ifdef XWIN_MULTIWINDOWEXTWM
-#include "windowswmstr.h"
+#include <X11/extensions/windowswmstr.h>
 #endif
 
 extern void winDebug(const char *format, ...);
