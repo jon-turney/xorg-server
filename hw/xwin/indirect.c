@@ -295,6 +295,12 @@ glxWinScreenProbe(ScreenPtr pScreen)
     if (pScreen == NULL)
 	return NULL;
 
+    if (!winCheckScreenIsSupported(pScreen))
+      {
+        LogMessage(X_ERROR,"AIGLX: No native OpenGL, drawing surface cannot be translated to match the X window boundaries in modes with a root window\n");
+        return NULL;
+      }
+
     screen = xcalloc(1, sizeof(glxWinScreen));
 
     if (NULL == screen)

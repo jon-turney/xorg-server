@@ -51,7 +51,7 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
 
         pWinInfo->hwnd = pWinScreen->hwndScreen;
         //        pWinInfo->hrgn = NULL;
-        pWinInfo->rect = rect;
+        //        pWinInfo->rect = rect;
 
         pScreenInfo = pWinScreen->pScreenInfo;
 #ifdef XWIN_MULTIWINDOW
@@ -74,7 +74,7 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
             if (pWinPriv->hWnd != NULL) {
 
                 /* copy size and window handle */
-                pWinInfo->rect = rect_extends;
+              //                pWinInfo->rect = rect_extends;
                 pWinInfo->hwnd = pWinPriv->hWnd;
 
                 /* Copy window region */
@@ -112,13 +112,13 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
     }
     else
     {
-        RECT rect = {0, 0, 0, 0};
+       //RECT rect = {0, 0, 0, 0};
         ScreenPtr pScreen = g_ScreenInfo[0].pScreen;
         winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
 
         pWinInfo->hwnd = NULL;
         //        pWinInfo->hrgn = NULL;
-        pWinInfo->rect = rect;
+        //        pWinInfo->rect = rect;
 
         if (pWinScreen == NULL)
         {
@@ -131,4 +131,23 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
         pWinInfo->hwnd = pWinScreen->hwndScreen;
     }
     return;
+}
+
+Bool
+winCheckScreenIsSupported(ScreenPtr pScreen)
+{
+  winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
+  winScreenInfoPtr pScreenInfo = pWinScreen->pScreenInfo;
+
+#ifdef XWIN_MULTIWINDOW
+  if (pScreenInfo->fMultiWindow)
+    return TRUE;
+#endif
+
+#ifdef XWIN_MULTIWINDOWEXTWM
+  if (pScreenInfo->fMWExtWM)
+    return TRUE;
+#endif
+
+  return FALSE;
 }
