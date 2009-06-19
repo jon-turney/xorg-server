@@ -288,12 +288,18 @@ winKeybdProc (DeviceIntPtr pDeviceInt, int iState)
             {  
               winErrorFVerb (1, "winKeybdProc - Error initializing keyboard AutoRepeat (No XKB)\n");
             }
+
+	  XkbSetExtension(pDeviceInt, ProcessKeyboardEvent);
         }
 #endif
       break;
       
     case DEVICE_ON: 
       pDevice->on = TRUE;
+
+      // immediately copy the state of this keyboard device to the VCK
+      // (which otherwise happens lazily after the first keypress)
+      CopyKeyClass(pDeviceInt, inputInfo.keyboard);
       break;
 
     case DEVICE_CLOSE:
