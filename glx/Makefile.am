@@ -41,11 +41,9 @@ glapi_sources =					\
 	dispatch.h				\
 	glapitable.h				\
 	glapitemp.h				\
-	glapi.c					\
 	glapi.h					\
 	glapioffsets.h				\
 	glprocs.h				\
-	glthread.c				\
 	glthread.h
 
 libglxdri_la_SOURCES = \
