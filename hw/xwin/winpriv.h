@@ -3,7 +3,9 @@
  *
  * Authors: Alexander Gottwald
  */
-#include <windows.h>
+
+#include <X11/Xwindows.h>
+#include <windowstr.h>
 
 typedef struct
 {

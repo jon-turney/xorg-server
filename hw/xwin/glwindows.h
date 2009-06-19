@@ -28,43 +28,19 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_XWIN_CONFIG_H
-#include <xwin-config.h>
-#endif
 
-#include <X11/Xwindows.h>
 #include <GL/gl.h>
-#include <GL/glext.h>
-
-#include <glx/glxserver.h>
-#include <glx/glxext.h>
-
-#include <windowstr.h>
-#include <resource.h>
-#include <GL/glxint.h>
-#include <GL/glxtokens.h>
-#include <scrnintstr.h>
-#include <glx/glxscreens.h>
-#include <glx/glxdrawable.h>
-#include <glx/glxcontext.h>
-#include <glx/glxutil.h>
-#include <GL/internal/glcore.h>
-#include <stdlib.h>
-
 
 typedef struct {
-    unsigned enableDebug : 1;
-    unsigned enableTrace : 1;
-    unsigned dumpPFD : 1;
-    unsigned dumpHWND : 1;
-    unsigned dumpDC : 1;
-    unsigned enableGLcallTrace : 1;
+    unsigned int enableDebug : 1;
+    unsigned int enableTrace : 1;
+    unsigned int dumpPFD : 1;
+    unsigned int dumpHWND : 1;
+    unsigned int dumpDC : 1;
+    unsigned int enableGLcallTrace : 1;
 } glxWinDebugSettingsRec;
 
 extern glxWinDebugSettingsRec glxWinDebugSettings;
-
-//extern unsigned int glWinIndirectProcCalls;
-//extern unsigned int glWinDirectProcCalls;
 
 void glWinCallDelta(void);
 void setup_dispatch_table(void);
