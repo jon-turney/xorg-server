@@ -299,6 +299,13 @@ ddxProcessArgument (int argc, char **argv, int i)
   return KdProcessArgument (argc, argv, i);
 }
 
+#ifdef DDXBEFORERESET
+void
+ddxBeforeReset (void)
+{
+}
+#endif
+
 void
 OsVendorInit (void)
 {
@@ -312,6 +319,13 @@ OsVendorInit (void)
 
   KdOsInit (&EphyrOsFuncs);
 }
+
+#ifdef DDXOSFATALERROR
+void
+OsVendorFatalError(void)
+{
+}
+#endif
 
 /* 'Fake' cursor stuff, could be improved */
 
