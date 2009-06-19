@@ -65,13 +65,6 @@ static void
 winFindWindow (pointer value, XID id, pointer cdata);
 
 /*
- * Constant defines
- */
-
-#define MOUSE_POLLING_INTERVAL		500
-
-
-/*
  * Macros
  */
 
