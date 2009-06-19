@@ -56,19 +56,8 @@
 #include "X11/Xutil.h"
 #include "X11/Xlocale.h"
 
-/* Fixups to prevent collisions between Windows and X headers */
-#define ATOM			DWORD
-
-#ifndef __CYGWIN__
-#define sleep(x) Sleep (1000 * (x))
-#endif
-
 /* Windows headers */
-#ifndef XFree86Server
-#define XFree86Server
-#endif
-#include <windows.h>
-#undef XFree86Server
+#include <X11/Xwindows.h>
 
 
 /* Clipboard module constants */
