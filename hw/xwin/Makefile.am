@@ -34,6 +34,7 @@ SRCS_MULTIWINDOWEXTWM = \
 	winwin32rootlesswndproc.c \
 	winwindowswm.c
 DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
+MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
 endif
 
 if XWIN_NATIVEGDI
@@ -147,7 +148,7 @@ XWin_SOURCES = $(SRCS)
 INCLUDES = -I$(top_srcdir)/miext/rootless
 
 XWin_DEPENDENCIES = $(XWIN_LIBS)
-XWin_LDADD = $(XWIN_LIBS) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
 XWin_LDFLAGS = -mwindows
 
 .rc.o:
