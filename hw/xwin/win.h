@@ -1006,6 +1006,9 @@ winMouseButtonsHandle (ScreenPtr pScreen,
 		       int iEventType, int iButton,
 		       WPARAM wParam);
 
+void
+winEnqueueMotion(int x, int y);
+
 #ifdef XWIN_NATIVEGDI
 /*
  * winnativegdi.c
