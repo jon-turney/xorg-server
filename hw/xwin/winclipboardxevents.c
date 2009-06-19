@@ -188,6 +188,7 @@ winClipboardFlushXEvents (HWND hwnd,
 	    }
 
 	  /* Check that clipboard format is available */
+	  XLockDisplay (pDisplay);
 	  if (fUseUnicode
 	      && !IsClipboardFormatAvailable (CF_UNICODETEXT))
 	    {
@@ -200,6 +201,7 @@ winClipboardFlushXEvents (HWND hwnd,
 	      lasthwnd = hwnd;
 
 	      /* Abort */
+	      XUnlockDisplay (pDisplay);
 	      fAbort = TRUE;
 	      goto winClipboardFlushXEvents_SelectionRequest_Done;
 	    }
@@ -210,6 +212,7 @@ winClipboardFlushXEvents (HWND hwnd,
 		      "available from Win32 clipboard.  Aborting.\n");
 
 	      /* Abort */
+	      XUnlockDisplay (pDisplay);
 	      fAbort = TRUE;
 	      goto winClipboardFlushXEvents_SelectionRequest_Done;
 	    }
@@ -228,6 +231,7 @@ winClipboardFlushXEvents (HWND hwnd,
 		      GetLastError ());
 
 	      /* Abort */
+	      XUnlockDisplay (pDisplay);
 	      fAbort = TRUE;
 	      goto winClipboardFlushXEvents_SelectionRequest_Done;
 	    }
@@ -269,6 +273,7 @@ winClipboardFlushXEvents (HWND hwnd,
 		      GetLastError ());
 
 	      /* Abort */
+	      XUnlockDisplay (pDisplay);
 	      fAbort = TRUE;
 	      goto winClipboardFlushXEvents_SelectionRequest_Done;
 	    }
@@ -304,6 +309,7 @@ winClipboardFlushXEvents (HWND hwnd,
 
 	  /* Convert DOS string to UNIX string */
 	  winClipboardDOStoUNIX (pszConvertData, strlen (pszConvertData));
+	  XUnlockDisplay (pDisplay);
 
 	  /* Setup our text list */
 	  pszTextList[0] = pszConvertData;
@@ -688,6 +694,7 @@ winClipboardFlushXEvents (HWND hwnd,
 	  xtpText.nitems = 0;
 
 	  /* Convert the X clipboard string to DOS format */
+	  XLockDisplay (pDisplay);
 	  winClipboardUNIXtoDOS (&pszReturnData, strlen (pszReturnData));
 
 	  if (fUseUnicode)
@@ -795,6 +802,7 @@ winClipboardFlushXEvents (HWND hwnd,
 	   */
 
 	winClipboardFlushXEvents_SelectionNotify_Done:
+	  XUnlockDisplay (pDisplay);
 	  /* Free allocated resources */
 	  if (ppszTextList)
 	    XFreeStringList (ppszTextList);
