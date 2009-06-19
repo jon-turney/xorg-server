@@ -1486,6 +1486,7 @@ AC_MSG_RESULT([$XWIN])
 
 if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(XORG_VERSION_CURRENT, [$VENDOR_RELEASE], [Current Xorg version])
+	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 	case $host_os in
 		cygwin*)
