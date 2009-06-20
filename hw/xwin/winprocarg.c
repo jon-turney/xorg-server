@@ -1473,13 +1473,13 @@ ddxProcessArgument (int argc, char *argv[], int i)
       return 1;
     }
 
-  if (IS_OPTION("+wgl"))
+  if (IS_OPTION("-wgl"))
     {
       g_fNativeGl = TRUE;
       return 1;
     }
 
-  if (IS_OPTION("-wgl"))
+  if (IS_OPTION("-nowgl"))
     {
       g_fNativeGl = FALSE;
       return 1;

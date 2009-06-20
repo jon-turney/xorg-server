@@ -28,6 +28,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+// define USE_OPENGL32 makes gl.h declare gl*() function prototypes with stdcall linkage,
+// so our generated wrappers will correctly link with the functions in opengl32.dll
 #define USE_OPENGL32
 
 #ifdef HAVE_XWIN_CONFIG_H
