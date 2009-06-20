@@ -284,7 +284,7 @@ glxWinScreenDestroy(__GLXscreen *screen)
     xfree(screen);
 }
 
-/* This is called by GlxExtensionInit() asksing the GLX provider if it can handle the screen... */
+/* This is called by GlxExtensionInit() asking the GLX provider if it can handle the screen... */
 static __GLXscreen *
 glxWinScreenProbe(ScreenPtr pScreen)
 {
