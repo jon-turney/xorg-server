@@ -901,8 +901,8 @@ winUseMsg (void)
 	  "cursor instead\n");
 
 #ifdef XWIN_GLX_WINDOWS
-  ErrorF ("+wgl\n"
-	  "\tEnable use of the native Windows WGL accelerated OpenGL by the GLX extension\n");
+  ErrorF ("-[no]wgl\n"
+	  "\tEnable use of the native Windows WGL interface by the GLX extension for accelerated OpenGL\n");
 #endif
 }
 

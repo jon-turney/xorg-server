@@ -404,27 +404,27 @@ glxWinScreenProbe(ScreenPtr pScreen)
           LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_swap_control and GLX_MESA_swap_control\n");
         }
 
-      // Hmm?  screen->texOffset
-      if (strstr(wgl_extensions, "WGL_ARB_render_texture"))
-        {
-          __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap");
-          LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n");
-        }
+/*       // Hmm?  screen->texOffset */
+/*       if (strstr(wgl_extensions, "WGL_ARB_render_texture")) */
+/*         { */
+/*           __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap"); */
+/*           LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n"); */
+/*         } */
 
-      if (strstr(wgl_extensions, "WGL_ARB_pbuffer"))
-        {
-          __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_pbuffer");
-          LogMessage(X_INFO, "AIGLX: enabled GLX_SGIX_pbuffer\n");
-          glx_sgix_pbuffer = TRUE;
-        }
+/*       if (strstr(wgl_extensions, "WGL_ARB_pbuffer")) */
+/*         { */
+/*           __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_pbuffer"); */
+/*           LogMessage(X_INFO, "AIGLX: enabled GLX_SGIX_pbuffer\n"); */
+/*           glx_sgix_pbuffer = TRUE; */
+/*         } */
 
-      if (strstr(wgl_extensions, "WGL_ARB_multisample"))
-        {
-          __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_multisample");
-          LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_multisample\n");
-          glx_arb_multisample = TRUE;
-          // also "GLX_SGIS_multisample "?
-        }
+/*       if (strstr(wgl_extensions, "WGL_ARB_multisample")) */
+/*         { */
+/*           __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_multisample"); */
+/*           LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_multisample\n"); */
+/*           glx_arb_multisample = TRUE; */
+/*           // also "GLX_SGIS_multisample "? */
+/*         } */
 
       // Generate the GLX extensions string
       {
