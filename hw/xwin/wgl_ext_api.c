@@ -88,3 +88,59 @@ HDC wglGetCurrentReadDCARBWrapper(VOID)
   RESOLVE_RET(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB", NULL);
   return proc();
 }
+
+
+// WGL_ARB_pixel_format
+typedef wBOOL (__stdcall *PFNWGLGETPIXELFORMATATTRIBIVARB)(HDC hdc,
+                                                           int iPixelFormat,
+                                                           int iLayerPlane,
+                                                           UINT nAttributes,
+                                                           const int *piAttributes,
+                                                           int *piValues);
+
+wBOOL wglGetPixelFormatAttribivARBWrapper(HDC hdc,
+                                          int iPixelFormat,
+                                          int iLayerPlane,
+                                          UINT nAttributes,
+                                          const int *piAttributes,
+                                          int *piValues)
+{
+  RESOLVE_RET(PFNWGLGETPIXELFORMATATTRIBIVARB, "wglGetPixelFormatAttribivARB", FALSE);
+  return proc(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues);
+}
+
+typedef wBOOL (__stdcall *PFNWGLGETPIXELFORMATATTRIBFVARB)(HDC hdc,
+                                                           int iPixelFormat,
+                                                           int iLayerPlane,
+                                                           UINT nAttributes,
+                                                           const int *piAttributes,
+                                                           FLOAT *pfValues);
+
+wBOOL wglGetPixelFormatAttribfvARBWrapper(HDC hdc,
+                                          int iPixelFormat,
+                                          int iLayerPlane,
+                                          UINT nAttributes,
+                                          const int *piAttributes,
+                                          FLOAT *pfValues)
+{
+  RESOLVE_RET(PFNWGLGETPIXELFORMATATTRIBFVARB, "wglGetPixelFormatAttribfvARB", FALSE);
+  return proc(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, pfValues);
+}
+
+typedef wBOOL (__stdcall *PFNWGLCHOOSEPIXELFORMATARB)(HDC hdc,
+                                                     const int *piAttribIList,
+                                                     const FLOAT *pfAttribFList,
+                                                     UINT nMaxFormats,
+                                                     int *piFormats,
+                                                     UINT *nNumFormats);
+
+wBOOL wglChoosePixelFormatARBWrapper(HDC hdc,
+                                    const int *piAttribIList,
+                                    const FLOAT *pfAttribFList,
+                                    UINT nMaxFormats,
+                                    int *piFormats,
+                                    UINT *nNumFormats)
+{
+  RESOLVE_RET(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB", FALSE);
+  return proc(hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);
+}

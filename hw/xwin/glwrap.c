@@ -127,3 +127,15 @@ const GLubyte* glGetStringWrapperNonstatic(GLenum name)
   return glGetString(name);
 }
 
+/*
+  Special non-static wrapper for glAddSwapHintRectWIN for copySubBuffers
+*/
+
+typedef void (__stdcall *PFNGLADDSWAPHINTRECTWIN)(GLint x, GLint y, GLsizei width, GLsizei height);
+
+void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+  RESOLVE(PFNGLADDSWAPHINTRECTWIN, "glAddSwapHintRectWIN");
+  proc(x, y, width, height);
+}
+
