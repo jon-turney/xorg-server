@@ -29,6 +29,8 @@
 #ifndef wgl_ext_api_h
 #define wgl_ext_api_h
 
+void wglResolveExtensionProcs(void);
+
 const char *wglGetExtensionsStringARBWrapper(HDC hdc);
 wBOOL wglMakeContextCurrentARBWrapper(HDC hDrawDC, HDC hReadDC, HGLRC hglrc);
 HDC wglGetCurrentReadDCARBWrapper(VOID);
@@ -119,6 +121,10 @@ wBOOL wglChoosePixelFormatARBWrapper(HDC hdc,
 // WGL_ARB_pixel_format_float
 #define WGL_TYPE_RGBA_FLOAT_ARB                 0x21A0
 
+// WGL_ARB_pbuffer
+#define WGL_DRAW_TO_PBUFFER_ARB                 0x202D
+#define WGL_MAX_PBUFFER_PIXELS_ARB              0x202E
+#define WGL_MAX_PBUFFER_WIDTH_ARB               0x202F
+#define WGL_MAX_PBUFFER_HEIGHT_ARB              0x2030
+
 #endif /* wgl_ext_api_h */
-
-
