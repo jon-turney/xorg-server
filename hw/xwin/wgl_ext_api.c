@@ -91,6 +91,18 @@ typedef wBOOL (__stdcall *PFNWGLCHOOSEPIXELFORMATARB)(HDC hdc,
                                                      UINT nMaxFormats,
                                                      int *piFormats,
                                                      UINT *nNumFormats);
+typedef HPBUFFERARB (__stdcall *PFNWGLCREATEPBUFFERARB)(HDC hDC,
+                                                        int iPixelFormat,
+                                                        int iWidth,
+                                                        int iHeight,
+                                                        const int *piAttribList);
+typedef HDC (__stdcall *PFNWGLGETPBUFFERDCARB)(HPBUFFERARB hPbuffer);
+typedef int (__stdcall *PFNWGLRELEASEPBUFFERDCARB)(HPBUFFERARB hPbuffer,
+                                                  HDC hDC);
+typedef wBOOL (__stdcall *PFNWGLDESTROYPBUFFERARB)(HPBUFFERARB hPbuffer);
+typedef wBOOL (__stdcall *PFNWGLQUERYPBUFFERARB)(HPBUFFERARB hPbuffer,
+                                                 int iAttribute,
+                                                 int *piValue);
 
 RESOLVE_DECL(PFNWGLGETEXTENSIONSSTRINGARB, "wglGetExtensionsStringARB");
 RESOLVE_DECL(PFNWGLMAKECONTEXTCURRENTARB, "wglMakeContextCurrentARB");
@@ -98,6 +110,12 @@ RESOLVE_DECL(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB");
 RESOLVE_DECL(PFNWGLGETPIXELFORMATATTRIBIVARB, "wglGetPixelFormatAttribivARB");
 RESOLVE_DECL(PFNWGLGETPIXELFORMATATTRIBFVARB, "wglGetPixelFormatAttribfvARB");
 RESOLVE_DECL(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB");
+RESOLVE_DECL(PFNWGLCREATEPBUFFERARB, "wglCreatePbufferARB");
+RESOLVE_DECL(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB");
+RESOLVE_DECL(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB");
+RESOLVE_DECL(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB");
+RESOLVE_DECL(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB");
+
 
 void
 wglResolveExtensionProcs(void)
@@ -108,6 +126,11 @@ wglResolveExtensionProcs(void)
   PRERESOLVE(PFNWGLGETPIXELFORMATATTRIBIVARB, "wglGetPixelFormatAttribivARB");
   PRERESOLVE(PFNWGLGETPIXELFORMATATTRIBFVARB, "wglGetPixelFormatAttribfvARB");
   PRERESOLVE(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB");
+  PRERESOLVE(PFNWGLCREATEPBUFFERARB, "wglCreatePbufferARB");
+  PRERESOLVE(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB");
+  PRERESOLVE(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB");
+  PRERESOLVE(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB");
+  PRERESOLVE(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB");
 }
 
 // WGL_ARB_extensions_string
@@ -166,4 +189,45 @@ wBOOL wglChoosePixelFormatARBWrapper(HDC hdc,
   RESOLVE_RET(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB", FALSE);
   return RESOLVED_PROC(PFNWGLCHOOSEPIXELFORMATARB)(hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);
 }
+
+
+// WGL_ARB_pbuffer
+
+HPBUFFERARB wglCreatePbufferARBWrapper(HDC hDC,
+                                       int iPixelFormat,
+                                       int iWidth,
+                                       int iHeight,
+                                       const int *piAttribList)
+{
+  RESOLVE_RET(PFNWGLCREATEPBUFFERARB, "wglCreatePbufferARB", NULL);
+  return RESOLVED_PROC(PFNWGLCREATEPBUFFERARB)(hDC, iPixelFormat,  iWidth, iHeight, piAttribList);
+}
+
+HDC wglGetPbufferDCARBWrapper(HPBUFFERARB hPbuffer)
+{
+  RESOLVE_RET(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB", NULL);
+  return RESOLVED_PROC(PFNWGLGETPBUFFERDCARB)(hPbuffer);
+}
+
+int wglReleasePbufferDCARBWrapper(HPBUFFERARB hPbuffer,
+                                  HDC hDC)
+{
+  RESOLVE_RET(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB", 0);
+  return RESOLVED_PROC(PFNWGLRELEASEPBUFFERDCARB)(hPbuffer, hDC);
+}
+
+wBOOL wglDestroyPbufferARBWrapper(HPBUFFERARB hPbuffer)
+{
+  RESOLVE_RET(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB", FALSE);
+  return RESOLVED_PROC(PFNWGLDESTROYPBUFFERARB)(hPbuffer);
+}
+
+wBOOL wglQueryPbufferARBWrapper(HPBUFFERARB hPbuffer,
+                                int iAttribute,
+                                int *piValue)
+{
+  RESOLVE_RET(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB", FALSE);
+  return RESOLVED_PROC(PFNWGLQUERYPBUFFERARB)(hPbuffer, iAttribute, piValue);
+}
+
 

@@ -56,6 +56,25 @@ wBOOL wglChoosePixelFormatARBWrapper(HDC hdc,
                                      int *piFormats,
                                      UINT *nNumFormats);
 
+DECLARE_HANDLE(HPBUFFERARB);
+
+HPBUFFERARB wglCreatePbufferARBWrapper(HDC hDC,
+                                       int iPixelFormat,
+                                       int iWidth,
+                                       int iHeight,
+                                       const int *piAttribList);
+
+HDC wglGetPbufferDCARBWrapper(HPBUFFERARB hPbuffer);
+
+int wglReleasePbufferDCARBWrapper(HPBUFFERARB hPbuffer,
+                                  HDC hDC);
+
+wBOOL wglDestroyPbufferARBWrapper(HPBUFFERARB hPbuffer);
+
+wBOOL wglQueryPbufferARBWrapper(HPBUFFERARB hPbuffer,
+                                int iAttribute,
+                                int *piValue);
+
 
 #define WGL_NUMBER_PIXEL_FORMATS_ARB            0x2000
 #define WGL_DRAW_TO_WINDOW_ARB                  0x2001
