@@ -104,6 +104,10 @@ typedef wBOOL (__stdcall *PFNWGLQUERYPBUFFERARB)(HPBUFFERARB hPbuffer,
                                                  int iAttribute,
                                                  int *piValue);
 
+typedef wBOOL (__stdcall *PFNWGLSWAPINTERVALEXT)(int interval);
+typedef int (__stdcall *PFNWGLGETSWAPINTERVALEXT)(void);
+
+
 RESOLVE_DECL(PFNWGLGETEXTENSIONSSTRINGARB, "wglGetExtensionsStringARB");
 RESOLVE_DECL(PFNWGLMAKECONTEXTCURRENTARB, "wglMakeContextCurrentARB");
 RESOLVE_DECL(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB");
@@ -115,7 +119,8 @@ RESOLVE_DECL(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB");
 RESOLVE_DECL(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB");
 RESOLVE_DECL(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB");
 RESOLVE_DECL(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB");
-
+RESOLVE_DECL(PFNWGLSWAPINTERVALEXT, "wglSwapIntervalEXT");
+RESOLVE_DECL(PFNWGLGETSWAPINTERVALEXT, "wglGetSwapIntervalEXT");
 
 void
 wglResolveExtensionProcs(void)
@@ -131,6 +136,8 @@ wglResolveExtensionProcs(void)
   PRERESOLVE(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB");
   PRERESOLVE(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB");
   PRERESOLVE(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB");
+  PRERESOLVE(PFNWGLSWAPINTERVALEXT, "wglSwapIntervalEXT");
+  PRERESOLVE(PFNWGLGETSWAPINTERVALEXT, "wglGetSwapIntervalEXT");
 }
 
 // WGL_ARB_extensions_string
@@ -230,4 +237,17 @@ wBOOL wglQueryPbufferARBWrapper(HPBUFFERARB hPbuffer,
   return RESOLVED_PROC(PFNWGLQUERYPBUFFERARB)(hPbuffer, iAttribute, piValue);
 }
 
+// WGL_EXT_swap_control
+
+wBOOL wglSwapIntervalEXTWrapper(int interval)
+{
+  RESOLVE_RET(PFNWGLSWAPINTERVALEXT, "wglSwapIntervalEXT", FALSE);
+  return RESOLVED_PROC(PFNWGLSWAPINTERVALEXT)(interval);
+}
+
+int wglGetSwapIntervalEXTWrapper(void)
+{
+  RESOLVE_RET(PFNWGLGETSWAPINTERVALEXT, "wglGetSwapIntervalEXT", FALSE);
+  return RESOLVED_PROC(PFNWGLGETSWAPINTERVALEXT)();
+}
 

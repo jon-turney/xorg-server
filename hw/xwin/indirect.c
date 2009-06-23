@@ -45,7 +45,11 @@
   TODO:
   - hook up remaining unimplemented extensions
   - provide a method to fallback to turn WGL extensions off (via env var), for testing etc.
-
+  - research what guarantees glXWaitX, glXWaitGL are supposed to offer, and implement then
+    using GdiFlush and/or glFinish
+  - pbuffer clobbering: we don't get async notification, but can we arrange to emit the
+    event when we notice it's been clobbered? at the very least, check if it's been clobbered
+    before using it?
 */
 
 #ifdef HAVE_XWIN_CONFIG_H
@@ -351,6 +355,17 @@ glxWinScreenDestroy(__GLXscreen *screen)
     xfree(screen);
 }
 
+static int
+glxWinScreenSwapInterval(__GLXdrawable *drawable, int interval)
+{
+  BOOL ret = wglSwapIntervalEXTWrapper(interval);
+  if (!ret)
+    {
+      ErrorF("wglSwapIntervalEXT interval %d failed:%s\n", interval, glxWinErrorMessage());
+    }
+  return ret;
+}
+
 /* This is called by GlxExtensionInit() asking the GLX provider if it can handle the screen... */
 static __GLXscreen *
 glxWinScreenProbe(ScreenPtr pScreen)
@@ -428,8 +443,8 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
       __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_info");
       __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_visual_rating");
-      //    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_import_context"); ???
-      //    __glXEnableExtension(screen->glx_enable_bits, "GLX_OML_swap_method"); ???
+      __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_import_context");
+      __glXEnableExtension(screen->glx_enable_bits, "GLX_OML_swap_method");
       __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_fbconfig");
 
       if (strstr(wgl_extensions, "WGL_ARB_make_current_read"))
@@ -478,7 +493,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
       screen->base.destroy = glxWinScreenDestroy;
       screen->base.createContext = glxWinCreateContext;
       screen->base.createDrawable = glxWinCreateDrawable;
-      screen->base.swapInterval = NULL;
+      screen->base.swapInterval = glxWinScreenSwapInterval;
       screen->base.hyperpipeFuncs = NULL;
       screen->base.swapBarrierFuncs = NULL;
       screen->base.pScreen = pScreen;
@@ -962,7 +977,10 @@ glxWinDeferredCreateContext(__GLXWinContext *gc, __GLXWinDrawable *draw)
   // if the native context was created successfully, shareLists if needed
   if (gc->ctx && gc->shareContext)
     {
-      GLWIN_DEBUG_MSG("glxWinCreateContextReal shareLists with context%p (native ctx %p)", gc->shareContext, gc->shareContext->ctx);
+      wglMakeCurrent(NULL, NULL);
+
+      GLWIN_DEBUG_MSG("glxWinCreateContextReal shareLists with context %p (native ctx %p)", gc->shareContext, gc->shareContext->ctx);
+
       if (!wglShareLists(gc->shareContext->ctx, gc->ctx))
         {
           ErrorF("wglShareLists error: %s\n", glxWinErrorMessage());
@@ -1437,8 +1455,14 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
       c->visualSelectGroup = 0;
 
       /* OML_swap_method */
-      c->swapMethod = GLX_SWAP_UNDEFINED_OML;
+      if (pfd.dwFlags & PFD_SWAP_EXCHANGE)
+        c->swapMethod = GLX_SWAP_EXCHANGE_OML;
+      else if (pfd.dwFlags & PFD_SWAP_COPY)
+        c->swapMethod = GLX_SWAP_COPY_OML;
+      else
+        c->swapMethod = GLX_SWAP_UNDEFINED_OML;
 
+      /* EXT_import_context */
       c->screen = screenNumber;
 
       /* EXT_texture_from_pixmap */
@@ -1728,6 +1752,7 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
           c->swapMethod = GLX_SWAP_UNDEFINED_OML;
         }
 
+      /* EXT_import_context */
       c->screen = screenNumber;
 
       /* EXT_texture_from_pixmap */

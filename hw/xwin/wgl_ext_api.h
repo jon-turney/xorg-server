@@ -75,6 +75,11 @@ wBOOL wglQueryPbufferARBWrapper(HPBUFFERARB hPbuffer,
                                 int iAttribute,
                                 int *piValue);
 
+wBOOL wglSwapIntervalEXTWrapper(int interval);
+
+int wglGetSwapIntervalEXTWrapper(void);
+
+
 
 #define WGL_NUMBER_PIXEL_FORMATS_ARB            0x2000
 #define WGL_DRAW_TO_WINDOW_ARB                  0x2001
