@@ -44,12 +44,13 @@
 /*
   TODO:
   - hook up remaining unimplemented extensions
-  - provide a method to fallback to turn WGL extensions off (via env var), for testing etc.
   - research what guarantees glXWaitX, glXWaitGL are supposed to offer, and implement then
     using GdiFlush and/or glFinish
   - pbuffer clobbering: we don't get async notification, but can we arrange to emit the
     event when we notice it's been clobbered? at the very least, check if it's been clobbered
     before using it?
+  - SetPixelFormat on the screen DC is rude and inconsiderate to others: create an invisible
+    window instead
 */
 
 #ifdef HAVE_XWIN_CONFIG_H
@@ -226,37 +227,61 @@ visual_class_name(int cls)
     return "-none-";
   }
 }
+
+static const char *
+swap_method_name(int mthd)
+{
+  switch (mthd)
+    {
+    case GLX_SWAP_EXCHANGE_OML:
+      return "xchg";
+    case GLX_SWAP_COPY_OML:
+      return "copy";
+    case GLX_SWAP_UNDEFINED_OML:
+      return "    ";
+    default:
+      return "????";
+    }
+}
+
 static void
 fbConfigsDump(unsigned int n, __GLXconfig *configs)
 {
-  unsigned int i;
+  __GLXconfig *c = configs;
 
   printf("%d fbConfigs\n", n);
-  printf("                          render                               aux    accum       MS\n");
-  printf("idx  VisualType Depth Lvl RGB CI DB Stereo  R  G  B  A   Z  S  buf AR AG AB AA  bufs num  Pbuffer  Float Trans\n");
-  printf("--------------------------------------------------------------------------------------------------------------\n");
+  printf("                          render         Ste                     aux    accum        MS    drawable             Group/\n");
+  printf("idx  VisualType Depth Lvl RGB CI DB Swap reo  R  G  B  A   Z  S  buf AR AG AB AA  bufs num  W P Pb  Float Trans Caveat\n");
+  printf("----------------------------------------------------------------------------------------------------------------------\n");
 
-  for (i = 0; i < n; i++)
+  while (c != NULL)
     {
-      __GLXconfig *c = &(configs[i]);
+      unsigned int i = c - configs;
 
-      printf("%4d ", i+1);
+      printf("%3d  ", i+1);
       printf("%-11s", visual_class_name(c->visualType));
-      printf(" %3d %3d   %s   %s  %s   %2s   ",
+      printf(" %3d %3d   %s   %s  %s %s  %s  ",
              c->rgbBits ? c->rgbBits : c->indexBits,
              c->level,
 	     (c->renderType & GLX_RGBA_BIT) ? "y" : ".",
 	     (c->renderType & GLX_COLOR_INDEX_BIT) ? "y" : ".",
 	     c->doubleBufferMode ? "y" : ".",
+             swap_method_name(c->swapMethod),
 	     c->stereoMode ? "y" : ".");
       printf("%2d %2d %2d %2d  ", c->redBits, c->greenBits, c->blueBits, c->alphaBits);
       printf("%2d %2d  ", c->depthBits, c->stencilBits);
       printf("%2d  ", c->numAuxBuffers);
       printf("%2d %2d %2d %2d", c->accumRedBits, c->accumGreenBits, c->accumBlueBits, c->accumAlphaBits);
       printf("   %2d   %2d", c->sampleBuffers, c->samples);
-      printf("     %s       %s", (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".", ".");
-      printf("     %s", (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".");
+      printf("  %s %s %s ", (c->drawableType & GLX_WINDOW_BIT) ? "y" : ".",
+             (c->drawableType & GLX_PIXMAP_BIT) ? "y" : ".",
+             (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".");
+      printf("    %s   ",".");
+      printf("  %s   ", (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".");
+      printf("  %d %s", c->visualSelectGroup, (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ");
       printf("\n");
+
+      c = c->next;
     }
 }
 
@@ -431,6 +456,16 @@ glxWinScreenProbe(ScreenPtr pScreen)
     // those screens to be accelerated in XP and earlier...
 
     {
+      // testing facility to not use any WGL extensions
+      char *envptr = getenv("GLWIN_NO_WGL_EXTENSIONS");
+      if ((envptr != NULL) && (atoi(envptr) != 0))
+        {
+          ErrorF("GLWIN_NO_WGL_EXTENSIONS is set, ignoring WGL_EXTENSIONS\n");
+          wgl_extensions = "";
+        }
+    }
+
+    {
       Bool glx_sgix_pbuffer = FALSE;
       Bool glx_sgi_make_current_read = FALSE;
       Bool glx_arb_multisample = FALSE;
@@ -517,6 +552,8 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
       __glXScreenInit(&screen->base, pScreen);
 
+      // Override the GL extensions string set by __glXScreenInit()
+      screen->base.GLextensions = xstrdup(gl_extensions);
 
       // Generate the GLX extensions string (overrides that set by __glXScreenInit())
       {
@@ -726,11 +763,6 @@ glxWinCreateDrawable(__GLXscreen *screen,
   glxPriv->base.copySubBuffer = glxWinDrawableCopySubBuffer;
   // glxPriv->base.waitX  what are these for?
   // glxPriv->base.waitGL
-
-  if (type == GLX_DRAWABLE_PBUFFER)
-    {
-      GLWIN_DEBUG_MSG("glxWinCreateDrawable: got asked for a pBuffer");
-    }
 
   GLWIN_DEBUG_MSG("glxWinCreateDrawable %p", glxPriv);
 
@@ -1305,7 +1337,7 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode)
 static __GLXconfig *
 glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
 {
-  __GLXconfig *c, *result;
+  __GLXconfig *c, *result, *prev = NULL;
   int numConfigs = 0;
   int i = 0;
   int n = 0;
@@ -1327,7 +1359,6 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
     }
 
   memset(result, 0, sizeof(__GLXconfig) * numConfigs);
-  c = result;
   n = 0;
 
   /* fill in configs */
@@ -1335,15 +1366,8 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
     {
       int rc;
 
-      // point to next config, except for last
-      if ((i + 1) < numConfigs)
-        {
-          c->next = c + 1;
-        }
-      else
-        {
-          c->next = NULL;
-        }
+      c = &(result[i]);
+      c->next = NULL;
 
       rc = DescribePixelFormat(hdc, i+1, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 
@@ -1353,9 +1377,9 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
           break;
         }
 
-      if (!(pfd.dwFlags & PFD_DRAW_TO_WINDOW) || !(pfd.dwFlags & PFD_SUPPORT_OPENGL))
+      if (!(pfd.dwFlags & (PFD_DRAW_TO_WINDOW | PFD_DRAW_TO_BITMAP)) || !(pfd.dwFlags & PFD_SUPPORT_OPENGL))
         {
-          GLWIN_DEBUG_MSG("pixelFormat %d is unsuitable, skipping", i+1);
+          GLWIN_DEBUG_MSG("pixelFormat %d has unsuitable flags 0x%08lx, skipping", i+1, pfd.dwFlags);
           continue;
         }
 
@@ -1438,7 +1462,8 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
       c->samples = 0;
 
       /* SGIX_fbconfig / GLX 1.3 */
-      c->drawableType = GLX_WINDOW_BIT;
+      c->drawableType = (((pfd.dwFlags & PFD_DRAW_TO_WINDOW) ? GLX_WINDOW_BIT : 0)
+                         | ((pfd.dwFlags & PFD_DRAW_TO_BITMAP) ? GLX_PIXMAP_BIT : 0));
       c->renderType = GLX_RGBA_BIT;
       c->xRenderable = GL_TRUE;
       c->fbconfigID = -1; // will be set by __glXScreenInit()
@@ -1452,7 +1477,25 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
       c->optimalPbufferHeight = 0;
 
       /* SGIX_visual_select_group */
-      c->visualSelectGroup = 0;
+      // arrange for visuals with the best acceleration to be preferred in selection
+      switch (pfd.dwFlags & (PFD_GENERIC_FORMAT | PFD_GENERIC_ACCELERATED))
+        {
+        case 0:
+          c->visualSelectGroup = 2;
+          break;
+
+        case PFD_GENERIC_ACCELERATED:
+          c->visualSelectGroup = 1;
+          break;
+
+        case PFD_GENERIC_FORMAT:
+          c->visualSelectGroup = 0;
+          break;
+
+        default:
+          ;
+          // "can't happen"
+        }
 
       /* OML_swap_method */
       if (pfd.dwFlags & PFD_SWAP_EXCHANGE)
@@ -1473,8 +1516,12 @@ glxWinCreateConfigs(HDC hdc, int *numConfigsPtr, int screenNumber)
       c->yInverted = -1;
 
       n++;
-      if (c->next)
-        c = c->next;
+
+      // update previous config to point to this config
+      if (prev)
+        prev->next = c;
+
+      prev = c;
     }
 
   GLWIN_DEBUG_MSG("found %d pixelFormats suitable for conversion to fbConfigs", n);
@@ -1491,7 +1538,7 @@ int getAttrValue(const int attrs[], int values[], unsigned int num, int attr, in
     {
       if (attrs[i] == attr)
         {
-          GLWIN_DEBUG_MSG("getAttrValue attr 0x%x, value %d", attr, values[i]);
+          GLWIN_TRACE_MSG("getAttrValue attr 0x%x, value %d", attr, values[i]);
           return values[i];
         }
     }
@@ -1508,7 +1555,7 @@ int getAttrValue(const int attrs[], int values[], unsigned int num, int attr, in
 static __GLXconfig *
 glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
 {
-  __GLXconfig *c, *result;
+  __GLXconfig *c, *result, *prev = NULL;
   int i = 0;
   int n = 0;
 
@@ -1535,21 +1582,13 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
     }
 
   memset(result, 0, sizeof(__GLXconfig) * numConfigs);
-  c = result;
   n = 0;
 
   /* fill in configs */
   for (i = 0;  i < numConfigs; i++)
-     {
-      // point to next config, except for last
-      if ((i + 1) < numConfigs)
-        {
-          c->next = c + 1;
-        }
-      else
-        {
-          c->next = NULL;
-        }
+    {
+      c = &(result[i]);
+      c->next = NULL;
 
       const int attrs[] =
         {
@@ -1611,7 +1650,7 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
 
       if (!ATTR_VALUE(WGL_SUPPORT_OPENGL_ARB, 0))
         {
-          GLWIN_DEBUG_MSG("pixelFormat %d is unsuitable, skipping", i+1);
+          GLWIN_DEBUG_MSG("pixelFormat %d isn't WGL_SUPPORT_OPENGL_ARB, skipping", i+1);
           continue;
         }
 
@@ -1671,7 +1710,7 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
       }
       c->level = 0;
 
-      c->pixmapMode = 0;  // ???
+      c->pixmapMode = 0; // ???
       c->visualID = -1;  // will be set by __glXScreenInit()
 
       /* EXT_visual_rating / GLX 1.2 */
@@ -1732,7 +1771,22 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
       c->optimalPbufferHeight = 0;
 
       /* SGIX_visual_select_group */
-      c->visualSelectGroup = 0; // XXX: we should score ICD acclerated formats higher than MCD accelerated ones?
+      // arrange for visuals with the best acceleration to be preferred in selection
+      switch (ATTR_VALUE(WGL_ACCELERATION_ARB, 0))
+        {
+        case WGL_FULL_ACCELERATION_ARB:
+          c->visualSelectGroup = 2;
+          break;
+
+        case WGL_GENERIC_ACCELERATION_ARB:
+          c->visualSelectGroup = 1;
+          break;
+
+        default:
+        case WGL_NO_ACCELERATION_ARB:
+          c->visualSelectGroup = 0;
+          break;
+        }
 
       /* OML_swap_method */
       switch (ATTR_VALUE(WGL_SWAP_METHOD_ARB, 0))
@@ -1763,8 +1817,12 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
       c->yInverted = -1;
 
       n++;
-      if (c->next)
-        c = c->next;
+
+      // update previous config to point to this config
+      if (prev)
+        prev->next = c;
+
+      prev = c;
     }
 
   *numConfigsPtr = n;
