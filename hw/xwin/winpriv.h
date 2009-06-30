@@ -15,5 +15,5 @@ typedef struct
 } winWindowInfoRec, *winWindowInfoPtr;
 
 void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo);
-Bool winCheckScreenIsSupported(ScreenPtr pScreen);
+Bool winCheckScreenAiglxIsSupported(ScreenPtr pScreen);
 
