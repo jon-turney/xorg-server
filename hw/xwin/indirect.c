@@ -415,7 +415,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     if (pScreen == NULL)
 	return NULL;
 
-    if (!winCheckScreenIsSupported(pScreen))
+    if (!winCheckScreenAiglxIsSupported(pScreen))
       {
         LogMessage(X_ERROR,"AIGLX: No native OpenGL in modes with a root window\n");
         return NULL;
@@ -1166,7 +1166,7 @@ glxWinDeferredCreateContext(__GLXWinContext *gc, __GLXWinDrawable *draw)
       return;
     }
 
-  GLWIN_DEBUG_MSG("glxWinDeferredCreateContext: attached context %p to native context %p pbuffer %p", gc, gc->ctx, draw);
+  GLWIN_DEBUG_MSG("glxWinDeferredCreateContext: attached context %p to native context %p drawable %p", gc, gc->ctx, draw);
 
   // if the native context was created successfully, shareLists if needed
   if (gc->ctx && gc->shareContext)
@@ -1319,6 +1319,12 @@ glxWinContextDestroy(__GLXcontext *base)
     {
       if (gc->ctx)
         {
+          /* It's bad style to delete the context while it's still current */
+          if (wglGetCurrentContext() == gc->ctx)
+            {
+              wglMakeCurrent(NULL, NULL);
+            }
+
           BOOL ret = wglDeleteContext(gc->ctx);
           if (!ret)
             ErrorF("wglDeleteContext error: %s\n", glxWinErrorMessage());
@@ -1534,7 +1540,7 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride)
       {
         if (numFormats > 0)
           {
-            unsigned int i;
+            /* unsigned int i; */
             GLWIN_DEBUG_MSG("wglChoosePixelFormat: chose pixelFormatIndex %d (%d possibles)", pixelFormatIndex[0], numFormats);
             /* for (i = 0; i < numFormats; i++) */
             /*   GLWIN_DEBUG_MSG("wglChoosePixelFormat: %d", pixelFormatIndex[i]); */

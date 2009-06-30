@@ -134,7 +134,7 @@ void winGetWindowInfo(WindowPtr pWin, winWindowInfoPtr pWinInfo)
 }
 
 Bool
-winCheckScreenIsSupported(ScreenPtr pScreen)
+winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
 {
   winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
   winScreenInfoPtr pScreenInfo = pWinScreen->pScreenInfo;
