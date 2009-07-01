@@ -1487,25 +1487,22 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride,
     }
 
   /* convert fbConfig to attr-value list  */
-  // XXX: and remember we are not allowed to ask for unsupported attrs
-  int attribList[60] = {
-    WGL_SUPPORT_OPENGL_ARB, TRUE,
-    WGL_PIXEL_TYPE_ARB, (mode->visualType == GLX_TRUE_COLOR) ? WGL_TYPE_RGBA_ARB : WGL_TYPE_COLORINDEX_ARB,
-    WGL_COLOR_BITS_ARB, (mode->visualType == GLX_TRUE_COLOR) ? mode->rgbBits : mode->indexBits,
-    WGL_RED_BITS_ARB, mode->redBits,
-    WGL_GREEN_BITS_ARB, mode->greenBits,
-    WGL_BLUE_BITS_ARB, mode->blueBits,
-    WGL_ALPHA_BITS_ARB, mode->alphaBits,
-    WGL_ACCUM_RED_BITS_ARB, mode->accumRedBits,
-    WGL_ACCUM_GREEN_BITS_ARB, mode->accumGreenBits,
-    WGL_ACCUM_BLUE_BITS_ARB, mode->accumBlueBits,
-    WGL_ACCUM_ALPHA_BITS_ARB, mode->accumAlphaBits,
-    WGL_DEPTH_BITS_ARB, mode->depthBits,
-    WGL_STENCIL_BITS_ARB, mode->stencilBits,
-    WGL_AUX_BUFFERS_ARB, mode->numAuxBuffers,
-  };
+  int attribList[60];
 
-  i = 28;
+  SET_ATTR_VALUE(WGL_SUPPORT_OPENGL_ARB, TRUE);
+  SET_ATTR_VALUE(WGL_PIXEL_TYPE_ARB, (mode->visualType == GLX_TRUE_COLOR) ? WGL_TYPE_RGBA_ARB : WGL_TYPE_COLORINDEX_ARB);
+  SET_ATTR_VALUE(WGL_COLOR_BITS_ARB, (mode->visualType == GLX_TRUE_COLOR) ? mode->rgbBits : mode->indexBits);
+  SET_ATTR_VALUE(WGL_RED_BITS_ARB, mode->redBits);
+  SET_ATTR_VALUE(WGL_GREEN_BITS_ARB, mode->greenBits);
+  SET_ATTR_VALUE(WGL_BLUE_BITS_ARB, mode->blueBits);
+  SET_ATTR_VALUE(WGL_ALPHA_BITS_ARB, mode->alphaBits);
+  SET_ATTR_VALUE(WGL_ACCUM_RED_BITS_ARB, mode->accumRedBits);
+  SET_ATTR_VALUE(WGL_ACCUM_GREEN_BITS_ARB, mode->accumGreenBits);
+  SET_ATTR_VALUE(WGL_ACCUM_BLUE_BITS_ARB, mode->accumBlueBits);
+  SET_ATTR_VALUE(WGL_ACCUM_ALPHA_BITS_ARB, mode->accumAlphaBits);
+  SET_ATTR_VALUE(WGL_DEPTH_BITS_ARB, mode->depthBits);
+  SET_ATTR_VALUE(WGL_STENCIL_BITS_ARB, mode->stencilBits);
+  SET_ATTR_VALUE(WGL_AUX_BUFFERS_ARB, mode->numAuxBuffers);
 
   if (mode->doubleBufferMode)
     SET_ATTR_VALUE(WGL_DOUBLE_BUFFER_ARB, TRUE);
@@ -2020,8 +2017,16 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen)
         }
 
       /* ARB_multisample / SGIS_multisample */
-      c->base.sampleBuffers = ATTR_VALUE(WGL_SAMPLE_BUFFERS_ARB, 0);
-      c->base.samples = ATTR_VALUE(WGL_SAMPLES_ARB, 0);
+      if (screen->has_WGL_ARB_multisample)
+        {
+          c->base.sampleBuffers = ATTR_VALUE(WGL_SAMPLE_BUFFERS_ARB, 0);
+          c->base.samples = ATTR_VALUE(WGL_SAMPLES_ARB, 0);
+        }
+      else
+        {
+          c->base.sampleBuffers = 0;
+          c->base.samples = 0;
+        }
 
       /* SGIX_fbconfig / GLX 1.3 */
       c->base.drawableType = ((ATTR_VALUE(WGL_DRAW_TO_WINDOW_ARB, 0) ? GLX_WINDOW_BIT : 0)
@@ -2032,10 +2037,19 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen)
       c->base.fbconfigID = -1; // will be set by __glXScreenInit()
 
       /* SGIX_pbuffer / GLX 1.3 */
-      c->base.maxPbufferWidth = ATTR_VALUE(WGL_MAX_PBUFFER_WIDTH_ARB, -1);
-      c->base.maxPbufferHeight = ATTR_VALUE(WGL_MAX_PBUFFER_HEIGHT_ARB, -1);
-      c->base.maxPbufferPixels =  ATTR_VALUE(WGL_MAX_PBUFFER_PIXELS_ARB, -1);
-      c->base.optimalPbufferWidth = 0;
+      if (screen->has_WGL_ARB_pbuffer)
+        {
+          c->base.maxPbufferWidth = ATTR_VALUE(WGL_MAX_PBUFFER_WIDTH_ARB, -1);
+          c->base.maxPbufferHeight = ATTR_VALUE(WGL_MAX_PBUFFER_HEIGHT_ARB, -1);
+          c->base.maxPbufferPixels =  ATTR_VALUE(WGL_MAX_PBUFFER_PIXELS_ARB, -1);
+        }
+      else
+        {
+          c->base.maxPbufferWidth = -1;
+          c->base.maxPbufferHeight = -1;
+          c->base.maxPbufferPixels =  -1;
+        }
+      c->base.optimalPbufferWidth = 0; // there is no optimal value
       c->base.optimalPbufferHeight = 0;
 
       /* SGIX_visual_select_group */
@@ -2078,8 +2092,16 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen)
       c->base.screen = screen->base.pScreen->myNum;
 
       /* EXT_texture_from_pixmap */
-      c->base.bindToTextureRgb = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGB_ARB, 0);
-      c->base.bindToTextureRgba = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGBA_ARB, 0);;
+      if (screen->has_WGL_ARB_render_texture)
+        {
+          c->base.bindToTextureRgb = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGB_ARB, 0);
+          c->base.bindToTextureRgba = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGBA_ARB, 0);;
+        }
+      else
+        {
+          c->base.bindToTextureRgb = 0;
+          c->base.bindToTextureRgba = 0;
+        }
       c->base.bindToMipmapTexture = -1;
       c->base.bindToTextureTargets = GLX_TEXTURE_1D_BIT_EXT | GLX_TEXTURE_2D_BIT_EXT | GLX_TEXTURE_RECTANGLE_BIT_EXT;
       c->base.yInverted = -1;
