@@ -55,6 +55,18 @@
     with privates?) Or are they created inside the GLX core as well?
 */
 
+/*
+  MSDN clarifications:
+
+  It says SetPixelFormat()'s PIXELFORMATDESCRIPTOR pointer argument has no effect
+  except on metafiles, this seems to mean that as it's ok to supply NULL if the DC
+  is not for a metafile
+
+  wglMakeCurrent ignores the hdc if hglrc is NULL, so wglMakeCurrent(NULL, NULL)
+  is used to make no context current
+
+*/
+
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
@@ -68,6 +80,8 @@
 
 #include <winpriv.h>
 #include <wgl_ext_api.h>
+
+#define NUM_ELEMENTS(x) (sizeof(x)/ sizeof(x[1]))
 
 /* ---------------------------------------------------------------------- */
 /*
@@ -322,7 +336,10 @@ typedef struct {
     /* Supported GLX extensions */
     unsigned char glx_enable_bits[__GLX_EXT_BYTES];
 
+    Bool has_WGL_ARB_multisample;
     Bool has_WGL_ARB_pixel_format;
+    Bool has_WGL_ARB_pbuffer;
+    Bool has_WGL_ARB_render_texture;
 
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;
@@ -353,9 +370,9 @@ static HDC glxWinMakeDC(__GLXWinContext *gc, __GLXWinDrawable *draw, HDC *hdc, H
 static void glxWinReleaseDC(HWND hwnd, HDC hdc, __GLXWinDrawable *draw);
 
 static __GLXconfig *glxWinCreateConfigs(HDC dc, int *numConfigsPtr, int screenNumber);
-static __GLXconfig *glxWinCreateConfigsExt(HDC dc, int *numConfigsPtr, int screenNumber);
+static void glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen);
 static int fbConfigToPixelFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdret, int drawableTypeOverride);
-static int fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride);
+static int fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride, glxWinScreen *winScreen);
 
 /* ---------------------------------------------------------------------- */
 /*
@@ -438,9 +455,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
     // just use the screen DC
     hdc = GetDC(NULL);
     // we must set a pixel format before we can create a context, just use the first one...
-    // MSDN says SetPixelFormat()'s PIXELFORMATDESCRIPTOR pointer argument has no effect
-    // except on metafiles, so I choose to interpret that as it's ok to supply NULL  if
-    // the DC is not for a metafile...
     SetPixelFormat(hdc, 1, NULL);
     hglrc = wglCreateContext(hdc);
     wglMakeCurrent(hdc, hglrc);
@@ -473,9 +487,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     }
 
     {
-      Bool glx_sgix_pbuffer = FALSE;
       Bool glx_sgi_make_current_read = FALSE;
-      Bool glx_arb_multisample = FALSE;
 
       //
       // Based on the WGL extensions available, enable various GLX extensions
@@ -514,23 +526,22 @@ glxWinScreenProbe(ScreenPtr pScreen)
 /*         { */
 /*           __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap"); */
 /*           LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n"); */
+/*           screen->has_WGL_ARB_render_texture = TRUE; */
 /*         } */
 
       if (strstr(wgl_extensions, "WGL_ARB_pbuffer"))
         {
           __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_pbuffer");
           LogMessage(X_INFO, "AIGLX: enabled GLX_SGIX_pbuffer\n");
-          glx_sgix_pbuffer = TRUE;
+          screen->has_WGL_ARB_pbuffer = TRUE;
         }
 
-/*       if (strstr(wgl_extensions, "WGL_ARB_multisample")) */
-/*         { */
-/*           __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_multisample"); */
-/*           LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_multisample\n"); */
-/*           glx_arb_multisample = TRUE; */
-/*           // also "GLX_SGIS_multisample "? */
-/*         } */
-
+      if (strstr(wgl_extensions, "WGL_ARB_multisample"))
+        {
+          __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_multisample");
+          LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_multisample and GLX_SGIS_multisample\n");
+          screen->has_WGL_ARB_multisample = TRUE;
+        }
 
       screen->base.destroy = glxWinScreenDestroy;
       screen->base.createContext = glxWinCreateContext;
@@ -542,7 +553,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
       if (strstr(wgl_extensions, "WGL_ARB_pixel_format"))
         {
-          screen->base.fbconfigs = glxWinCreateConfigsExt(hdc, &screen->base.numFBConfigs, pScreen->myNum);
+          glxWinCreateConfigsExt(hdc, screen);
           screen->has_WGL_ARB_pixel_format = TRUE;
         }
       else
@@ -586,11 +597,11 @@ glxWinScreenProbe(ScreenPtr pScreen)
       // SGIX_fbconfig && SGIX_pbuffer && SGI_make_current_read -> 1.3
       // ARB_multisample -> 1.4
       //
-      if (glx_sgix_pbuffer && glx_sgi_make_current_read)
+      if (screen->has_WGL_ARB_pbuffer && glx_sgi_make_current_read)
         {
           xfree(screen->base.GLXversion);
 
-          if (glx_arb_multisample)
+          if (screen->has_WGL_ARB_multisample)
             {
               screen->base.GLXversion = xstrdup("1.4");
               /*
@@ -804,8 +815,6 @@ glxWinCreateDrawable(__GLXscreen *screen,
  * Texture functions
  */
 
-// XXX: don't offer GLX_EXT_texture_from_pixmap if we can't implement these..
-
 static
 int glxWinBindTexImage(__GLXcontext  *baseContext,
                       int            buffer,
@@ -830,13 +839,14 @@ int glxWinReleaseTexImage(__GLXcontext  *baseContext,
  *
  * WGL contexts are created for a specific HDC, so we cannot create the WGL
  * context in glxWinCreateContext(), we must defer creation until the context
- * is actually used on a specifc drawable which is connected to a native window.
+ * is actually used on a specifc drawable which is connected to a native window,
+ * pbuffer or DIB
  *
  * The WGL context may be used on other, compatible HDCs, so we don't need to
  * recreate it for every new native window
  *
  * XXX: I wonder why we can't create the WGL context on the screen HDC ?
- * Basically we assume all HDCs are comaptible at the moment: if they are not
+ * Basically we assume all HDCs are compatible at the moment: if they are not
  * we are in a muddle, there was some code in the old implementation to attempt
  * to transparently migrate a context to a new DC by copying state and sharing
  * lists with the old one...
@@ -891,7 +901,7 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
     }
   else
     {
-      int pixelFormat = fbConfigToPixelFormatIndex(hdc, gc->config, drawableTypeOverride);
+      int pixelFormat = fbConfigToPixelFormatIndex(hdc, gc->config, drawableTypeOverride, winScreen);
       if (pixelFormat == 0)
         {
           ErrorF("wglChoosePixelFormat error: %s\n", glxWinErrorMessage());
@@ -1077,7 +1087,10 @@ glxWinDeferredCreateContext(__GLXWinContext *gc, __GLXWinDrawable *draw)
               ErrorF("glxWinDeferredCreateContext: tried to attach a context whose fbConfig doesn't have drawableType GLX_PBUFFER_BIT to a GLX_DRAWABLE_PBUFFER drawable\n");
             }
 
-          int pixelFormat = fbConfigToPixelFormatIndex(screenDC, gc->config, GLX_DRAWABLE_PBUFFER);
+          __GLXscreen *screen = gc->base.pGlxScreen;
+          glxWinScreen *winScreen = (glxWinScreen *)screen;
+
+          int pixelFormat = fbConfigToPixelFormatIndex(screenDC, gc->config, GLX_DRAWABLE_PBUFFER, winScreen);
           if (pixelFormat == 0)
             {
               ErrorF("wglChoosePixelFormat error: %s\n", glxWinErrorMessage());
@@ -1223,23 +1236,13 @@ glxWinContextMakeCurrent(__GLXcontext *base)
       return FALSE;
     }
 
-  /* Otherwise, just use wglMakeCurrent */
-  ret = wglMakeCurrent(drawDC, gc->ctx);
-  if (!ret)
-    {
-      ErrorF("wglMakeCurrent error: %s\n", glxWinErrorMessage());
-    }
-
   if ((gc->base.readPriv != NULL) && (gc->base.readPriv != gc->base.drawPriv))
     {
+      // XXX: should only occur with WGL_ARB_make_current_read
       /*
         If there is a separate read drawable, create a separate read DC, and
         use the wglMakeContextCurrent extension to make the context current drawing
         to one DC and reading from the other
-
-        NOTE WELL: This isn't a strict alternative to wglMakeCurrent() as we can't
-        look up the extension function until we have a context, hence the lack of
-        an else here (although in practice we cache the look up result for ever...)
       */
       readPriv = gc->base.readPriv;
       readDC = glxWinMakeDC(gc, (__GLXWinDrawable *)readPriv, &readDC, &hwnd);
@@ -1254,6 +1257,15 @@ glxWinContextMakeCurrent(__GLXcontext *base)
       if (!ret)
         {
           ErrorF("wglMakeContextCurrent error: %s\n", glxWinErrorMessage());
+        }
+    }
+  else
+    {
+      /* Otherwise, just use wglMakeCurrent */
+      ret = wglMakeCurrent(drawDC, gc->ctx);
+      if (!ret)
+        {
+          ErrorF("wglMakeCurrent error: %s\n", glxWinErrorMessage());
         }
     }
 
@@ -1447,10 +1459,10 @@ fbConfigToPixelFormat(__GLXconfig *mode, PIXELFORMATDESCRIPTOR *pfdret, int draw
     return 0;
 }
 
-#define SET_ATTR_VALUE(attr, value) { attribList[i++] = attr; attribList[i++] = value; }
+#define SET_ATTR_VALUE(attr, value) { attribList[i++] = attr; attribList[i++] = value; assert(i < NUM_ELEMENTS(attribList)); }
 
 static int
-fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride)
+fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride, glxWinScreen *winScreen)
 {
   UINT numFormats;
   unsigned int i = 0;
@@ -1469,7 +1481,7 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride)
 
   /* convert fbConfig to attr-value list  */
   // XXX: and remember we are not allowed to ask for unsupported attrs
-  int attribList[] = {
+  int attribList[60] = {
     WGL_SUPPORT_OPENGL_ARB, TRUE,
     WGL_PIXEL_TYPE_ARB, (mode->visualType == GLX_TRUE_COLOR) ? WGL_TYPE_RGBA_ARB : WGL_TYPE_COLORINDEX_ARB,
     WGL_COLOR_BITS_ARB, (mode->visualType == GLX_TRUE_COLOR) ? mode->rgbBits : mode->indexBits,
@@ -1485,6 +1497,8 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride)
     WGL_STENCIL_BITS_ARB, mode->stencilBits,
     WGL_AUX_BUFFERS_ARB, mode->numAuxBuffers,
   };
+
+  i = 28;
 
   if (mode->doubleBufferMode)
     SET_ATTR_VALUE(WGL_DOUBLE_BUFFER_ARB, TRUE);
@@ -1515,7 +1529,8 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride)
         SET_ATTR_VALUE(WGL_DRAW_TO_BITMAP_ARB, TRUE);
 
       if (mode->drawableType & GLX_PBUFFER_BIT)
-        SET_ATTR_VALUE(WGL_DRAW_TO_PBUFFER_ARB, TRUE);
+        if (winScreen->has_WGL_ARB_pbuffer)
+          SET_ATTR_VALUE(WGL_DRAW_TO_PBUFFER_ARB, TRUE);
     }
   else
     {
@@ -1523,7 +1538,8 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig *mode, int drawableTypeOverride)
         SET_ATTR_VALUE(WGL_DRAW_TO_BITMAP_ARB, TRUE);
 
       if (drawableTypeOverride & GLX_PBUFFER_BIT)
-        SET_ATTR_VALUE(WGL_DRAW_TO_PBUFFER_ARB, TRUE);
+        if (winScreen->has_WGL_ARB_pbuffer)
+          SET_ATTR_VALUE(WGL_DRAW_TO_PBUFFER_ARB, TRUE);
     }
 
   SET_ATTR_VALUE(0, 0); // terminator
@@ -1775,13 +1791,11 @@ int getAttrValue(const int attrs[], int values[], unsigned int num, int attr, in
   return fallback;
 }
 
-#define NUM_ELEMENTS(x) (sizeof(x)/ sizeof(x[1]))
-
 //
 // Create the GLXconfigs using wglGetPixelFormatAttribfvARB() extension
 //
-static __GLXconfig *
-glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
+static void
+glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen)
 {
   __GLXconfig *c, *result, *prev = NULL;
   int i = 0;
@@ -1790,12 +1804,18 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
   const int attr = WGL_NUMBER_PIXEL_FORMATS_ARB;
   int numConfigs;
 
+  int attrs[50];
+  unsigned int num_attrs = 0;
+
   GLWIN_DEBUG_MSG("glxWinCreateConfigsExt");
+
+  screen->base.numFBConfigs = 0;
+  screen->base.fbconfigs = NULL;
 
   if (!wglGetPixelFormatAttribivARBWrapper(hdc, 0, 0, 1, &attr, &numConfigs))
     {
       ErrorF("wglGetPixelFormatAttribivARB failed for WGL_NUMBER_PIXEL_FORMATS_ARB: %s\n", glxWinErrorMessage());
-      return NULL;
+      return;
     }
 
   GLWIN_DEBUG_MSG("wglGetPixelFormatAttribivARB says %d possible pixel formats", numConfigs);
@@ -1805,12 +1825,69 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
 
   if (NULL == result)
     {
-      *numConfigsPtr = 0;
-      return NULL;
+      return;
     }
 
   memset(result, 0, sizeof(__GLXconfig) * numConfigs);
   n = 0;
+
+#define ADD_ATTR(a) { attrs[num_attrs++] = a; assert(num_attrs < NUM_ELEMENTS(attrs)); }
+
+  ADD_ATTR(WGL_DRAW_TO_WINDOW_ARB);
+  ADD_ATTR(WGL_DRAW_TO_BITMAP_ARB);
+  ADD_ATTR(WGL_ACCELERATION_ARB);
+  ADD_ATTR(WGL_SWAP_LAYER_BUFFERS_ARB);
+  ADD_ATTR(WGL_NUMBER_OVERLAYS_ARB);
+  ADD_ATTR(WGL_NUMBER_UNDERLAYS_ARB);
+  ADD_ATTR(WGL_TRANSPARENT_ARB);
+  ADD_ATTR(WGL_TRANSPARENT_RED_VALUE_ARB);
+  ADD_ATTR(WGL_TRANSPARENT_GREEN_VALUE_ARB);
+  ADD_ATTR(WGL_TRANSPARENT_GREEN_VALUE_ARB);
+  ADD_ATTR(WGL_TRANSPARENT_ALPHA_VALUE_ARB);
+  ADD_ATTR(WGL_SUPPORT_OPENGL_ARB);
+  ADD_ATTR(WGL_DOUBLE_BUFFER_ARB);
+  ADD_ATTR(WGL_STEREO_ARB);
+  ADD_ATTR(WGL_PIXEL_TYPE_ARB);
+  ADD_ATTR(WGL_COLOR_BITS_ARB);
+  ADD_ATTR(WGL_RED_BITS_ARB);
+  ADD_ATTR(WGL_RED_SHIFT_ARB);
+  ADD_ATTR(WGL_GREEN_BITS_ARB);
+  ADD_ATTR(WGL_GREEN_SHIFT_ARB);
+  ADD_ATTR(WGL_BLUE_BITS_ARB);
+  ADD_ATTR(WGL_BLUE_SHIFT_ARB);
+  ADD_ATTR(WGL_ALPHA_BITS_ARB);
+  ADD_ATTR(WGL_ALPHA_SHIFT_ARB);
+  ADD_ATTR(WGL_ACCUM_RED_BITS_ARB);
+  ADD_ATTR(WGL_ACCUM_GREEN_BITS_ARB);
+  ADD_ATTR(WGL_ACCUM_BLUE_BITS_ARB);
+  ADD_ATTR(WGL_ACCUM_ALPHA_BITS_ARB);
+  ADD_ATTR(WGL_DEPTH_BITS_ARB);
+  ADD_ATTR(WGL_STENCIL_BITS_ARB);
+  ADD_ATTR(WGL_AUX_BUFFERS_ARB);
+  ADD_ATTR(WGL_SWAP_METHOD_ARB);
+
+  if (screen->has_WGL_ARB_multisample)
+    {
+      // we may not query these attrs if WGL_ARB_multisample is not offered
+      ADD_ATTR(WGL_SAMPLE_BUFFERS_ARB);
+      ADD_ATTR(WGL_SAMPLES_ARB);
+    }
+
+  if (screen->has_WGL_ARB_render_texture)
+    {
+      // we may not query these attrs if WGL_ARB_render_texture is not offered
+      ADD_ATTR(WGL_BIND_TO_TEXTURE_RGB_ARB);
+      ADD_ATTR(WGL_BIND_TO_TEXTURE_RGBA_ARB);
+    }
+
+  if (screen->has_WGL_ARB_pbuffer)
+    {
+      // we may not query these attrs if WGL_ARB_pbuffer is not offered
+      ADD_ATTR(WGL_DRAW_TO_PBUFFER_ARB);
+      ADD_ATTR(WGL_MAX_PBUFFER_PIXELS_ARB);
+      ADD_ATTR(WGL_MAX_PBUFFER_WIDTH_ARB);
+      ADD_ATTR(WGL_MAX_PBUFFER_HEIGHT_ARB);
+    }
 
   /* fill in configs */
   for (i = 0;  i < numConfigs; i++)
@@ -1818,54 +1895,6 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
       c = &(result[i]);
       c->next = NULL;
 
-      const int attrs[] =
-        {
-          WGL_DRAW_TO_WINDOW_ARB,
-          WGL_DRAW_TO_BITMAP_ARB,
-          WGL_ACCELERATION_ARB,
-          WGL_SWAP_LAYER_BUFFERS_ARB,
-          WGL_NUMBER_OVERLAYS_ARB,
-          WGL_NUMBER_UNDERLAYS_ARB,
-          WGL_TRANSPARENT_ARB,
-          WGL_TRANSPARENT_RED_VALUE_ARB,
-          WGL_TRANSPARENT_GREEN_VALUE_ARB,
-          WGL_TRANSPARENT_GREEN_VALUE_ARB,
-          WGL_TRANSPARENT_ALPHA_VALUE_ARB,
-          WGL_SUPPORT_OPENGL_ARB,
-          WGL_DOUBLE_BUFFER_ARB,
-          WGL_STEREO_ARB,
-          WGL_PIXEL_TYPE_ARB,
-          WGL_COLOR_BITS_ARB,
-          WGL_RED_BITS_ARB,
-          WGL_RED_SHIFT_ARB,
-          WGL_GREEN_BITS_ARB,
-          WGL_GREEN_SHIFT_ARB,
-          WGL_BLUE_BITS_ARB,
-          WGL_BLUE_SHIFT_ARB,
-          WGL_ALPHA_BITS_ARB,
-          WGL_ALPHA_SHIFT_ARB,
-          WGL_ACCUM_RED_BITS_ARB,
-          WGL_ACCUM_GREEN_BITS_ARB,
-          WGL_ACCUM_BLUE_BITS_ARB,
-          WGL_ACCUM_ALPHA_BITS_ARB,
-          WGL_DEPTH_BITS_ARB,
-          WGL_STENCIL_BITS_ARB,
-          WGL_AUX_BUFFERS_ARB,
-          WGL_SWAP_METHOD_ARB,
-          // XXX: we may not query these attrs if WGL_ARB_multisample is not offered...
-          WGL_SAMPLE_BUFFERS_ARB,
-          WGL_SAMPLES_ARB,
-          // XXX: we may not query these attrs if WGL_ARB_render_texture is not offered...
-          WGL_BIND_TO_TEXTURE_RGB_ARB,
-          WGL_BIND_TO_TEXTURE_RGBA_ARB,
-          // XXX: we may not query these attrs if WGL_ARB_pbuffer is not offered...
-          WGL_DRAW_TO_PBUFFER_ARB,
-          WGL_MAX_PBUFFER_PIXELS_ARB,
-          WGL_MAX_PBUFFER_WIDTH_ARB,
-          WGL_MAX_PBUFFER_HEIGHT_ARB,
-        };
-
-      unsigned int num_attrs = NUM_ELEMENTS(attrs);
       int values[num_attrs];
 
       if (!wglGetPixelFormatAttribivARBWrapper(hdc, i+1, 0, num_attrs, attrs, values))
@@ -1979,7 +2008,6 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
         }
 
       /* ARB_multisample / SGIS_multisample */
-      // XXX: we may not query these attrs if WGL_ARB_multisample is not offered...
       c->sampleBuffers = ATTR_VALUE(WGL_SAMPLE_BUFFERS_ARB, 0);
       c->samples = ATTR_VALUE(WGL_SAMPLES_ARB, 0);
 
@@ -2035,13 +2063,13 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
         }
 
       /* EXT_import_context */
-      c->screen = screenNumber;
+      c->screen = screen->base.pScreen->myNum;
 
       /* EXT_texture_from_pixmap */
       c->bindToTextureRgb = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGB_ARB, 0);
       c->bindToTextureRgba = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGBA_ARB, 0);;
       c->bindToMipmapTexture = -1;
-      c->bindToTextureTargets = -1;
+      c->bindToTextureTargets = GLX_TEXTURE_1D_BIT_EXT | GLX_TEXTURE_2D_BIT_EXT | GLX_TEXTURE_RECTANGLE_BIT_EXT;
       c->yInverted = -1;
 
       n++;
@@ -2053,8 +2081,6 @@ glxWinCreateConfigsExt(HDC hdc, int *numConfigsPtr, int screenNumber)
       prev = c;
     }
 
-  *numConfigsPtr = n;
-
-  return result;
+  screen->base.numFBConfigs = n;
+  screen->base.fbconfigs = result;
 }
-
