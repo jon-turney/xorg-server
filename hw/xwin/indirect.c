@@ -664,10 +664,20 @@ glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 
     GLWIN_TRACE_MSG("glxWinCopyWindow pWindow %p", pWindow);
 
+    __GLXWinDrawable *pGlxDraw = pGlxDraw = (__GLXWinDrawable *)LookupIDByType(pWindow->drawable.id, __glXDrawableRes);
+
     /*
-       We used to discard any normal drawing requests if a GL drawing context
-       was pointing at the window.... Not sure what that helps with...
+       Discard any CopyWindow requests if a GL drawing context is pointing at the window
+
+       For regions which are being drawn by GL, the shadow framebuffer doesn't have the
+       correct bits, so we wish to avoid shadow framebuffer damage occuring, which will
+       cause those incorrect bits to be transferred to the display....
     */
+    if (pGlxDraw && pGlxDraw->drawContext)
+      {
+        ErrorF("glxWinCopyWindow: discarding\n");
+        return;
+      }
 
     GLWIN_DEBUG_MSG("glxWinCopyWindow - passing to hw layer");
 
