@@ -654,6 +654,7 @@ CreateWindow(Window wid, WindowPtr pParent, int x, int y, unsigned w,
     }
 
     pWin = (WindowPtr)xalloc(sizeof(WindowRec));
+    printf("allocated window 0x%x\n", pWin);
     if (!pWin)
     {
 	*error = BadAlloc;
@@ -843,6 +844,7 @@ DisposeWindowOptional (WindowPtr pWin)
     }
     xfree (pWin->optional->geMasks);
 
+    printf("disposed optional 0x%x\n", pWin->optional);
     xfree (pWin->optional);
     pWin->optional = NULL;
 }
@@ -874,6 +876,7 @@ FreeWindowResources(WindowPtr pWin)
     /* We SHOULD check for an error value here XXX */
     (*pScreen->DestroyWindow)(pWin);
     DisposeWindowOptional (pWin);
+    printf("disposed window 0x%x\n", pWin);
 }
 
 static void
@@ -3543,6 +3546,7 @@ MakeWindowOptional (WindowPtr pWin)
     }
     optional->colormap = parentOptional->colormap;
     pWin->optional = optional;
+    printf("allocated optional 0x%x\n", optional);
     return TRUE;
 }
 
