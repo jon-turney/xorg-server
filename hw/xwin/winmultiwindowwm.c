@@ -1632,7 +1632,9 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
   }
 
   /* Apply Styles, overriding hint settings from above */
-  style = winOverrideStyle((unsigned long)pWin);
+  // style = winOverrideStyle((unsigned long)pWin);
+  // XXX: temporary hack: winOverrideStyle is thread-unsafe a fails with short lived windows used by glean...
+  style = STYLE_NONE;
   if (style & STYLE_TOPMOST) *zstyle = HWND_TOPMOST;
   else if (style & STYLE_MAXIMIZE) maxmin = (hint & ~HINT_MIN) | HINT_MAX;
   else if (style & STYLE_MINIMIZE) maxmin = (hint & ~HINT_MAX) | HINT_MIN;
