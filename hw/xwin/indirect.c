@@ -675,7 +675,7 @@ glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     */
     if (pGlxDraw && pGlxDraw->drawContext)
       {
-        ErrorF("glxWinCopyWindow: discarding\n");
+        GLWIN_DEBUG_MSG("glxWinCopyWindow: discarding\n");
         return;
       }
 
@@ -760,9 +760,16 @@ glxWinDrawableDestroy(__GLXdrawable *base)
 {
   __GLXWinDrawable *glxPriv = (__GLXWinDrawable *)base;
 
-  // XXX: really we need a list of all contexts pointing at this drawable, not just the last one...
-  glxPriv->drawContext = NULL;
-  glxPriv->readContext = NULL;
+  if (glxPriv->drawContext && (__glXLastContext == &((glxPriv->drawContext)->base)))
+    {
+      // if this context is current and has unflushed commands, say we have flushed them
+      // (don't actually flush them, the window is going away anyhow, and an implict flush occurs
+      // on the next context change)
+      // (GLX core considers it an error when we try to select a new current context if the old one
+      // has unflushed commands, but the window has disappeared..)
+      __GLX_NOTE_FLUSHED_CMDS(__glXLastContext);
+      __glXLastContext = NULL;
+    }
 
   if (glxPriv->hPbuffer)
     if (!wglDestroyPbufferARBWrapper(glxPriv->hPbuffer))
@@ -1269,11 +1276,12 @@ glxWinContextMakeCurrent(__GLXcontext *base)
   glWinCallDelta();
 
   /* Keep a note of the last active context in the drawable */
-  ((__GLXWinDrawable *)(gc->base.drawPriv))->drawContext = gc;
+  drawPriv = gc->base.drawPriv;
+  ((__GLXWinDrawable *)drawPriv)->drawContext = gc;
 
   if (gc->ctx == NULL)
     {
-      glxWinDeferredCreateContext(gc, (__GLXWinDrawable *)(gc->base.drawPriv));
+      glxWinDeferredCreateContext(gc, (__GLXWinDrawable *)drawPriv);
     }
 
   if (gc->ctx == NULL)
@@ -1282,7 +1290,6 @@ glxWinContextMakeCurrent(__GLXcontext *base)
       return FALSE;
     }
 
-  drawPriv = gc->base.drawPriv;
   drawDC = glxWinMakeDC(gc, (__GLXWinDrawable *)drawPriv, &drawDC, &hwnd);
   if (drawDC == NULL)
     {
@@ -1347,6 +1354,7 @@ glxWinContextLoseCurrent(__GLXcontext *base)
     ErrorF("glxWinContextLoseCurrent error: %s\n", glxWinErrorMessage());
 
   __glXLastContext = NULL; /* Mesa does this; why? */
+  // __glXFlushContextCache()
 
   return TRUE;
 }
@@ -1383,6 +1391,8 @@ glxWinContextDestroy(__GLXcontext *base)
 
   if (gc != NULL)
     {
+      GLWIN_DEBUG_MSG("GLXcontext %p destroyed (native ctx %p)", base, gc->ctx);
+
       if (gc->ctx)
         {
           /* It's bad style to delete the context while it's still current */
@@ -1396,8 +1406,6 @@ glxWinContextDestroy(__GLXcontext *base)
             ErrorF("wglDeleteContext error: %s\n", glxWinErrorMessage());
           gc->ctx = NULL;
         }
-
-      GLWIN_DEBUG_MSG("GLXcontext %p destroyed (native ctx %p)", base, gc->ctx);
 
       xfree(gc);
     }
@@ -1790,7 +1798,7 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen *screen)
       c->base.screen = screen->base.pScreen->myNum;
 
       /* EXT_texture_from_pixmap */
-      c->base.bindToTextureRgb = -1; // this is important for swrast to match these fbConfigs
+      c->base.bindToTextureRgb = -1;
       c->base.bindToTextureRgba = -1;
       c->base.bindToMipmapTexture = -1;
       c->base.bindToTextureTargets = -1;
@@ -2122,15 +2130,20 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen)
       c->base.screen = screen->base.pScreen->myNum;
 
       /* EXT_texture_from_pixmap */
+      /*
+         Mesa's DRI configs always have bindToTextureRgb/Rgba TRUE (see driCreateConfigs(), so setting
+         bindToTextureRgb/bindToTextureRgba to FALSE means that swrast can't find any fbConfigs to use,
+         so setting these to 0, even if we know bindToTexture isn't available, isn't a good idea...
+       */
       if (screen->has_WGL_ARB_render_texture)
         {
-          c->base.bindToTextureRgb = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGB_ARB, 0);
-          c->base.bindToTextureRgba = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGBA_ARB, 0);;
+          c->base.bindToTextureRgb = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGB_ARB, -1);
+          c->base.bindToTextureRgba = ATTR_VALUE(WGL_BIND_TO_TEXTURE_RGBA_ARB, -1);
         }
       else
         {
-          c->base.bindToTextureRgb = 0;
-          c->base.bindToTextureRgba = 0;
+          c->base.bindToTextureRgb = -1;
+          c->base.bindToTextureRgba = -1;
         }
       c->base.bindToMipmapTexture = -1;
       c->base.bindToTextureTargets = GLX_TEXTURE_1D_BIT_EXT | GLX_TEXTURE_2D_BIT_EXT | GLX_TEXTURE_RECTANGLE_BIT_EXT;
