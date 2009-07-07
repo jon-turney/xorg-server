@@ -779,6 +779,9 @@ winMultiWindowWMProc(void *pArg)
 #endif
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
+            /* Map the window */
+            XMapWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
+
             break;
 
         case WM_WM_MAP2:

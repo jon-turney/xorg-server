@@ -322,11 +322,9 @@ winUnmapWindowMultiWindow(WindowPtr pWin)
     fResult = (*pScreen->UnrealizeWindow) (pWin);
     WIN_WRAP(UnrealizeWindow, winUnmapWindowMultiWindow);
 
-    /* Flag that the window has been killed */
-    pWinPriv->fXKilled = TRUE;
-
-    /* Destroy the Windows window associated with this X window */
-    winDestroyWindowsWindow(pWin);
+    /* Hide the unmapped window (unless it is being unmapped because it is minimized) */
+    if (!IsIconic(pWinPriv->hWnd))
+        ShowWindow(pWinPriv->hWnd, SW_HIDE);
 
     return fResult;
 }
@@ -927,13 +925,12 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
 #if CYGWINDOWING_DEBUG
         ErrorF("\timmediately return because the window is iconized\n");
 #endif
+
         /*
          * If the Windows window is minimized, its WindowRect has
          * meaningless values so we don't adjust X window to it.
          */
-        vlist[0] = 0;
-        vlist[1] = 0;
-        return ConfigureWindow(pWin, CWX | CWY, vlist, wClient(pWin));
+        return 0;
     }
 
     pDraw = &pWin->drawable;

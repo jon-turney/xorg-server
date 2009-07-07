@@ -1014,6 +1014,31 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
         /* Adjust the X Window to the moved Windows window */
         winAdjustXWindow(pWin, hwnd);
+        switch (wParam) {
+        case SIZE_MINIMIZED:
+        {
+            wmMsg.msg = WM_WM_UNMAP;
+            /* Tell our Window Manager thread to unmap the window */
+            if (fWMMsgInitialized)
+                winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+            winReorderWindowsMultiWindow();
+
+            break;
+        }
+        case SIZE_RESTORED:
+        case SIZE_MAXIMIZED:
+        {
+            wmMsg.msg = WM_WM_MAP;
+            /* Tell our Window Manager thread to map the window */
+            if (fWMMsgInitialized)
+                winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+            winReorderWindowsMultiWindow();
+
+            break;
+        }
+        }
         return 0;               /* end of WM_SIZE handler */
 
     case WM_STYLECHANGING:
