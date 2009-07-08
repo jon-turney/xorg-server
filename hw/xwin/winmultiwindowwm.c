@@ -868,6 +868,7 @@ winMultiWindowWMProc(void *pArg)
             HWND zstyle = HWND_NOTOPMOST;
             UINT flags;
             XWindowAttributes attr;
+            Bool onTaskbar;
 
             /* Don't do anything if this is an override-redirect window */
             XGetWindowAttributes (pWMInfo->pDisplay, pNode->msg.iWindow, &attr);
@@ -886,6 +887,20 @@ winMultiWindowWMProc(void *pArg)
             if (zstyle == HWND_NOTOPMOST)
                 flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
             SetWindowPos(pNode->msg.hwndWindow, NULL, 0, 0, 0, 0, flags);
+
+            /*
+               Use the WS_EX_TOOLWINDOW style to remove window from Alt-Tab window switcher
+
+               According to MSDN, this is supposed to remove the window from the taskbar as well,
+               if we SW_HIDE before changing the style followed by SW_SHOW afterwards.
+
+               But that doesn't seem to work reliably, so also use iTaskbarList interface to
+               tell the taskbar to show or hide this window.
+             */
+            onTaskbar =
+                GetWindowLongPtr(pNode->msg.hwndWindow,
+                                 GWL_EXSTYLE) & WS_EX_APPWINDOW;
+            wintaskbar(pNode->msg.hwndWindow, onTaskbar);
             }
             break;
 
@@ -1611,6 +1626,7 @@ winDeinitMultiWindowWM(void)
 #define HINT_NOMAXIMIZE (1L<<4)
 #define HINT_NOMINIMIZE (1L<<5)
 #define HINT_NOSYSMENU  (1L<<6)
+#define HINT_SKIPTASKBAR (1L<<7)
 /* These two are used on their own */
 #define HINT_MAX	(1L<<0)
 #define HINT_MIN	(1L<<1)
@@ -1619,12 +1635,14 @@ static void
 winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 {
     static Atom windowState, motif_wm_hints, windowType;
-    static Atom hiddenState, fullscreenState, belowState, aboveState;
+    static Atom hiddenState, fullscreenState, belowState, aboveState,
+        skiptaskbarState;
     static Atom dockWindow;
     static int generation;
     Atom type, *pAtom = NULL;
     int format;
-    unsigned long hint = 0, maxmin = 0, style, nitems = 0, left = 0;
+    unsigned long hint = 0, maxmin = 0, nitems = 0, left = 0;
+    unsigned long style, exStyle;
     MwmHints *mwm_hint = NULL;
 
     if (!hWnd)
@@ -1643,6 +1661,8 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         belowState = XInternAtom(pDisplay, "_NET_WM_STATE_BELOW", False);
         aboveState = XInternAtom(pDisplay, "_NET_WM_STATE_ABOVE", False);
         dockWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        skiptaskbarState =
+            XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
     }
 
     if (XGetWindowProperty(pDisplay, iWindow, windowState, 0L,
@@ -1653,6 +1673,8 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
             unsigned long i;
 
             for (i = 0; i < nitems; i++) {
+                if (*pAtom == skiptaskbarState)
+                    hint |= HINT_SKIPTASKBAR;
                 if (*pAtom == hiddenState)
                     maxmin |= HINT_MIN;
                 else if (*pAtom == fullscreenState)
@@ -1814,9 +1836,9 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     /* Now apply styles to window */
     style = GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION & ~WS_SIZEBOX;      /* Just in case */
     if (!style)
-        return;
+        return;                 /* GetWindowLongPointer returns 0 on failure, we hope this isn't a valid style */
 
-    if (!hint)                  /* All on */
+    if (!(hint & ~HINT_SKIPTASKBAR))    /* All on */
         style = style | WS_CAPTION | WS_SIZEBOX;
     else if (hint & HINT_NOFRAME)       /* All off */
         style = style & ~WS_CAPTION & ~WS_SIZEBOX;
@@ -1835,6 +1857,18 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         style = style & ~WS_SYSMENU;
 
     SetWindowLongPtr(hWnd, GWL_STYLE, style);
+
+    /* now we have iTaskbar, use that as well */
+    exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+    if (hint & HINT_SKIPTASKBAR)
+        exStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
+    else
+        exStyle = (exStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
+    SetWindowLongPtr(hWnd, GWL_EXSTYLE, exStyle);
+
+    winDebug
+        ("winApplyHints: iWindow 0x%08x hints 0x%08x style 0x%08x exstyle 0x%08x\n",
+         iWindow, hint, style, exStyle);
 }
 
 void
