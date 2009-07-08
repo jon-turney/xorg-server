@@ -334,7 +334,23 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 #if CYGDEBUG
   winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam, lParam);
 #endif
-  
+
+  /*
+     If this is WM_CREATE, set up the Windows window properties which point to X window information,
+     before we populate other local variables...
+  */
+  if (message == WM_CREATE)
+    {
+      /* */
+      SetProp (hwnd,
+	       WIN_WINDOW_PROP,
+	       (HANDLE)((LPCREATESTRUCT) lParam)->lpCreateParams);
+      /* */
+      SetProp (hwnd,
+	       WIN_WID_PROP,
+	       (HANDLE)winGetWindowID (((LPCREATESTRUCT) lParam)->lpCreateParams));
+    }
+
   /* Check if the Windows window property for our X window pointer is valid */
   if ((pWin = GetProp (hwnd, WIN_WINDOW_PROP)) != NULL)
     {
@@ -397,17 +413,6 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
   switch (message)
     {
     case WM_CREATE:
-
-      /* */
-      SetProp (hwnd,
-	       WIN_WINDOW_PROP,
-	       (HANDLE)((LPCREATESTRUCT) lParam)->lpCreateParams);
-      
-      /* */
-      SetProp (hwnd,
-	       WIN_WID_PROP,
-	       (HANDLE)winGetWindowID (((LPCREATESTRUCT) lParam)->lpCreateParams));
-
       /*
        * Make X windows' Z orders sync with Windows windows because
        * there can be AlwaysOnTop windows overlapped on the window
@@ -424,6 +429,11 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       DeleteObject(hRgnWindow);
 
       SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)XMING_SIGNATURE);
+
+      /* Tell our Window Manager thread to style the window */
+      wmMsg.msg = WM_WM_CREATE;
+      if (fWMMsgInitialized)
+	winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
 
       return 0;
 
@@ -875,24 +885,9 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	  /* Flag that this window needs to be made active when clicked */
 	  SetProp (hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
 
-	  if (!(GetWindowLongPtr (hwnd, GWL_EXSTYLE) & WS_EX_APPWINDOW))
-	    {
 	      HWND		zstyle = HWND_NOTOPMOST;
-
-	      /* Set the window extended style flags */
-	      SetWindowLongPtr (hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
-
-	      /* Set the transient style flags */
-	      if (GetParent(hwnd)) SetWindowLongPtr (hwnd, GWL_STYLE,
-		   WS_POPUP | WS_OVERLAPPED | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	      /* Set the window standard style flags */
-	      else SetWindowLongPtr (hwnd, GWL_STYLE,
-		   (WS_POPUP | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-		   & ~WS_CAPTION & ~WS_SIZEBOX);
-
 	      winUpdateWindowPosition (hwnd, FALSE, &zstyle);
 	      SetForegroundWindow (hwnd);
-	    }
 	  wmMsg.msg = WM_WM_MAP3;
 	}
       else /* It is an overridden window so make it top of Z stack */
