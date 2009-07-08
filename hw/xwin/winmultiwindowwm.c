@@ -809,6 +809,14 @@ winMultiWindowWMProc (void *pArg)
 
 	  pNode->msg.hwndWindow = getHwnd(pWMInfo, pNode->msg.iWindow);
 
+         /*
+            XXX: If WS_EX_TOOLWINDOW/WS_EX_APPWINDOW changed, we seem to need to SW_HIDE/SW_SHOWNORMAL
+            to cause a taskbar update...
+         */
+
+	  /* Hide the window whilst we change it */
+/* 	  ShowWindow (pNode->msg.hwndWindow, SW_HIDE); */
+
 	  /* Determine the Window style, which determines borders and clipping region... */
 	  {
 	    HWND zstyle = HWND_NOTOPMOST;
@@ -1568,6 +1576,8 @@ winDeinitMultiWindowWM (void)
 #define HINT_BORDER	(1L<<1)
 #define HINT_SIZEBOX	(1l<<2)
 #define HINT_CAPTION	(1l<<3)
+/* Windows extended window styles */
+#define HINT_SKIPTASKBAR (1L<<0)
 /* These two are used on their own */
 #define HINT_MAX	(1L<<0)
 #define HINT_MIN	(1L<<1)
@@ -1575,14 +1585,17 @@ winDeinitMultiWindowWM (void)
 static void
 winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
 {
+<<<<<<< HEAD
   static Atom		windowState, motif_wm_hints, windowType;
   static Atom		hiddenState, fullscreenState, belowState, aboveState;
+  static Atom skiptaskbarState, hiddenState, fullscreenState, belowState, aboveState;
   static Atom		dockWindow;
   static int		generation;
   Atom			type, *pAtom = NULL;
   int			format;
   unsigned long		hint = 0, maxmin = 0, style, nitems = 0 , left = 0;
   WindowPtr		pWin = GetProp (hWnd, WIN_WINDOW_PROP);
+  unsigned long exHint = 0;
 
   if (!hWnd) return;
   if (!IsWindow (hWnd)) return;
@@ -1592,6 +1605,7 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
       windowState = XInternAtom(pDisplay, "_NET_WM_STATE", False);
       motif_wm_hints = XInternAtom(pDisplay, "_MOTIF_WM_HINTS", False);
       windowType = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE", False);
+      skiptaskbarState = XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
       hiddenState = XInternAtom(pDisplay, "_NET_WM_STATE_HIDDEN", False);
       fullscreenState = XInternAtom(pDisplay, "_NET_WM_STATE_FULLSCREEN", False);
       belowState = XInternAtom(pDisplay, "_NET_WM_STATE_BELOW", False);
@@ -1605,9 +1619,12 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
   {
     if (pAtom)
     {
+
+
       unsigned long i;
       for (i = 0; i < nitems; i++)
 	{
+	  if (*pAtom == skiptaskbarState) exHint |= HINT_SKIPTASKBAR;
 	  if (*pAtom == hiddenState) maxmin |= HINT_MIN;
 	  else if (*pAtom == fullscreenState) maxmin |= HINT_MAX;
 	  if (*pAtom == belowState) *zstyle = HWND_BOTTOM;
@@ -1703,6 +1720,11 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
              ((hint & HINT_SIZEBOX) ? (GetParent(hWnd) ? 0 : WS_SIZEBOX) : 0) |
              ((hint & HINT_CAPTION) ? WS_CAPTION : 0);
       SetWindowLongPtr (hWnd, GWL_STYLE, style);
+
+      if (exHint & HINT_SKIPTASKBAR)
+	SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOOLWINDOW);
+      else
+	SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
 
       winDebug("winApplyHints: iWindow %d hints %d %d\n", iWindow, hint, exHint);
     }
