@@ -43,22 +43,11 @@
 
 
 /*
- * Constants
- */
-
-#define AUTH_NAME	"MIT-MAGIC-COOKIE-1"
-
-
-/*
  * References to external symbols
  */
 
 extern Bool		g_fUnicodeClipboard;
 extern unsigned long	serverGeneration;
-#if defined(XCSECURITY)
-extern unsigned int	g_uiAuthDataLen;
-extern char		*g_pAuthData;
-#endif
 extern Bool		g_fClipboardStarted;
 extern HWND		g_hwndClipboard;
 extern void		*g_pClipboardDisplay;
@@ -154,13 +143,8 @@ winClipboardProc (void *pvNotUsed)
       pthread_exit (NULL);
     }
 
-#if defined(XCSECURITY)
   /* Use our generated cookie for authentication */
-  XSetAuthorization (AUTH_NAME,
-		     strlen (AUTH_NAME),
-		     g_pAuthData,
-		     g_uiAuthDataLen);
-#endif
+  winSetAuthorization();
 
   /* Set error handler */
   XSetErrorHandler (winClipboardErrorHandler);
