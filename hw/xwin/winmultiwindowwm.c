@@ -86,8 +86,6 @@ extern void winUpdateRgnMultiWindow(WindowPtr pWin);
 #endif
 #define WIN_JMP_OKAY		0
 #define WIN_JMP_ERROR_IO	2
-#define AUTH_NAME		"MIT-MAGIC-COOKIE-1"
-
 
 /*
  * Local structures
@@ -136,11 +134,6 @@ typedef struct _XMsgProcArgRec {
 
 extern char *display;
 extern void ErrorF (const char* /*f*/, ...);
-#if defined(XCSECURITY)
-extern unsigned int	g_uiAuthDataLen;
-extern char		*g_pAuthData;
-#endif
-
 
 /*
  * Prototypes for local functions
@@ -911,6 +904,9 @@ winMultiWindowXMsgProc (void *pArg)
 
   /* Print the display connection string */
   ErrorF ("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
+
+  /* Use our generated cookie for authentication */
+  winSetAuthorization();
   
   /* Initialize retry count */
   iRetries = 0;
@@ -1244,14 +1240,9 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
   /* Print the display connection string */
   ErrorF ("winInitMultiWindowWM - DISPLAY=%s\n", pszDisplay);
 
-#if defined(XCSECURITY)
   /* Use our generated cookie for authentication */
-  XSetAuthorization (AUTH_NAME,
-		     strlen (AUTH_NAME),
-		     g_pAuthData,
-		     g_uiAuthDataLen);
-#endif
-  
+  winSetAuthorization();
+
   /* Open the X display */
   do
     {

@@ -388,6 +388,7 @@ extern int AddAuthorization(
     unsigned int	/*data_length*/,
     char *		/*data*/);
 
+#ifdef XCSECURITY
 extern XID GenerateAuthorization(
     unsigned int   /* name_length */,
     char	*  /* name */,
@@ -395,6 +396,7 @@ extern XID GenerateAuthorization(
     char	*  /* data */,
     unsigned int * /* data_length_return */,
     char	** /* data_return */);
+#endif
 
 extern int ddxProcessArgument(int /*argc*/, char * /*argv*/ [], int /*i*/);
 
