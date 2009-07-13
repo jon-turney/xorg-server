@@ -1013,11 +1013,9 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
 
-#if defined(XCSECURITY)
   /* Generate a cookie used by internal clients for authorization */
   if (g_fXdmcpEnabled || g_fAuthEnabled)
     winGenerateAuthorization ();
-#endif
 
   /* Perform some one time initialization */
   if (1 == serverGeneration)
