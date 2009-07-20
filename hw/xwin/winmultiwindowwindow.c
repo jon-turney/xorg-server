@@ -327,6 +327,10 @@ winUnmapWindowMultiWindow (WindowPtr pWin)
   fResult = (*pScreen->UnrealizeWindow)(pWin);
   WIN_WRAP(UnrealizeWindow, winUnmapWindowMultiWindow);
 
+  /* Hide the unmapped window (unless it is being unmapped because it is minimized) */
+  if (!IsIconic(pWinPriv->hWnd))
+    ShowWindow(pWinPriv->hWnd, SW_HIDE);
+
   return fResult;
 }
 
