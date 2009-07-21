@@ -268,7 +268,33 @@ LogVWrite(int verb, const char *f, va_list args)
 	fwrite(tmpBuffer, len, 1, stderr);
     if ((verb < 0 || logFileVerbosity >= verb) && len > 0) {
 	if (logFile) {
-	    fwrite(tmpBuffer, len, 1, logFile);
+            static char tmpBuffer2[1024];
+            static Bool needTimestamp = TRUE;
+
+            if (needTimestamp)
+              {
+                needTimestamp = FALSE;
+
+                /* Format the date and time per ISO8601 */
+                time_t t = time(NULL);
+                struct tm tm;
+                localtime_r(&t, &tm);
+                strftime(tmpBuffer2, sizeof(tmpBuffer2), "%F %T ",  &tm);
+
+                /* Concatente the string produced by formatting the va_list */
+                strncat(tmpBuffer2, tmpBuffer, sizeof(tmpBuffer2));
+              }
+            else
+              {
+                strncpy(tmpBuffer2, tmpBuffer, sizeof(tmpBuffer2));
+              }
+            len = strlen(tmpBuffer2);
+
+            /* If the log message ends with a newline, note that we need to start the next line with a timestamp */
+            if (tmpBuffer2[len-1] == '\n')
+              needTimestamp = TRUE;
+
+	    fwrite(tmpBuffer2, len, 1, logFile);
 	    if (logFlush) {
 		fflush(logFile);
 #ifndef WIN32
