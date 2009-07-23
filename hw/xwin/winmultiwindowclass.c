@@ -43,6 +43,20 @@
 
 DEFINE_ATOM_HELPER(AtmWmWindowRole, "WM_WINDOW_ROLE")
 
+pthread_t serverThreadId;
+
+static
+void
+winThreadCheck(void)
+{
+  pthread_t selfThreadId = pthread_self();
+  printf("thread ids: self %x, server %x\n", selfThreadId, serverThreadId);
+  if (selfThreadId != serverThreadId)
+    {
+      assert(!"Only use server propery access functions from server thread");
+      /* other threads should use X client function rather than grovelling in data structures */
+    }
+}
 
 int
 winMultiWindowGetClassHint (WindowPtr pWin, char **res_name, char **res_class)
@@ -50,6 +64,8 @@ winMultiWindowGetClassHint (WindowPtr pWin, char **res_name, char **res_class)
   struct _Window	*pwin;
   struct _Property	*prop;
   int			len_name, len_class;
+
+  winThreadCheck();
 
   if (!pWin || !res_name || !res_class)
     {
@@ -121,6 +137,8 @@ winMultiWindowGetWMHints (WindowPtr pWin, WinXWMHints *hints)
   struct _Window	*pwin;
   struct _Property	*prop;
 
+  winThreadCheck();
+
   if (!pWin || !hints)
     {
       ErrorF ("winMultiWindowGetWMHints - pWin or hints was NULL\n");
@@ -158,6 +176,8 @@ winMultiWindowGetWindowRole (WindowPtr pWin, char **res_role)
   struct _Window	*pwin;
   struct _Property	*prop;
   int			len_role;
+
+  winThreadCheck();
 
   if (!pWin || !res_role) 
     return 0; 
@@ -206,6 +226,8 @@ winMultiWindowGetWMNormalHints (WindowPtr pWin, WinXSizeHints *hints)
   struct _Window	*pwin;
   struct _Property	*prop;
 
+  winThreadCheck();
+
   if (!pWin || !hints)
     {
       ErrorF ("winMultiWindowGetWMNormalHints - pWin or hints was NULL\n");
@@ -241,6 +263,8 @@ winMultiWindowGetTransientFor (WindowPtr pWin, WindowPtr *ppDaddy)
 {
   struct _Window        *pwin;
   struct _Property      *prop;
+
+  winThreadCheck();
 
   if (!pWin)
     {
@@ -279,6 +303,8 @@ winMultiWindowGetWMName (WindowPtr pWin, char **wmName)
   struct _Window	*pwin;
   struct _Property	*prop;
   int			len_name;
+
+  winThreadCheck();
 
   if (!pWin || !wmName)
     {

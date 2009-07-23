@@ -599,6 +599,8 @@ winFinishScreenInitFB (int index,
 #if CYGDEBUG || YES
       winDebug ("winFinishScreenInitFB - Calling winInitWM.\n");
 #endif
+      extern pthread_t serverThreadId;
+      serverThreadId = pthread_self();
 
       /* Initialize multi window mode */
       if (!winInitWM (&pScreenPriv->pWMInfo,
