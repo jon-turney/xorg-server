@@ -317,37 +317,48 @@ swap_method_name(int mthd)
 static void
 fbConfigsDump(unsigned int n, __GLXconfig *c)
 {
-  printf("%d fbConfigs\n", n);
-  printf("pxf vis  fb                      render         Ste                     aux    accum        MS    drawable             Group/\n");
-  printf("idx  ID  ID VisualType Depth Lvl RGB CI DB Swap reo  R  G  B  A   Z  S  buf AR AG AB AA  bufs num  W P Pb  Float Trans Caveat\n");
-  printf("-----------------------------------------------------------------------------------------------------------------------------\n");
+  ErrorF("%d fbConfigs\n", n);
+  ErrorF("pxf vis  fb                      render         Ste                     aux    accum        MS    drawable             Group/\n");
+  ErrorF("idx  ID  ID VisualType Depth Lvl RGB CI DB Swap reo  R  G  B  A   Z  S  buf AR AG AB AA  bufs num  W P Pb  Float Trans Caveat\n");
+  ErrorF("-----------------------------------------------------------------------------------------------------------------------------\n");
 
   while (c != NULL)
     {
       unsigned int i = ((GLXWinConfig *)c)->pixelFormatIndex;
 
-      printf("%3d  %2x  %2x ", i, c->visualID, c->fbconfigID);
-      printf("%-11s", visual_class_name(c->visualType));
-      printf(" %3d %3d   %s   %s  %s %s  %s  ",
+      ErrorF("%3d  %2x  %2x "
+             "%-11s"
+             " %3d %3d   %s   %s  %s %s  %s  "
+             "%2d %2d %2d %2d  "
+             "%2d %2d  "
+             "%2d  "
+             "%2d %2d %2d %2d"
+             "   %2d   %2d"
+             "  %s %s %s "
+             "    %s   "
+             "  %s   "
+             "  %d %s"
+             "\n",
+             i, c->visualID, c->fbconfigID,
+             visual_class_name(c->visualType),
              c->rgbBits ? c->rgbBits : c->indexBits,
              c->level,
 	     (c->renderType & GLX_RGBA_BIT) ? "y" : ".",
 	     (c->renderType & GLX_COLOR_INDEX_BIT) ? "y" : ".",
 	     c->doubleBufferMode ? "y" : ".",
              swap_method_name(c->swapMethod),
-	     c->stereoMode ? "y" : ".");
-      printf("%2d %2d %2d %2d  ", c->redBits, c->greenBits, c->blueBits, c->alphaBits);
-      printf("%2d %2d  ", c->depthBits, c->stencilBits);
-      printf("%2d  ", c->numAuxBuffers);
-      printf("%2d %2d %2d %2d", c->accumRedBits, c->accumGreenBits, c->accumBlueBits, c->accumAlphaBits);
-      printf("   %2d   %2d", c->sampleBuffers, c->samples);
-      printf("  %s %s %s ", (c->drawableType & GLX_WINDOW_BIT) ? "y" : ".",
+	     c->stereoMode ? "y" : ".",
+             c->redBits, c->greenBits, c->blueBits, c->alphaBits,
+             c->depthBits, c->stencilBits,
+             c->numAuxBuffers,
+             c->accumRedBits, c->accumGreenBits, c->accumBlueBits, c->accumAlphaBits,
+             c->sampleBuffers, c->samples,
+             (c->drawableType & GLX_WINDOW_BIT) ? "y" : ".",
              (c->drawableType & GLX_PIXMAP_BIT) ? "y" : ".",
-             (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".");
-      printf("    %s   ",".");
-      printf("  %s   ", (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".");
-      printf("  %d %s", c->visualSelectGroup, (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ");
-      printf("\n");
+             (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".",
+             ".",
+             (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".",
+             c->visualSelectGroup, (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ");
 
       c = c->next;
     }

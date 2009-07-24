@@ -95,9 +95,9 @@ warn_func(void * ctx, const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    vfprintf(stderr, format, v);
+    VErrorF(format, v);
     va_end(v);
-    fprintf(stderr,"\n");
+    ErrorF("\n");
 }
 
 static void
