@@ -272,7 +272,7 @@ LogVWrite(int verb, const char *f, va_list args)
 	fwrite(tmpBuffer, len, 1, stderr);
     if ((verb < 0 || logFileVerbosity >= verb) && len > 0) {
 	if (logFile) {
-            static char tmpBuffer2[1024];
+            static char tmpBuffer2[sizeof(tmpBuffer)];
             static Bool needTimestamp = TRUE;
 
             if (needTimestamp)
