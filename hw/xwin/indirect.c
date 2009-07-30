@@ -686,7 +686,7 @@ glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     */
     if (pGlxDraw && pGlxDraw->drawContext)
       {
-        GLWIN_DEBUG_MSG("glxWinCopyWindow: discarding\n");
+        GLWIN_DEBUG_MSG("glxWinCopyWindow: discarding");
         return;
       }
 
@@ -1096,7 +1096,7 @@ glxWinReleaseDC(HWND hwnd, HDC hdc,__GLXWinDrawable *draw)
 
   case GLX_DRAWABLE_PIXMAP:
     {
-      // don't release DC, the memory DC lives as long as the bitma
+      // don't release DC, the memory DC lives as long as the bitmap
 
       // We must ensure that all GDI drawing into the bitmap has completed
       // in case we subsequently access the bits from it
