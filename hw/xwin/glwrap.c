@@ -67,24 +67,50 @@ glWinCallDelta(void)
     }
 }
 
-#define RESOLVE_RET(procname, symbol, retval) \
-    static Bool init = TRUE; \
-    static __stdcall procname proc = NULL; \
-    if (init) { \
-        proc = (procname)wglGetProcAddress(symbol); \
-        init = FALSE; \
-        if (proc == NULL) { \
-            ErrorF("glwrap: Can't resolve \"%s\"\n", symbol); \
-        } else \
-            ErrorF("glwrap: Resolved \"%s\"\n", symbol); \
-    } \
+static PROC
+glWinResolveHelper(PROC *cache, char *symbol)
+{
+  PROC proc = NULL;
+
+  /* If not yet cached, call wglGetProcAddress */
+  if ((*cache) == NULL)
+    {
+      proc = wglGetProcAddress(symbol);
+      if (proc == NULL)
+        {
+          ErrorF("glwrap: Can't resolve \"%s\"\n", symbol);
+          (*cache) = (PROC)-1;
+        }
+      else
+        {
+          ErrorF("glwrap: Resolved \"%s\"\n", symbol);
+          (*cache) = proc;
+        }
+    }
+  /* Cached wglGetProcAddress failure */
+  else if ((*cache) == (PROC)-1)
+    {
+      proc = 0;
+    }
+  /* Cached wglGetProcAddress result */
+  else
+    {
+      proc = (*cache);
+    }
+
+  return proc;
+}
+
+#define RESOLVE_RET(proctype, symbol, retval) \
+    static PROC cache = NULL; \
+    __stdcall proctype proc = (proctype)glWinResolveHelper(&cache, symbol); \
     if (proc == NULL) { \
         __glXErrorCallBack(0); \
         return retval; \
     } \
     glWinIndirectProcCalls++;
 
-#define RESOLVE(procname, symbol) RESOLVE_RET(procname, symbol,)
+#define RESOLVE(proctype, symbol) RESOLVE_RET(proctype, symbol,)
 
 /*
  *  GL dispatch table debugging
