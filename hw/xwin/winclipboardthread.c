@@ -72,6 +72,8 @@ winClipboardErrorHandler (Display *pDisplay, XErrorEvent *pErr);
 static int
 winClipboardIOErrorHandler (Display *pDisplay);
 
+static void
+winClipboardThreadExit(void *arg);
 
 /*
  * Main thread function
@@ -97,6 +99,8 @@ winClipboardProc (void *pvNotUsed)
   Bool			fUseUnicode;
   char			szDisplay[512];
   int			iSelectError;
+
+  pthread_cleanup_push(&winClipboardThreadExit, NULL);
 
   ErrorF ("winClipboardProc - Hello\n");
 
@@ -417,6 +421,8 @@ winClipboardProc (void *pvNotUsed)
   g_pClipboardDisplay = NULL;
   g_hwndClipboard = NULL;
 
+  pthread_cleanup_pop(0);
+
   return NULL;
 }
 
@@ -457,4 +463,15 @@ winClipboardIOErrorHandler (Display *pDisplay)
   longjmp (g_jmpEntry, WIN_JMP_ERROR_IO);
   
   return 0;
+}
+
+/*
+ * winClipboardThreadExit - Thread exit handler
+ */
+
+static void
+winClipboardThreadExit(void *arg)
+{
+  /* clipboard thread has exited, stop server as well */
+  kill(getpid(), SIGTERM);
 }
