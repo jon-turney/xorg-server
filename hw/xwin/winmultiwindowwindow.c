@@ -65,17 +65,6 @@ static void
 winFindWindow (pointer value, XID id, pointer cdata);
 
 /*
- * Macros
- */
-
-#define SubSend(pWin) \
-    ((pWin->eventMask|wOtherEventMasks(pWin)) & SubstructureNotifyMask)
-
-#define StrSend(pWin) \
-    ((pWin->eventMask|wOtherEventMasks(pWin)) & StructureNotifyMask)
-
-#define SubStrSend(pWin,pParent) (StrSend(pWin) || SubSend(pParent))
-
 static
 void winInitMultiWindowClass(void)
 {
