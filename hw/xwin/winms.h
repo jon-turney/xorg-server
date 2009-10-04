@@ -35,6 +35,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#define WINVER 0x0500
 
 #include <X11/Xwindows.h>
 #include <windowsx.h>
