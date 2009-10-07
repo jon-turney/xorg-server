@@ -1757,7 +1757,6 @@ if test "x$XWIN" = xyes; then
 	fi
 
 	AC_DEFINE(DDXOSVERRORF, 1, [Use OsVendorVErrorF])
-	AC_DEFINE(DDXBEFORERESET, 1, [Use ddxBeforeReset ])
 	if test "x$XF86VIDMODE" = xyes; then
 		AC_MSG_NOTICE([Disabling XF86VidMode extension])
 		XF86VIDMODE=no
