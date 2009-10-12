@@ -93,6 +93,7 @@ ALWAYSONTOP             { return ALWAYSONTOP; }
 DEBUG                   { return DEBUGOUTPUT; }
 RELOAD                  { return RELOAD; }
 TRAYICON                { return TRAYICON; }
+FORCEEXIT		{ return FORCEEXIT; }
 SILENTEXIT		{ return SILENTEXIT; }
 INCLUDE                 { return INCLUDE; }
 "{"                     { return LB; }
