@@ -152,7 +152,7 @@ XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(
 XWin_LDFLAGS = -mwindows -static
 
 .rc.o:
-	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
+	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff  -DPROJECT_VERSION=\"$(PACKAGE_VERSION)\" -DBUILD_DATE=\"$(BUILD_DATE)\"  -I $(top_builddir)/include
 
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
@@ -164,6 +164,7 @@ AM_YFLAGS = -d
 AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
+            -DBUILD_DATE=$(BUILD_DATE) \
             -I$(top_srcdir) \
             -Wno-bad-function-cast
 
