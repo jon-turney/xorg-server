@@ -277,7 +277,11 @@ static Atom func (void) {					\
 
 typedef Bool (*winAllocateFBProcPtr)(ScreenPtr);
 
+typedef void (*winFreeFBProcPtr)(ScreenPtr);
+
 typedef void (*winShadowUpdateProcPtr)(ScreenPtr, shadowBufPtr);
+
+typedef Bool (*winInitScreenProcPtr)(ScreenPtr);
 
 typedef Bool (*winCloseScreenProcPtr)(int, ScreenPtr);
 
@@ -553,7 +557,9 @@ typedef struct _winPrivScreenRec
   
   /* Engine specific functions */
   winAllocateFBProcPtr			pwinAllocateFB;
+  winFreeFBProcPtr			pwinFreeFB;
   winShadowUpdateProcPtr		pwinShadowUpdate;
+  winInitScreenProcPtr			pwinInitScreen;
   winCloseScreenProcPtr			pwinCloseScreen;
   winInitVisualsProcPtr			pwinInitVisuals;
   winAdjustVideoModeProcPtr		pwinAdjustVideoMode;
