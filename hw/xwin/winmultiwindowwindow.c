@@ -78,7 +78,7 @@ void winInitMultiWindowClass(void)
     wcx.hIconSm = g_hSmallIconX;
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF ("winCreateWindowsWindow - Creating class: %s\n", WINDOW_CLASS_X);
+    ErrorF ("winInitMultiWindowClass - Creating class: %s\n", WINDOW_CLASS_X);
 #endif
 
     atomXWinClass = RegisterClassEx (&wcx);
@@ -213,8 +213,8 @@ winPositionWindowMultiWindow (WindowPtr pWin, int x, int y)
 
 #if CYGMULTIWINDOW_DEBUG
   lpRc = &rcNew;
-  ErrorF ("winPositionWindowMultiWindow - (%d ms)drawable (%d, %d)-(%d, %d)\n",
-	  GetTickCount (), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
+  ErrorF ("winPositionWindowMultiWindow - drawable (%d, %d)-(%d, %d)\n",
+	  lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
 #endif
 
   /*
@@ -239,8 +239,8 @@ winPositionWindowMultiWindow (WindowPtr pWin, int x, int y)
 	  GetTickCount (), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
 
   lpRc = &rcClient;
-  ErrorF ("(%d ms)rcClient (%d, %d)-(%d, %d)\n",
-	  GetTickCount (), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
+  ErrorF ("winPositionWindowMultiWindow - rcClient (%d, %d)-(%d, %d)\n",
+	  lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
 #endif
 
   /* Check if the old rectangle and new rectangle are the same */
@@ -263,7 +263,7 @@ winPositionWindowMultiWindow (WindowPtr pWin, int x, int y)
   else
     {
 #if CYGMULTIWINDOW_DEBUG
-      ErrorF ("winPositionWindowMultiWindow - Not need to move\n");
+      ErrorF ("winPositionWindowMultiWindow - No need to move\n");
 #endif
     }
 
@@ -617,7 +617,7 @@ winDestroyWindowsWindow (WindowPtr pWin)
   HICON hIcon;
   HICON hIconSm;
 
-  winDebug("winDestroyWindowsWindow - pWin:%08x XID:0x%x \n", pWin, pWin->drawable.id);
+  winDebug("winDestroyWindowsWindow - pWin:%08x XID:0x%x\n", pWin, pWin->drawable.id);
 
   /* Bail out if the Windows window handle is invalid */
   if (pWinPriv->hWnd == NULL)
@@ -759,7 +759,7 @@ winReorderWindowsMultiWindow (void)
   DWORD dwWindowProcessID = 0;
 
 #if CYGMULTIWINDOW_DEBUG || CYGWINDOWING_DEBUG
-  winTrace ("winReorderWindowsMultiWindow\n");
+  winDebug ("winReorderWindowsMultiWindow\n");
 #endif
 
   if (fRestacking)
@@ -966,7 +966,7 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd)
   y = pDraw->y + GetSystemMetrics (SM_YVIRTUALSCREEN);
   SetRect (&rcDraw, x, y, x + pDraw->width, y + pDraw->height);
 #ifdef CYGMULTIWINDOW_DEBUG
-          winDebug("\tDrawable extend {%d, %d, %d, %d}, {%d, %d}\n", 
+          winDebug("\tDrawable extent {%d, %d, %d, %d}, {%d, %d}\n",
               rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
               rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
 #endif
@@ -975,15 +975,17 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd)
 #ifdef CYGMULTIWINDOW_DEBUG
           winDebug("\tWindowStyle: %08x %08x\n", dwStyle, dwExStyle);
 #endif
+
+  /* Compute the window extent implied by drawable extent and window style */
   AdjustWindowRectEx (&rcDraw, dwStyle, FALSE, dwExStyle);
 
   /* The source of adjust */
   GetWindowRect (hwnd, &rcWin);
 #ifdef CYGMULTIWINDOW_DEBUG
-          winDebug("\tWindow extend {%d, %d, %d, %d}, {%d, %d}\n", 
+          winDebug("\tCurrent Window extent {%d, %d, %d, %d}, {%d, %d}\n",
               rcWin.left, rcWin.top, rcWin.right, rcWin.bottom,
               rcWin.right - rcWin.left, rcWin.bottom - rcWin.top);
-          winDebug("\tDraw extend {%d, %d, %d, %d}, {%d, %d}\n", 
+          winDebug("\tWindow extent for drawable {%d, %d, %d, %d}, {%d, %d}\n",
               rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
               rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
 #endif
@@ -1013,12 +1015,15 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd)
   vlist[2] = pDraw->width + dW;
   vlist[3] = pDraw->height + dH;
 #if CYGWINDOWING_DEBUG
-  ErrorF ("\tConfigureWindow to (%ld, %ld) - %ldx%ld\n", vlist[0], vlist[1],
+  winDebug("\tConfigureWindow to (%ld, %ld) %ldx%ld\n", vlist[0], vlist[1],
 	  vlist[2], vlist[3]);
+  winDebug("\tAnticipated Drawable extent {%d, %d, %d, %d}, {%d, %d}\n",
+           x + dX , y + dY, x + dX + pDraw->width, y + dY + pDraw->height,
+           pDraw->width + dW, pDraw->height + dW);
 #endif
   return ConfigureWindow (pWin, CWX | CWY | CWWidth | CWHeight,
 			  vlist, wClient(pWin));
-  
+
 #undef WIDTH
 #undef HEIGHT
 }

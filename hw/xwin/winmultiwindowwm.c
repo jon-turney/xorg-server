@@ -221,48 +221,87 @@ static HMODULE      g_hmodOle32Dll = NULL;
 static SHGETPROPERTYSTOREFORWINDOWPROC g_pSHGetPropertyStoreForWindow = NULL;
 static PROPVARIANTCLEARPROC g_pPropVariantClear = NULL;
 
-const char *
-msgTypeAsText(int msg)
-{
-  const char *text = "";
+/*
+ * Translate msg id to text, for debug purposes
+ */
 
-  switch (msg)
+static const char *
+MessageName(winWMMessagePtr msg)
+{
+  switch (msg->msg)
     {
     case WM_WM_MOVE:
-      text = "WM_WM_MOVE";
+      return "WM_WM_MOVE";
       break;
     case WM_WM_SIZE:
-      text = "WM_WM_SIZE";
+      return "WM_WM_SIZE";
       break;
     case WM_WM_RAISE:
-      text = "WM_WM_RAISE";
+      return "WM_WM_RAISE";
       break;
     case WM_WM_LOWER:
-      text = "WM_WM_LOWER";
+      return "WM_WM_LOWER";
       break;
     case WM_WM_MAP:
-      text = "WM_WM_MAP";
+      return "WM_WM_MAP";
       break;
     case WM_WM_MAP2:
-      text = "WM_WM_MAP2";
+      return "WM_WM_MAP2";
       break;
     case WM_WM_MAP3:
-      text = "WM_WM_MAP3";
+      return "WM_WM_MAP3";
       break;
     case WM_WM_UNMAP:
-      text = "WM_WM_UNMAP";
+      return "WM_WM_UNMAP";
       break;
     case WM_WM_KILL:
-      text = "WM_WM_KILL";
+      return "WM_WM_KILL";
       break;
     case WM_WM_ACTIVATE:
-      text = "WM_WM_ACTIVATE";
+      return "WM_WM_ACTIVATE";
+      break;
+    case WM_WM_NAME_EVENT:
+      return "WM_WM_NAME_EVENT";
+      break;
+    case WM_WM_HINTS_EVENT:
+      return "WM_WM_HINTS_EVENT";
+      break;
+    case WM_WM_CHANGE_STATE:
+      return "WM_WM_CHANGE_STATE";
       break;
     default:
-      text = "Unknown Message";
+      return "Unknown Message";
+      break;
     }
+}
 
-  return text;
+/*
+ * Debug function to dump current X windows tree
+ */
+
+void
+DumpTree(Display *display)
+{
+  Window root = DefaultRootWindow(display);
+  Window parent;
+  Window *children;
+  unsigned int nchildren;
+
+  if (XQueryTree(display, root,
+                 &root, &parent, &children, &nchildren))
+    {
+      if (children)
+        {
+          int i;
+          winDebug("bottom -> ");
+          for (i = 0; i < nchildren; i++)
+            {
+              winDebug("XID %08x -> ", children[i]);
+            }
+          winDebug("top\n");
+          XFree(children);
+        }
+    }
 }
 
 /*
@@ -272,10 +311,6 @@ msgTypeAsText(int msg)
 static void
 PushMessage (WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
 {
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF("PushMessage() %s\n", msgTypeAsText(pNode->msg.msg));
-#endif
-
   /* Lock the queue mutex */
   pthread_mutex_lock (&pQueue->pmMutex);
 
@@ -658,8 +693,9 @@ winMultiWindowWMProc (void *pArg)
 	}
 
 #if CYGMULTIWINDOW_DEBUG
-      ErrorF ("winMultiWindowWMProc - %d ms MSG: %d ID: %d\n",
-	      GetTickCount (), (int)pNode->msg.msg, (int)pNode->msg.dwID);
+      ErrorF ("winMultiWindowWMProc: %s (%d) hwnd %x window %x\n",
+	      MessageName(&(pNode->msg)), (int)pNode->msg.msg,
+              pNode->msg.hwndWindow, pNode->msg.iWindow);
 #endif
 
       /* Branch on the message type */
@@ -667,36 +703,23 @@ winMultiWindowWMProc (void *pArg)
 	{
 #if 0
 	case WM_WM_MOVE:
-	  ErrorF ("\tWM_WM_MOVE\n");
 	  break;
 
 	case WM_WM_SIZE:
-	  ErrorF ("\tWM_WM_SIZE\n");
 	  break;
 #endif
 
 	case WM_WM_RAISE:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_RAISE\n");
-#endif
 	  /* Raise the window */
 	  XRaiseWindow (pWMInfo->pDisplay, pNode->msg.iWindow);
-
 	  break;
 
 	case WM_WM_LOWER:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_LOWER\n");
-#endif
-
 	  /* Lower the window */
 	  XLowerWindow (pWMInfo->pDisplay, pNode->msg.iWindow);
 	  break;
 
 	case WM_WM_MAP:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_MAP\n");
-#endif
 	  /* Put a note as to the HWND associated with this Window */
 	  XChangeProperty (pWMInfo->pDisplay,
 			   pNode->msg.iWindow,
@@ -711,9 +734,6 @@ winMultiWindowWMProc (void *pArg)
 	  break;
 
 	case WM_WM_MAP2:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_MAP2\n");
-#endif
 	  XChangeProperty (pWMInfo->pDisplay,
 			   pNode->msg.iWindow,
 			   pWMInfo->atmPrivMap,
@@ -725,9 +745,6 @@ winMultiWindowWMProc (void *pArg)
 	  break;
 
 	case WM_WM_MAP3:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_MAP3\n");
-#endif
 	  /* Put a note as to the HWND associated with this Window */
 	  XChangeProperty (pWMInfo->pDisplay,
 			   pNode->msg.iWindow,
@@ -747,18 +764,11 @@ winMultiWindowWMProc (void *pArg)
 	  break;
 
 	case WM_WM_UNMAP:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_UNMAP\n");
-#endif
-	  
 	  /* Unmap the window */
 	  XUnmapWindow (pWMInfo->pDisplay, pNode->msg.iWindow);
 	  break;
 
 	case WM_WM_KILL:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_KILL\n");
-#endif
 	  {
 	    int				i, n, found = 0;
 	    Atom			*protocols;
@@ -789,11 +799,7 @@ winMultiWindowWMProc (void *pArg)
 	  break;
 
 	case WM_WM_ACTIVATE:
-#if CYGMULTIWINDOW_DEBUG
-	  ErrorF ("\tWM_WM_ACTIVATE\n");
-#endif
-	  
-	  /* Set the input focus */
+          /* Set the input focus */
 	  XSetInputFocus (pWMInfo->pDisplay,
 			  pNode->msg.iWindow,
 			  RevertToPointerRoot,
@@ -1382,6 +1388,10 @@ void
 winSendMessageToWM (void *pWMInfo, winWMMessagePtr pMsg)
 {
   WMMsgNodePtr pNode;
+
+#if CYGMULTIWINDOW_DEBUG
+  ErrorF ("winSendMessageToWM: %s hwnd %08x window %08x\n", MessageName(pMsg), pMsg->hwndWindow, pMsg->iWindow);
+#endif
 
   pNode = (WMMsgNodePtr)malloc(sizeof(WMMsgNodeRec));
   if (pNode != NULL)
