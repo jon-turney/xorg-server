@@ -276,7 +276,7 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
 		   pRLWinPriv->pFrame->y + pRLWinPriv->pFrame->height);
 
 #ifdef CYGMULTIWINDOW_DEBUG
-          winDebug("\tWindow extend {%d, %d, %d, %d}, {%d, %d}\n", 
+          winDebug("\tWindow extent {%d, %d, %d, %d}, {%d, %d}\n",
               rcNew.left, rcNew.top, rcNew.right, rcNew.bottom,
               rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
 #endif

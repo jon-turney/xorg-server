@@ -1008,9 +1008,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	  default:
 	    strcpy(buf, "UNKNOWN_FLAG");
 	  }
-	ErrorF ("winTopLevelWindowProc - WM_SIZE to %dx%d (%s) - %d ms\n",
-		(int)LOWORD(lParam), (int)HIWORD(lParam), buf,
-		(int)(GetTickCount ()));
+	ErrorF ("winTopLevelWindowProc - WM_SIZE to %dx%d (%s)\n",
+		(int)LOWORD(lParam), (int)HIWORD(lParam), buf);
       }
 #endif
       /* Adjust the X Window to the moved Windows window */

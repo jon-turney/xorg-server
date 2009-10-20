@@ -891,8 +891,7 @@ winMWExtWMWindowProc (HWND hwnd, UINT message,
 
     case WM_MOVE:
 #if CYGMULTIWINDOW_DEBUG
-      winDebug ("winMWExtWMWindowProc - WM_MOVE - %d ms\n",
-		(unsigned int)GetTickCount ());
+      winDebug ("winMWExtWMWindowProc - WM_MOVE\n");
 #endif
       if (g_fNoConfigureWindow) break;
 #if 0
@@ -934,8 +933,7 @@ winMWExtWMWindowProc (HWND hwnd, UINT message,
 
     case WM_SHOWWINDOW:
 #if CYGMULTIWINDOW_DEBUG || TRUE
-      winDebug ("winMWExtWMWindowProc - WM_SHOWWINDOW - %d ms\n",
-		(unsigned int)GetTickCount ());
+      winDebug ("winMWExtWMWindowProc - WM_SHOWWINDOW\n");
 #endif
       /* Bail out if the window is being hidden */
       if (!wParam)
@@ -1177,8 +1175,7 @@ winMWExtWMWindowProc (HWND hwnd, UINT message,
       /* see dix/window.c */
       /* FIXME: Maximize/Restore? */
 #if CYGMULTIWINDOW_DEBUG
-      winDebug ("winMWExtWMWindowProc - WM_SIZE - %d ms\n",
-		(unsigned int)GetTickCount ());
+      winDebug ("winMWExtWMWindowProc - WM_SIZE\n");
 #endif
 #if CYGMULTIWINDOW_DEBUG
       winDebug ("\t(%d, %d) %d\n", (short) LOWORD(lParam), (short) HIWORD(lParam), g_fNoConfigureWindow);
@@ -1251,8 +1248,7 @@ winMWExtWMWindowProc (HWND hwnd, UINT message,
 
     case WM_ACTIVATEAPP:
 #if CYGMULTIWINDOW_DEBUG
-      winDebug ("winMWExtWMWindowProc - WM_ACTIVATEAPP - %d ms\n",
-		(unsigned int)GetTickCount ());
+      winDebug ("winMWExtWMWindowProc - WM_ACTIVATEAPP\n");
 #endif
       if (wParam)
 	{
@@ -1292,16 +1288,14 @@ winMWExtWMWindowProc (HWND hwnd, UINT message,
 
     case WM_ENTERSIZEMOVE:
 #if CYGMULTIWINDOW_DEBUG
-      winDebug ("winMWExtWMWindowProc - WM_ENTERSIZEMOVE - %d ms\n",
-		(unsigned int)GetTickCount ());
+      winDebug ("winMWExtWMWindowProc - WM_ENTERSIZEMOVE\n");
 #endif
       pRLWinPriv->fMovingOrSizing = TRUE;
       break;
 
     case WM_EXITSIZEMOVE:
 #if CYGMULTIWINDOW_DEBUG
-      winDebug ("winMWExtWMWindowProc - WM_EXITSIZEMOVE - %d ms\n",
-		(unsigned int)GetTickCount ());
+      winDebug ("winMWExtWMWindowProc - WM_EXITSIZEMOVE\n");
 #endif
       pRLWinPriv->fMovingOrSizing = FALSE;
 
