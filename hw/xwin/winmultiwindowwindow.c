@@ -588,6 +588,10 @@ winCreateWindowsWindow (WindowPtr pWin)
 
   /* Call engine-specific create window procedure */
   (*pScreenPriv->pwinFinishCreateWindowsWindow) (pWin);
+
+#if CYGMULTIWINDOW_DEBUG
+  ErrorF ("-winCreateWindowsWindow\n");
+#endif
 }
 
 

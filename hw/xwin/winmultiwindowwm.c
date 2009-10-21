@@ -641,13 +641,11 @@ winMultiWindowWMProc (void *pArg)
 {
   WMProcArgPtr		pProcArg = (WMProcArgPtr)pArg;
   WMInfoPtr		pWMInfo = pProcArg->pWMInfo;
-  
+
+  ErrorF ("winMultiWindowWMProc () - Hello - thread ID %x\n", pthread_self());
+
   /* Initialize the Window Manager */
   winInitMultiWindowWM (pWMInfo, pProcArg);
-  
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("winMultiWindowWMProc ()\n");
-#endif
 
   /* Loop until we explicity break out */
   for (;;)
@@ -846,7 +844,7 @@ winMultiWindowXMsgProc (void *pArg)
   int			iReturn;
   XIconSize		*xis;
 
-  ErrorF ("winMultiWindowXMsgProc - Hello\n");
+  ErrorF ("winMultiWindowXMsgProc - Hello - thread ID %x\n", pthread_self());
 
   /* Check that argument pointer is not invalid */
   if (pProcArg == NULL)

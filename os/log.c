@@ -289,11 +289,30 @@ LogVWrite(int verb, const char *f, va_list args)
 	len = strlen(tmpBuffer);
     }
     newline = (tmpBuffer[len-1] == '\n');
+
+    static char tmpBuffer2[1024];
+    static Bool needPid = TRUE;
+
+    if (needPid)
+      {
+        needPid = FALSE;
+        sprintf(tmpBuffer2, "[%x] ", pthread_self());
+        strncat(tmpBuffer2, tmpBuffer, sizeof(tmpBuffer2));
+      }
+    else
+      {
+        strncpy(tmpBuffer2, tmpBuffer, sizeof(tmpBuffer2));
+      }
+    len = strlen(tmpBuffer2);
+
+    if (tmpBuffer2[len-1] == '\n')
+      needPid = TRUE;
+
     if ((verb < 0 || logVerbosity >= verb) && len > 0)
-	fwrite(tmpBuffer, len, 1, stderr);
+	fwrite(tmpBuffer2, len, 1, stderr);
     if ((verb < 0 || logFileVerbosity >= verb) && len > 0) {
 	if (logFile) {
-	    fwrite(tmpBuffer, len, 1, logFile);
+	    fwrite(tmpBuffer2, len, 1, logFile);
 	    if (logFlush) {
 		fflush(logFile);
 #ifndef WIN32
@@ -317,7 +336,7 @@ LogVWrite(int verb, const char *f, va_list args)
 		    FatalError("realloc() failed while saving log messages\n");
 	    }
 	    bufferUnused -= len;
-	    memcpy(saveBuffer + bufferPos, tmpBuffer, len);
+	    memcpy(saveBuffer + bufferPos, tmpBuffer2, len);
 	    bufferPos += len;
 	}
     }

@@ -98,7 +98,7 @@ winClipboardProc (void *pvNotUsed)
   char			szDisplay[512];
   int			iSelectError;
 
-  ErrorF ("winClipboardProc - Hello\n");
+  ErrorF ("winClipboardProc - Hello - thread ID %x\n", pthread_self());
 
   /* Do we have Unicode support? */
   g_fUnicodeSupport = winClipboardDetectUnicodeSupport ();
