@@ -567,7 +567,6 @@ winCreateWindowsWindow (WindowPtr pWin)
       ErrorF ("winCreateWindowsWindow - CreateWindowExA () failed: %d\n",
 	      (int) GetLastError ());
     }
-  pWinPriv->hWnd = hWnd;
 
   /* Set application or .XWinrc defined Icons */
   winSelectIcons(pWin, &hIcon, &hIconSmall);
@@ -584,6 +583,8 @@ winCreateWindowsWindow (WindowPtr pWin)
 		SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
   /* Make sure it gets the proper system menu for a WS_POPUP, too */
   GetSystemMenu (hWnd, TRUE);
+
+  pWinPriv->hWnd = hWnd;
 
   /* Cause any .XWinrc menus to be added in main WNDPROC */
   PostMessage (hWnd, WM_INIT_SYS_MENU, 0, 0);
