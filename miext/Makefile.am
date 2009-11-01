@@ -8,4 +8,7 @@ endif
 if XWIN_MULTIWINDOWEXTWM
 SUBDIRS += rootless
 endif
+if XWIN
+SUBDIRS += rootless
+endif
 DIST_SUBDIRS = damage shadow cw rootless
