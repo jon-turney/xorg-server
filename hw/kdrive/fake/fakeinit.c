@@ -72,6 +72,13 @@ ddxProcessArgument (int argc, char **argv, int i)
     return KdProcessArgument (argc, argv, i);
 }
 
+#ifdef DDXBEFORERESET
+void
+ddxBeforeReset (void)
+{
+}
+#endif
+
 void
 OsVendorInit (void)
 {
