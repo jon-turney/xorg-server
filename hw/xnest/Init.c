@@ -143,9 +143,8 @@ void OsVendorFatalError(void)
     return;
 }
 
-#if defined(DDXBEFORERESET)
-void ddxBeforeReset(void)
+#ifdef DDXMAIN
+void ddxMain(void)
 {
-    return;
 }
 #endif
