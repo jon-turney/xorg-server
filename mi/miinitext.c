@@ -98,6 +98,7 @@ SOFTWARE.
 #include "extension.h"
 #include "micmap.h"
 #include "globals.h"
+#include "ddxhooks.h"
 
 
 extern Bool noTestExtensions;
@@ -496,9 +497,12 @@ InitExtensions(int argc, char *argv[])
     if (serverGeneration == 1)
       {
         GlxPushProvider(&__glXDRISWRastProvider);
-#ifdef DDXPUSHPROVIDER
-        ddxPushProviders(); // a chance for DDX to install providers better than swrast...
-#endif
+
+        if (ddxHooks.ddxPushProviders)
+          {
+            /* a chance for DDX to install providers better than swrast... */
+            ddxHooks.ddxPushProviders();
+          }
       }
     if (!noGlxExtension) GlxExtensionInit();
 #endif

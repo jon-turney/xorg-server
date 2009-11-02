@@ -218,7 +218,8 @@ ddxBeforeReset (void)
 
 DdxHooks ddxHooks =
   {
-    ddxBeforeReset
+    ddxBeforeReset,
+    ddxPushProviders,
   };
 
 /* See Porting Layer Definition - p. 57 */

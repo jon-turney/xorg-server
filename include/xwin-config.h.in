@@ -32,5 +32,3 @@
 /* Location of system.XWinrc */
 #undef SYSCONFDIR
 
-/* enable DDX specific GLX provider push hook */
-#define DDXPUSHPROVIDER
