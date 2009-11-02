@@ -26,4 +26,13 @@
 
 int dix_main(int argc, char *argv[], char *envp[]);
 
+struct _DdxHooks
+{
+  void (*ddxBeforeReset)(void);
+};
+
+typedef struct _DdxHooks DdxHooks;
+
+extern DdxHooks ddxHooks;
+
 #endif /* DIXMAIN_H */

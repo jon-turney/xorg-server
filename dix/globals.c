@@ -60,6 +60,7 @@ SOFTWARE.
 #include "site.h"
 #include "dixstruct.h"
 #include "os.h"
+#include "dixmain.h"
 
 ScreenInfo screenInfo;
 KeybdCtrl defaultKeyboardControl = {
@@ -129,3 +130,5 @@ char *display;
 char *ConnectionInfo;
 
 CARD32 TimeOutValue = DEFAULT_TIMEOUT * MILLI_PER_SECOND;
+
+DdxHooks ddxHooks;

@@ -229,13 +229,6 @@ OsVendorFatalError(void)
 {
 }
 
-#if defined(DDXBEFORERESET)
-void ddxBeforeReset(void)
-{
-    return;
-}
-#endif
-
 void
 ddxUseMsg(void)
 {
