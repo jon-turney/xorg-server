@@ -36,8 +36,8 @@
 /* Use OsVendorVErrorF */
 #undef DDXOSVERRORF
 
-/* Use ddxBeforeReset */
-#undef DDXBEFORERESET
+/* Use ddxMain */
+#undef DDXMAIN
 
 /* Build DPMS extension */
 #undef DPMSExtension

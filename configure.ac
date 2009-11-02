@@ -1901,7 +1901,7 @@ if test "x$XWIN" = xyes; then
 	fi
 
 	AC_DEFINE(DDXOSVERRORF, 1, [Use OsVendorVErrorF])
-	AC_DEFINE(DDXBEFORERESET, 1, [Use ddxBeforeReset ])
+	AC_DEFINE(DDXMAIN, 1, [Use ddxMain])
 fi
 AM_CONDITIONAL(XWIN, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
