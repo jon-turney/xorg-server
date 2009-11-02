@@ -1766,7 +1766,7 @@ AM_CONDITIONAL(XWIN, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes && test "x$WINDOWSWM" = xyes])
 AM_CONDITIONAL(XWIN_CLIPBOARD, [test "x$XWIN" = xyes])
-AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes])
+AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes]) dnl can't use AIGLX to control this is it's forced off i we aren't building the X.Org DDXs DRI loader
 AM_CONDITIONAL(XWIN_NATIVEGDI, [test "x$XWIN" = xyes && false])
 AM_CONDITIONAL(XWIN_PRIMARYFB, [test "x$XWIN" = xyes && false])
 AM_CONDITIONAL(XWIN_RANDR, [test "x$XWIN" = xyes])
