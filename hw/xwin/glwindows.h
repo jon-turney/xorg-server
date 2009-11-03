@@ -38,6 +38,7 @@ typedef struct {
     unsigned int dumpHWND : 1;
     unsigned int dumpDC : 1;
     unsigned int enableGLcallTrace : 1;
+    unsigned int enableWGLcallTrace :1;
 } glxWinDebugSettingsRec;
 
 extern glxWinDebugSettingsRec glxWinDebugSettings;

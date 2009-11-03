@@ -163,6 +163,7 @@ XWin_LDFLAGS = -mwindows
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
 glwrap.c: generated_gl_wrappers.c
+wgl_ext_api.c: generated_wgl_wrappers.c
 
 BUILT_SOURCES = winprefsyacc.h winprefsyacc.c winprefslex.c generated_gl_wrappers.c
 CLEANFILES = $(BUILT_SOURCES) $(appman_DATA) $(fileman_DATA) XWin.man XWinrc.man
@@ -173,11 +174,17 @@ gl.spec:
 gl.tm:
 	wget http://www.opengl.org/registry/api/gl.tm
 
-wgl.spec:
-	wget http://www.opengl.org/registry/api/wgl.spec
+wglext.spec:
+	wget http://www.opengl.org/registry/api/wglext.spec
 
-generated_gl_wrappers.c: gen_gl_wrappers.py gl.spec
-	./gen_gl_wrappers.py --spec=gl.spec --dispatch-header=../../glx/dispatch.h --typemap=gl.tm >generated_gl_wrappers.c
+wgl.tm:
+	wget http://www.opengl.org/registry/api/wgl.tm
+
+generated_gl_wrappers.c: gen_gl_wrappers.py gl.spec gl.tm
+	./gen_gl_wrappers.py --spec=gl.spec --typemap=gl.tm --dispatch-header=../../glx/dispatch.h --staticwrappers >generated_gl_wrappers.c
+
+generated_wgl_wrappers.c: gen_gl_wrappers.py wglext.spec wgl.tm
+	./gen_gl_wrappers.py --spec=wglext.spec --typemap=wgl.tm --prefix=wgl --preresolve >generated_wgl_wrappers.c
 
 AM_YFLAGS = -d
 AM_LFLAGS = -i

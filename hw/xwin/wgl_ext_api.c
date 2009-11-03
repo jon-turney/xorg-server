@@ -35,9 +35,11 @@
 #include <GL/glext.h>
 #include <glx/glxserver.h>
 #include <glx/glxext.h>
+#include "wglext.h"
 #include <wgl_ext_api.h>
+#include "glwindows.h"
 
-#define RESOLVE_DECL(type, symbol) \
+#define RESOLVE_DECL(type) \
     static type type##proc = NULL;
 
 #define PRERESOLVE(type, symbol) \
@@ -70,184 +72,13 @@
  * systems...
  */
 
-typedef char *(__stdcall *PFNWGLGETEXTENSIONSSTRINGARB)(HDC hdc);
-typedef wBOOL (__stdcall *PFNWGLMAKECONTEXTCURRENTARB)(HDC hDrawDC, HDC hReadDC, HGLRC hglrc);
-typedef HDC (__stdcall *PFNWGLGETCURRENTREADDCARB)(VOID);
-typedef wBOOL (__stdcall *PFNWGLGETPIXELFORMATATTRIBIVARB)(HDC hdc,
-                                                           int iPixelFormat,
-                                                           int iLayerPlane,
-                                                           UINT nAttributes,
-                                                           const int *piAttributes,
-                                                           int *piValues);
-typedef wBOOL (__stdcall *PFNWGLGETPIXELFORMATATTRIBFVARB)(HDC hdc,
-                                                           int iPixelFormat,
-                                                           int iLayerPlane,
-                                                           UINT nAttributes,
-                                                           const int *piAttributes,
-                                                           FLOAT *pfValues);
-typedef wBOOL (__stdcall *PFNWGLCHOOSEPIXELFORMATARB)(HDC hdc,
-                                                     const int *piAttribIList,
-                                                     const FLOAT *pfAttribFList,
-                                                     UINT nMaxFormats,
-                                                     int *piFormats,
-                                                     UINT *nNumFormats);
-typedef HPBUFFERARB (__stdcall *PFNWGLCREATEPBUFFERARB)(HDC hDC,
-                                                        int iPixelFormat,
-                                                        int iWidth,
-                                                        int iHeight,
-                                                        const int *piAttribList);
-typedef HDC (__stdcall *PFNWGLGETPBUFFERDCARB)(HPBUFFERARB hPbuffer);
-typedef int (__stdcall *PFNWGLRELEASEPBUFFERDCARB)(HPBUFFERARB hPbuffer,
-                                                  HDC hDC);
-typedef wBOOL (__stdcall *PFNWGLDESTROYPBUFFERARB)(HPBUFFERARB hPbuffer);
-typedef wBOOL (__stdcall *PFNWGLQUERYPBUFFERARB)(HPBUFFERARB hPbuffer,
-                                                 int iAttribute,
-                                                 int *piValue);
+/*
+  Include generated cdecl wrappers for stdcall WGL functions
 
-typedef wBOOL (__stdcall *PFNWGLSWAPINTERVALEXT)(int interval);
-typedef int (__stdcall *PFNWGLGETSWAPINTERVALEXT)(void);
+  function address must  found using wglGetProcAddress(),
+  but also stdcall so still need wrappers...
 
+  Include generated 
+*/
 
-RESOLVE_DECL(PFNWGLGETEXTENSIONSSTRINGARB, "wglGetExtensionsStringARB");
-RESOLVE_DECL(PFNWGLMAKECONTEXTCURRENTARB, "wglMakeContextCurrentARB");
-RESOLVE_DECL(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB");
-RESOLVE_DECL(PFNWGLGETPIXELFORMATATTRIBIVARB, "wglGetPixelFormatAttribivARB");
-RESOLVE_DECL(PFNWGLGETPIXELFORMATATTRIBFVARB, "wglGetPixelFormatAttribfvARB");
-RESOLVE_DECL(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB");
-RESOLVE_DECL(PFNWGLCREATEPBUFFERARB, "wglCreatePbufferARB");
-RESOLVE_DECL(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB");
-RESOLVE_DECL(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB");
-RESOLVE_DECL(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB");
-RESOLVE_DECL(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB");
-RESOLVE_DECL(PFNWGLSWAPINTERVALEXT, "wglSwapIntervalEXT");
-RESOLVE_DECL(PFNWGLGETSWAPINTERVALEXT, "wglGetSwapIntervalEXT");
-
-void
-wglResolveExtensionProcs(void)
-{
-  PRERESOLVE(PFNWGLGETEXTENSIONSSTRINGARB, "wglGetExtensionsStringARB");
-  PRERESOLVE(PFNWGLMAKECONTEXTCURRENTARB, "wglMakeContextCurrentARB");
-  PRERESOLVE(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB");
-  PRERESOLVE(PFNWGLGETPIXELFORMATATTRIBIVARB, "wglGetPixelFormatAttribivARB");
-  PRERESOLVE(PFNWGLGETPIXELFORMATATTRIBFVARB, "wglGetPixelFormatAttribfvARB");
-  PRERESOLVE(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB");
-  PRERESOLVE(PFNWGLCREATEPBUFFERARB, "wglCreatePbufferARB");
-  PRERESOLVE(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB");
-  PRERESOLVE(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB");
-  PRERESOLVE(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB");
-  PRERESOLVE(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB");
-  PRERESOLVE(PFNWGLSWAPINTERVALEXT, "wglSwapIntervalEXT");
-  PRERESOLVE(PFNWGLGETSWAPINTERVALEXT, "wglGetSwapIntervalEXT");
-}
-
-// WGL_ARB_extensions_string
-
-const char *wglGetExtensionsStringARBWrapper(HDC hdc)
-{
-  RESOLVE_RET(PFNWGLGETEXTENSIONSSTRINGARB, "wglGetExtensionsStringARB", "");
-  return RESOLVED_PROC(PFNWGLGETEXTENSIONSSTRINGARB)(hdc);
-}
-
-// WGL_ARB_make_current_read
-
-wBOOL wglMakeContextCurrentARBWrapper(HDC hDrawDC, HDC hReadDC, HGLRC hglrc)
-{
-  RESOLVE_RET(PFNWGLMAKECONTEXTCURRENTARB, "wglMakeContextCurrentARB", FALSE);
-  return RESOLVED_PROC(PFNWGLMAKECONTEXTCURRENTARB)(hDrawDC, hReadDC, hglrc);
-}
-
-HDC wglGetCurrentReadDCARBWrapper(VOID)
-{
-  RESOLVE_RET(PFNWGLGETCURRENTREADDCARB, "wglGetCurrentReadDCARB", NULL);
-  return RESOLVED_PROC(PFNWGLGETCURRENTREADDCARB)();
-}
-
-// WGL_ARB_pixel_format
-
-wBOOL wglGetPixelFormatAttribivARBWrapper(HDC hdc,
-                                          int iPixelFormat,
-                                          int iLayerPlane,
-                                          UINT nAttributes,
-                                          const int *piAttributes,
-                                          int *piValues)
-{
-  RESOLVE_RET(PFNWGLGETPIXELFORMATATTRIBIVARB, "wglGetPixelFormatAttribivARB", FALSE);
-  return RESOLVED_PROC(PFNWGLGETPIXELFORMATATTRIBIVARB)(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues);
-}
-
-wBOOL wglGetPixelFormatAttribfvARBWrapper(HDC hdc,
-                                          int iPixelFormat,
-                                          int iLayerPlane,
-                                          UINT nAttributes,
-                                          const int *piAttributes,
-                                          FLOAT *pfValues)
-{
-  RESOLVE_RET(PFNWGLGETPIXELFORMATATTRIBFVARB, "wglGetPixelFormatAttribfvARB", FALSE);
-  return RESOLVED_PROC(PFNWGLGETPIXELFORMATATTRIBFVARB)(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, pfValues);
-}
-
-wBOOL wglChoosePixelFormatARBWrapper(HDC hdc,
-                                    const int *piAttribIList,
-                                    const FLOAT *pfAttribFList,
-                                    UINT nMaxFormats,
-                                    int *piFormats,
-                                    UINT *nNumFormats)
-{
-  RESOLVE_RET(PFNWGLCHOOSEPIXELFORMATARB, "wglChoosePixelFormatARB", FALSE);
-  return RESOLVED_PROC(PFNWGLCHOOSEPIXELFORMATARB)(hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);
-}
-
-
-// WGL_ARB_pbuffer
-
-HPBUFFERARB wglCreatePbufferARBWrapper(HDC hDC,
-                                       int iPixelFormat,
-                                       int iWidth,
-                                       int iHeight,
-                                       const int *piAttribList)
-{
-  RESOLVE_RET(PFNWGLCREATEPBUFFERARB, "wglCreatePbufferARB", NULL);
-  return RESOLVED_PROC(PFNWGLCREATEPBUFFERARB)(hDC, iPixelFormat,  iWidth, iHeight, piAttribList);
-}
-
-HDC wglGetPbufferDCARBWrapper(HPBUFFERARB hPbuffer)
-{
-  RESOLVE_RET(PFNWGLGETPBUFFERDCARB, "wglGetPbufferDCARB", NULL);
-  return RESOLVED_PROC(PFNWGLGETPBUFFERDCARB)(hPbuffer);
-}
-
-int wglReleasePbufferDCARBWrapper(HPBUFFERARB hPbuffer,
-                                  HDC hDC)
-{
-  RESOLVE_RET(PFNWGLRELEASEPBUFFERDCARB, "wglReleasePbufferDCARB", 0);
-  return RESOLVED_PROC(PFNWGLRELEASEPBUFFERDCARB)(hPbuffer, hDC);
-}
-
-wBOOL wglDestroyPbufferARBWrapper(HPBUFFERARB hPbuffer)
-{
-  RESOLVE_RET(PFNWGLDESTROYPBUFFERARB, "wglDestroyPbufferARB", FALSE);
-  return RESOLVED_PROC(PFNWGLDESTROYPBUFFERARB)(hPbuffer);
-}
-
-wBOOL wglQueryPbufferARBWrapper(HPBUFFERARB hPbuffer,
-                                int iAttribute,
-                                int *piValue)
-{
-  RESOLVE_RET(PFNWGLQUERYPBUFFERARB, "wglQueryPbufferARB", FALSE);
-  return RESOLVED_PROC(PFNWGLQUERYPBUFFERARB)(hPbuffer, iAttribute, piValue);
-}
-
-// WGL_EXT_swap_control
-
-wBOOL wglSwapIntervalEXTWrapper(int interval)
-{
-  RESOLVE_RET(PFNWGLSWAPINTERVALEXT, "wglSwapIntervalEXT", FALSE);
-  return RESOLVED_PROC(PFNWGLSWAPINTERVALEXT)(interval);
-}
-
-int wglGetSwapIntervalEXTWrapper(void)
-{
-  RESOLVE_RET(PFNWGLGETSWAPINTERVALEXT, "wglGetSwapIntervalEXT", FALSE);
-  return RESOLVED_PROC(PFNWGLGETSWAPINTERVALEXT)();
-}
-
+#include "generated_wgl_wrappers.c"

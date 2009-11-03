@@ -182,6 +182,10 @@ static void glxWinInitDebugSettings(void)
     if (envptr != NULL)
         glxWinDebugSettings.enableGLcallTrace = (atoi(envptr) == 1);
 
+    envptr = getenv("GLWIN_ENABLE_WGLCALL_TRACE");
+    if (envptr != NULL)
+        glxWinDebugSettings.enableWGLcallTrace = (atoi(envptr) == 1);
+
     envptr = getenv("GLWIN_DEBUG_ALL");
     if (envptr != NULL)
       {
@@ -191,6 +195,7 @@ static void glxWinInitDebugSettings(void)
         glxWinDebugSettings.dumpHWND = 1;
         glxWinDebugSettings.dumpDC = 1;
         glxWinDebugSettings.enableGLcallTrace = 1;
+        glxWinDebugSettings.enableWGLcallTrace = 1;
       }
 }
 

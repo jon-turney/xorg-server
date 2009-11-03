@@ -112,6 +112,8 @@ glWinResolveHelper(PROC *cache, char *symbol)
 
 #define RESOLVE(proctype, symbol) RESOLVE_RET(proctype, symbol,)
 
+#define RESOLVED_PROC(proctype) proc
+
 /*
  *  GL dispatch table debugging
  */
