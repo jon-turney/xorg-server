@@ -13,13 +13,10 @@ DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
 endif
 
 if XWIN_GLX_WINDOWS
-SRCS_GLX_WINDOWS = \
-	winpriv.c \
-	glwindows.h \
-	glwrap.c \
-	indirect.c \
-	wgl_ext_api.c
+GLX_DIR = glx
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
+XWIN_GLX_LIBS = $(top_builddir)/hw/xwin/glx/libXwinGLX.la
+XWIN_GLX_LINK_FLAGS = -lopengl32
 endif
 
 if XWIN_MULTIWINDOW
@@ -131,7 +128,6 @@ SRCS =	InitInput.c \
 	$(top_srcdir)/mi/miinitext.c \
 	$(top_srcdir)/fb/fbcmap_mi.c \
 	$(SRCS_CLIPBOARD) \
-	$(SRCS_GLX_WINDOWS) \
 	$(SRCS_MULTIWINDOW) \
 	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_NATIVEGDI) \
@@ -152,39 +148,18 @@ XWin_SOURCES = $(SRCS)
 
 INCLUDES = -I$(top_srcdir)/miext/rootless
 
-XWin_DEPENDENCIES = $(XWIN_LIBS)
-XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) -lopengl32
+XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS)
+XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_LDFLAGS = -mwindows
 
 .rc.o:
 	$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DPROJECT_NAME=\"$(VENDOR_NAME_SHORT)\"
 
-XWin_LDFLAGS = -mwindows
-
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
-glwrap.c: generated_gl_wrappers.c
-wgl_ext_api.c: generated_wgl_wrappers.c
 
-BUILT_SOURCES = winprefsyacc.h winprefsyacc.c winprefslex.c generated_gl_wrappers.c
+BUILT_SOURCES = winprefsyacc.h winprefsyacc.c winprefslex.c
 CLEANFILES = $(BUILT_SOURCES) $(appman_DATA) $(fileman_DATA) XWin.man XWinrc.man
-
-gl.spec:
-	wget http://www.opengl.org/registry/api/gl.spec
-
-gl.tm:
-	wget http://www.opengl.org/registry/api/gl.tm
-
-wglext.spec:
-	wget http://www.opengl.org/registry/api/wglext.spec
-
-wgl.tm:
-	wget http://www.opengl.org/registry/api/wgl.tm
-
-generated_gl_wrappers.c: gen_gl_wrappers.py gl.spec gl.tm
-	./gen_gl_wrappers.py --spec=gl.spec --typemap=gl.tm --dispatch-header=../../glx/dispatch.h --staticwrappers >generated_gl_wrappers.c
-
-generated_wgl_wrappers.c: gen_gl_wrappers.py wglext.spec wgl.tm
-	./gen_gl_wrappers.py --spec=wglext.spec --typemap=wgl.tm --prefix=wgl --preresolve >generated_wgl_wrappers.c
 
 AM_YFLAGS = -d
 AM_LFLAGS = -i
@@ -192,11 +167,6 @@ AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -DXFree86Server \
             -I$(top_srcdir)
-
-GLX_EXTRAS = \
-	glx/glwindows.h \
-	glx/glwrap.c \
-	glx/indirect.c
 
 MAN_SRCS = XWin.man.pre XWinrc.man.pre
 
@@ -219,7 +189,6 @@ EXTRAMANDEFS = -D__logdir__=$(logdir) -D__sysconfdir__=$(sysconfdir) -D__datadir
 include $(top_srcdir)/cpprules.in
 
 EXTRA_DIST = \
-	$(GLX_EXTRAS) \
 	$(MAN_SRCS) \
 	_usr_X11R6_lib_X11_system.XWinrc \
 	X.ico \
@@ -247,3 +216,6 @@ EXTRA_DIST = \
 
 relink:
 	rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
+
+SUBDIRS = $(GLX_DIR) .
+DIST_SUBDIRS = glx .
