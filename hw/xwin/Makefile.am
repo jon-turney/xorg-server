@@ -167,8 +167,17 @@ glwrap.c: generated_gl_wrappers.c
 BUILT_SOURCES = winprefsyacc.h winprefsyacc.c winprefslex.c generated_gl_wrappers.c
 CLEANFILES = $(BUILT_SOURCES) $(appman_DATA) $(fileman_DATA) XWin.man XWinrc.man
 
-generated_gl_wrappers.c: gen_gl_wrappers.py
-	./gen_gl_wrappers.py >generated_gl_wrappers.c
+gl.spec:
+	wget http://www.opengl.org/registry/api/gl.spec
+
+gl.tm:
+	wget http://www.opengl.org/registry/api/gl.tm
+
+wgl.spec:
+	wget http://www.opengl.org/registry/api/wgl.spec
+
+generated_gl_wrappers.c: gen_gl_wrappers.py gl.spec
+	./gen_gl_wrappers.py --spec=gl.spec --dispatch-header=../../glx/dispatch.h --typemap=gl.tm >generated_gl_wrappers.c
 
 AM_YFLAGS = -d
 AM_LFLAGS = -i
