@@ -49,8 +49,6 @@
   - pbuffer clobbering: we don't get async notification, but can we arrange to emit the
     event when we notice it's been clobbered? at the very least, check if it's been clobbered
     before using it?
-  - SetPixelFormat on the screen DC is rude and inconsiderate to others: create an invisible
-    window instead
   - are the __GLXConfig * we get handed back ones we are made (so we can extend the structure
     with privates?) Or are they created inside the GLX core as well?
 */
@@ -444,6 +442,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     glxWinScreen *screen;
     const char *gl_extensions;
     const char *wgl_extensions;
+    HWND hwnd;
     HDC hdc;
     HGLRC hglrc;
 
@@ -474,8 +473,40 @@ glxWinScreenProbe(ScreenPtr pScreen)
     pScreen->CopyWindow = glxWinCopyWindow;
 
     /* Dump out some useful information about the native renderer */
-    // just use the screen DC
-    hdc = GetDC(NULL);
+
+    // create window class
+#define WIN_GL_TEST_WINDOW_CLASS "XWinGLTest"
+    {
+      static wATOM glTestWndClass = 0;
+      if (glTestWndClass == 0)
+        {
+          WNDCLASSEX wc;
+          wc.cbSize = sizeof(WNDCLASSEX);
+          wc.style = CS_HREDRAW | CS_VREDRAW;
+          wc.lpfnWndProc = DefWindowProc;
+          wc.cbClsExtra = 0;
+          wc.cbWndExtra = 0;
+          wc.hInstance = GetModuleHandle(NULL);
+          wc.hIcon = 0;
+          wc.hCursor = 0;
+          wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+          wc.lpszMenuName = NULL;
+          wc.lpszClassName = WIN_GL_TEST_WINDOW_CLASS;
+          wc.hIconSm = 0;
+          RegisterClassEx (&wc);
+      }
+    }
+
+    // create an invisible window for a scratch DC
+    hwnd = CreateWindowExA(0,
+                           WIN_GL_TEST_WINDOW_CLASS,
+                           "XWin GL Renderer Capabilities Test Window",
+                           0, 0, 0, 0, 0, NULL, NULL, GetModuleHandle(NULL), NULL);
+    if (hwnd == NULL)
+      LogMessage(X_ERROR,"AIGLX: Couldn't create a window for render capabilities testing\n");
+
+    hdc = GetDC(hwnd);
+
     // we must set a pixel format before we can create a context, just use the first one...
     SetPixelFormat(hdc, 1, NULL);
     hglrc = wglCreateContext(hdc);
@@ -488,7 +519,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     ErrorF("GL_VERSION:    %s\n", glGetStringWrapperNonstatic(GL_VERSION));
     ErrorF("GL_VENDOR:     %s\n", glGetStringWrapperNonstatic(GL_VENDOR));
     ErrorF("GL_RENDERER:   %s\n", glGetStringWrapperNonstatic(GL_RENDERER));
-    gl_extensions = glGetStringWrapperNonstatic(GL_EXTENSIONS);
+    gl_extensions = (const char *)glGetStringWrapperNonstatic(GL_EXTENSIONS);
     ErrorF("GL_EXTENSIONS: %s\n", gl_extensions);
     wgl_extensions = wglGetExtensionsStringARBWrapper(hdc);
     ErrorF("WGL_EXTENSIONS:%s\n", wgl_extensions);
@@ -643,8 +674,8 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(hglrc);
-    ReleaseDC(NULL, hdc);
-
+    ReleaseDC(hwnd, hdc);
+    DestroyWindow(hwnd);
 
     return &screen->base;
 }
