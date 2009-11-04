@@ -2,8 +2,9 @@
 #
 # Comedy python script to generate cdecl to stdcall wrappers for GL functions
 #
-# This is designed to operate on the OpenGL spec file from
-# http://www.opengl.org/registry/api/gl.spec
+# This is designed to operate on OpenGL spec files from
+# http://www.opengl.org/registry/api/
+#
 #
 # Copyright (c) Jon TURNEY 2009
 #
@@ -55,10 +56,6 @@ for o,a in opts:
         elif o == '--staticwrappers' :
                 staticwrappers = True
 
-#print "spec file is ", specfile
-#print "typemap file is ", typemapfile
-#print "dispatch header file is", dispatchheader
-
 #
 # look for all the SET_ macros in dispatch.h, this is the set of functions
 # we need to generate
@@ -104,7 +101,6 @@ for line in tm :
 
         l = line.split(',')
         typemap[l[0]] = l[3].strip()
-#        print l[0], ",", l[3].strip()
 
 # interestingly, * is not a C type
 if typemap['void'] == '*' :
@@ -151,8 +147,8 @@ for line in glspec :
                         wrappers[function] = {}
 
                         # near and far might be reserved words or macros so can't be used as formal parameter names
-                        arglist_use = arglist_use.replace('near','near_val')
-                        arglist_use = arglist_use.replace('far','far_val')
+                        arglist_use = arglist_use.replace('near','zNear')
+                        arglist_use = arglist_use.replace('far','zFar')
 
                         wrappers[function]['arglist_use'] = arglist_use
                         param_count = 0
@@ -204,10 +200,6 @@ if preresolve :
 
 for w in sorted(wrappers.keys()) :
 
-#        print w
-#        for k in wrappers[w].keys() :
-#                print k
-#                print wrappers[w][k]
         funcname = prefix + w
         returntype = wrappers[w]['return']
         if returntype != 'void' :
@@ -215,7 +207,7 @@ for w in sorted(wrappers.keys()) :
 
         # Avoid generating wrappers which aren't referenced by the dispatch table
         if dispatchheader and not dispatch.has_key(w) :
-#                print '/* No wrapper for ' + funcname + ', not in dispatch table */'
+                print '/* No wrapper for ' + funcname + ', not in dispatch table */'
                 continue
 
         # manufacture arglist
@@ -223,12 +215,11 @@ for w in sorted(wrappers.keys()) :
         al = []
         for k in sorted(wrappers[w].keys()) :
                 if k.startswith('param') :
-#                        print k, wrappers[w][k].split()
                         l = wrappers[w][k].split()
 
                         # near and far might be reserved words or macros so can't be used as formal parameter names
-                        l[0] = l[0].replace('near','near_val')
-                        l[0] = l[0].replace('far','far_val')
+                        l[0] = l[0].replace('near','zNear')
+                        l[0] = l[0].replace('far','zFar')
 
                         if l[2] == 'in' :
                                 if l[3] == 'array' :
