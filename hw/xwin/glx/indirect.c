@@ -706,12 +706,15 @@ glxWinRealizeWindow(WindowPtr pWin)
 static void
 glxWinCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 {
+    __GLXWinDrawable *pGlxDraw;
     ScreenPtr pScreen = pWindow->drawable.pScreen;
     glxWinScreen *screenPriv = (glxWinScreen *) glxGetScreen(pScreen);
 
     GLWIN_TRACE_MSG("glxWinCopyWindow pWindow %p", pWindow);
 
-    __GLXWinDrawable *pGlxDraw = pGlxDraw = (__GLXWinDrawable *)LookupIDByType(pWindow->drawable.id, __glXDrawableRes);
+    dixLookupResourceByType((pointer) &pGlxDraw, pWindow->drawable.id, __glXDrawableRes,
+				NullClient, DixUnknownAccess);
+
 
     /*
        Discard any CopyWindow requests if a GL drawing context is pointing at the window
