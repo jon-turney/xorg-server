@@ -216,6 +216,7 @@ ddxMain(void)
 {
   /* Initialize DDX-specific hooks */
   ddxHooks.ddxBeforeReset = ddxBeforeReset;
+  ddxHooks.ddxPushProviders = ddxPushProviders;
 }
 
 /* See Porting Layer Definition - p. 57 */
