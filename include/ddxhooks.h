@@ -27,6 +27,7 @@
 struct _DdxHooks
 {
   void (*ddxBeforeReset)(void);
+  void (*ddxPushProviders)(void);
 };
 
 typedef struct _DdxHooks DdxHooks;
