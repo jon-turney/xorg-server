@@ -29,6 +29,7 @@ int dix_main(int argc, char *argv[], char *envp[]);
 struct _DdxHooks
 {
   void (*ddxBeforeReset)(void);
+  void (*ddxPushProviders)(void);
 };
 
 typedef struct _DdxHooks DdxHooks;

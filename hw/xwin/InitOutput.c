@@ -160,7 +160,7 @@ winClipboardShutdown (void)
 }
 #endif
 
-void
+static void
 ddxPushProviders(void)
 {
 #ifdef XWIN_GLX_WINDOWS
@@ -191,6 +191,7 @@ int main(int argc, char *argv[], char *envp[])
 {
   /* Initialize DDX-specific hooks */
   ddxHooks.ddxBeforeReset = ddxBeforeReset;
+  ddxHooks.ddxPushProviders = ddxPushProviders;
 
   return dix_main(argc, argv, envp);
 }
