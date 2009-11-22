@@ -51,6 +51,7 @@
     before using it?
   - are the __GLXConfig * we get handed back ones we are made (so we can extend the structure
     with privates?) Or are they created inside the GLX core as well?
+  - snap winWindowInfoRec, it's just the same as a HWND now...
 */
 
 /*
