@@ -425,6 +425,9 @@ case $host_os in
   darwin*)
 	AC_DEFINE(CSRG_BASED, 1, [System is BSD-like])
 	;;
+  cygwin*)
+	CFLAGS="$CFLAGS -DFD_SETSIZE=256"
+	;;
 esac
 
 XORG_RELEASE_VERSION
@@ -1760,8 +1763,6 @@ if test "x$XWIN" = xyes; then
 			       AC_DEFINE(ROOTLESS,1,[Build Rootless code])
 			       CFLAGS="$CFLAGS -DROOTLESS_WORKAROUND"
 			fi
-
-			CFLAGS="$CFLAGS -DFD_SETSIZE=256"
 			;;
 		mingw*)
 			XWIN_SERVER_NAME=Xming
