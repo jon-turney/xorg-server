@@ -450,6 +450,7 @@ GetWindowName (Display *pDisplay, Window iWin, wchar_t **ppName)
  	pszReturnData = (char *) malloc (iLen + 1);
  	pszReturnData[0] = '\0';
  	for (i = 0; i < nNum; i++) strcat (pszReturnData, ppList[i]);
+ 	if (ppList) XFreeStringList (ppList);
    }
    else
    {
@@ -460,7 +461,6 @@ GetWindowName (Display *pDisplay, Window iWin, wchar_t **ppName)
    *ppName = (wchar_t*)malloc(sizeof(wchar_t)*(iLen + 1));
    MultiByteToWideChar (CP_UTF8, 0, pszReturnData, -1, *ppName, iLen);
    XFree (xtpName.value);
-   if (ppList) XFreeStringList (ppList);
    free (pszReturnData);
 
 #if CYGMULTIWINDOW_DEBUG
