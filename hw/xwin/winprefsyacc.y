@@ -32,6 +32,10 @@
  */
 /* $XFree86: $ */
 
+/* Conflict between a XWinrc token and an AC_DEFINE if debugging is enabled */
+#define DEBUG_TMP DEBUG
+#undef DEBUG
+
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
@@ -39,6 +43,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "winprefs.h"
+
+/* Conflict between a XWinrc token and an AC_DEFINE if debugging is enabled */
+#undef DEBUG
+#define DEBUG DEBUG_TMP
+#undef DEBUG_TMP
 
 /* The following give better error messages in bison at the cost of a few KB */
 #define YYERROR_VERBOSE 1
