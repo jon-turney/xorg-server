@@ -50,7 +50,7 @@
 /* The global pref settings */
 WINPREFS pref;
 
-/* The working menu */  
+/* The working menu */
 static MENUPARSED menu;
 
 /* Functions for parsing the tokens into out structure */
@@ -78,11 +78,14 @@ static void OpenSysMenu(void);
 static void AddSysMenuLine(char *matchstr, char *menuname, int pos);
 static void CloseSysMenu(void);
 
+static void IncludeFile(char *includestr);
+
 static int yyerror (char *s);
 
 extern void ErrorF (const char* /*f*/, ...);
 extern char *yytext;
 extern int yylex(void);
+extern int yylineno; /* Handled by flex internally */
 
 %}
 
@@ -120,6 +123,7 @@ extern int yylex(void);
 %token TRAYICON
 %token FORCEEXIT
 %token SILENTEXIT
+%token INCLUDE
 
 %token <sVal> STRING
 %type <uVal>  group1
@@ -138,7 +142,7 @@ line:	NEWLINE
 	;
 
 
-newline_or_nada:	
+newline_or_nada:
 	| NEWLINE newline_or_nada
 	;
 
@@ -154,6 +158,7 @@ command:	defaulticon
 	| trayicon
 	| forceexit
 	| silentexit
+	| include
 	;
 
 trayicon:	TRAYICON STRING NEWLINE { SetTrayIcon($2); free($2); }
@@ -182,7 +187,10 @@ menulist:	menuline
 	| menuline menulist
 	;
 
-menu:	MENU STRING LB { OpenMenu($2); free($2); } newline_or_nada menulist RB {CloseMenu();}
+optmenulist:
+        | menulist
+
+menu:	MENU STRING LB { OpenMenu($2); free($2); } newline_or_nada optmenulist RB {CloseMenu();}
 	;
 
 iconline:	STRING STRING NEWLINE newline_or_nada { AddIconLine($1, $2); free($1); free($2); }
@@ -246,16 +254,15 @@ silentexit:	SILENTEXIT NEWLINE { pref.fSilentExit = TRUE; }
 debug: 	DEBUGOUTPUT STRING NEWLINE { ErrorF("LoadPreferences: %s\n", $2); free($2); }
 	;
 
+include:  INCLUDE STRING NEWLINE { IncludeFile($2); free($2);  }
 
 %%
 /*
  * Errors in parsing abort and print log messages
  */
 static int
-yyerror (char *s) 
+yyerror (char *s)
 {
-  extern int yylineno; /* Handled by flex internally */
-
   ErrorF("LoadPreferences: %s line %d\n", s, yylineno);
   return 1;
 }
@@ -334,7 +341,7 @@ CloseMenu (void)
 {
   if (menu.menuItem==NULL || menu.menuItems==0)
     {
-      ErrorF("LoadPreferences: Empty menu detected\n");
+      ErrorF("LoadPreferences: discarding empty menu %s\n", menu.menuName);
       return;
     }
   
@@ -350,7 +357,7 @@ CloseMenu (void)
   memset (&menu, 0, sizeof(MENUPARSED));
 }
 
-static void 
+static void
 OpenIcons (void)
 {
   if (pref.icon != NULL) {
@@ -381,7 +388,7 @@ AddIconLine (char *matchstr, char *iconfile)
   pref.iconItems++;
 }
 
-static void 
+static void
 CloseIcons (void)
 {
 }
@@ -455,3 +462,38 @@ CloseSysMenu (void)
 {
 }
 
+static void
+IncludeFile(char *includestr)
+{
+  FILE *prefFile;
+
+  /* Does the include string end in '|', indicating a command to take the output of */
+  if (includestr[strlen(includestr)-1] == '|')
+    {
+      /* remove that trailing '|' */
+      includestr[strlen(includestr)-1] = 0;
+      ErrorF ("LoadPreferences: including output of %s\n", includestr);
+
+      prefFile = popen(includestr, "r");
+      if (prefFile)
+        {
+          /* If we could open it, then read the settings and close it */
+          parse_include_file(prefFile);
+          pclose(prefFile);
+        }
+    }
+  else
+    {
+      ErrorF ("LoadPreferences: including file %s\n", includestr);
+
+      /* Otherwise treat the include string as a filename */
+      prefFile = fopen(includestr, "r");
+
+      if (prefFile)
+        {
+          /* If we could open it, then read the settings and close it */
+          parse_include_file(prefFile);
+          fclose(prefFile);
+        }
+    }
+}

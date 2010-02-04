@@ -187,4 +187,10 @@ winTaskbarIcon(void);
 
 HICON
 winOverrideDefaultIcon(int size);
+
+/* From winprefslex.l, the real parser */
+extern int parse_file (FILE *file);
+
+extern void parse_include_file (FILE *file);
+
 #endif

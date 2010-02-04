@@ -51,10 +51,6 @@
 
 extern const char *winGetBaseDir(void);
 
-/* From winprefslex.l, the real parser */
-extern int parse_file (FILE *fp);
-
-
 /* Currently in use command ID, incremented each new menu item created */
 static int g_cmdid = STARTMENUID;
 
@@ -81,14 +77,13 @@ MakeMenu (char *name,
       if (!strcmp(name, pref.menu[i].menuName))
 	break;
     }
-  
+
   /* Didn't find a match, bummer */
   if (i==pref.menuItems)
     {
-      ErrorF("MakeMenu: Can't find menu %s\n", name);
       return NULL;
     }
-  
+
   m = &(pref.menu[i]);
 
   if (editMenu)

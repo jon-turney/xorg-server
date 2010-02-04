@@ -81,7 +81,7 @@
 // own configuration file.
 
 // Make some menus...
-menu apps {
+menu utils {
 	xterm	exec	"xterm"
 	"Emacs"	exec	"emacs"
 	notepad	exec	notepad
@@ -90,8 +90,15 @@ menu apps {
 
 menu root {
 // Comments fit here, too...
+        "Applications" MENU fdoapps
+        SEPARATOR
+        FAQ    EXEC "cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html"
+        "User's Guide" EXEC "cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html"
+        SEPARATOR
+        "View logfile" EXEC "xterm -e less +F /var/log/XWin.0.log"
+        SEPARATOR
 	"Reload .XWinrc"	RELOAD
-	"Applications"	menu	apps
+	"Utilities"	menu	utils
 	SEParATOR
 }
 
@@ -113,6 +120,11 @@ DefaultSysMenu aot atend
 SysMenu {
 	"xterm"	xtermspecial atstart
 }
+
+# include a file
+include "/etc/X11/include.XWinrc"
+# or include the output of a command
+include "xwinmenu.sh|"
 
 # IconDirectory	"c:\winnt\"
 

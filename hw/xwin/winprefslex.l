@@ -30,20 +30,14 @@
  * Authors:     Earle F. Philhower, III
  *              Colin Harrison
  */
-/* $XFree86: $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "winprefs.h"
 #include "winprefsyacc.h"
 
-extern YYSTYPE yylval;
-extern char *yytext;
-extern int yyparse(void);
-
 extern void ErrorF (const char* /*f*/, ...);
-
-int yylineno;
 
 /* Copy the parsed string, must be free()d in yacc parser */
 static char *makestr(char *str)
@@ -52,7 +46,7 @@ static char *makestr(char *str)
   ptr = (char*)malloc (strlen(str)+1);
   if (!ptr)
     {
-      ErrorF ("winMultiWindowLex:makestr() out of memory\n");
+      ErrorF ("LoadPreferences: makestr() out of memory\n");
       exit (-1);
     }
   strcpy(ptr, str);
@@ -61,7 +55,15 @@ static char *makestr(char *str)
 
 %}
 
+%option 8bit
+%option warn
+%option nodefault
 %option yylineno
+%option noyywrap
+%option noinput
+%option nounput
+%option never-interactive
+%option case-insensitive
 
 %%
 \#.*[\r\n]              { /* comment */ return NEWLINE; }
@@ -92,6 +94,7 @@ DEBUG                   { return DEBUGOUTPUT; }
 RELOAD                  { return RELOAD; }
 TRAYICON                { return TRAYICON; }
 SILENTEXIT		{ return SILENTEXIT; }
+INCLUDE                 { return INCLUDE; }
 "{"                     { return LB; }
 "}"                     { return RB; }
 "\""[^\"\r\n]+"\""      { yylval.sVal = makestr(yytext+1); \
@@ -100,15 +103,6 @@ SILENTEXIT		{ return SILENTEXIT; }
 [^ \t\r\n]+             { yylval.sVal = makestr(yytext); \
                           return STRING; }
 %%
-
-/*
- * Run-of-the mill requirement for yacc
- */
-int
-yywrap (void)
-{
-  return 1;
-}
 
 /*
  * Run a file through the yacc parser
@@ -128,3 +122,27 @@ parse_file (FILE *file)
   return ret;
 }
 
+/*
+ * Run an included file through the yacc parser
+ */
+
+void
+parse_include_file (FILE *file)
+{
+  YY_BUFFER_STATE bufstate;
+
+  if (!file)
+    return;
+
+  bufstate = yy_create_buffer(file, YY_BUF_SIZE);
+  if (bufstate)
+    {
+      yypush_buffer_state(bufstate);
+      yyparse();
+      yypop_buffer_state(); // delete current state and pop a state from stack
+    }
+  else
+    {
+      ErrorF ("LoadPreferences: lex buffer state creation failed!\n");
+    }
+}
