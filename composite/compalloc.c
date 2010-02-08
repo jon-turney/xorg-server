@@ -78,7 +78,9 @@ compRedirectWindow (ClientPtr pClient, WindowPtr pWin, int update)
     CompClientWindowPtr	ccw;
     Bool		wasMapped = pWin->mapped;
     CompScreenPtr       cs = GetCompScreen(pWin->drawable.pScreen);
-    
+
+    ErrorF("compRedirectWindow: window 0x%x id 0x%x\n", pWin, pWin->drawable.id);
+
     if (pWin == cs->pOverlayWin) {
 	return Success;
     }

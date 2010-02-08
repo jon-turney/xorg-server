@@ -303,6 +303,8 @@ miSpriteInitialize (ScreenPtr               pScreen,
     if (!pScreenPriv)
 	return FALSE;
 
+    ErrorF("miSpriteInitialize: for screen 0x%x\n", pScreen);
+
     pScreenPriv->pDamage = DamageCreate (miSpriteReportDamage,
 					 NULL,
 					 DamageReportRawRegion,

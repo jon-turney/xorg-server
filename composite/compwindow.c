@@ -70,10 +70,10 @@ compCheckWindow (WindowPtr pWin, pointer data)
     {
 	assert (pWinPixmap == pParentPixmap);
     }
-    assert (0 < pWinPixmap->refcnt && pWinPixmap->refcnt < 3);
-    assert (0 < pScreenPixmap->refcnt && pScreenPixmap->refcnt < 3);
+    assert (0 < pWinPixmap->refcnt && pWinPixmap->refcnt < 4);
+    assert (0 < pScreenPixmap->refcnt && pScreenPixmap->refcnt < 4);
     if (pParentPixmap)
-	assert (0 <= pParentPixmap->refcnt && pParentPixmap->refcnt < 3);
+	assert (0 <= pParentPixmap->refcnt && pParentPixmap->refcnt < 4);
     return WT_WALKCHILDREN;
 }
 

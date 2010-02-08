@@ -57,8 +57,8 @@
      (a)->x2 == (b)->x2 && \
      (a)->y2 == (b)->y2)
 
-#define DAMAGE_VALIDATE_ENABLE 0
-#define DAMAGE_DEBUG_ENABLE 0
+#define DAMAGE_VALIDATE_ENABLE 1
+#define DAMAGE_DEBUG_ENABLE 1
 #if DAMAGE_DEBUG_ENABLE
 #define DAMAGE_DEBUG(x)	ErrorF x
 #else
@@ -78,6 +78,8 @@ static DevPrivateKeyRec damageGCPrivateKeyRec;
 #define damageGCPrivateKey (&damageGCPrivateKeyRec)
 static DevPrivateKeyRec damageWinPrivateKeyRec;
 #define damageWinPrivateKey (&damageWinPrivateKeyRec)
+
+#undef ROOTLESS_WORKAROUND
 
 static DamagePtr *
 getDrawableDamageRef (DrawablePtr pDrawable)
@@ -335,8 +337,8 @@ damageRegionAppend (DrawablePtr pDrawable, RegionPtr pRegion, Bool clip,
 		continue;
 	}
 	
-	DAMAGE_DEBUG (("%s %d x %d +%d +%d (target 0x%lx monitor 0x%lx)\n",
-		       where,
+	DAMAGE_DEBUG (("tracker 0x%x %s %d x %d +%d +%d (target 0x%lx monitor 0x%lx)\n",
+		       pDamage, where,
 		       pDamageRegion->extents.x2 - pDamageRegion->extents.x1,
 		       pDamageRegion->extents.y2 - pDamageRegion->extents.y1,
 		       pDamageRegion->extents.x1, pDamageRegion->extents.y1,
@@ -1690,6 +1692,7 @@ damagePushPixels(GCPtr		pGC,
 static void
 damageRemoveDamage (DamagePtr *pPrev, DamagePtr pDamage)
 {
+  ErrorF("damageRemoveDamage: removing tracker 0x%x from list 0x%x\n", pDamage, *pPrev);
     while (*pPrev)
     {
 	if (*pPrev == pDamage)
@@ -1708,6 +1711,7 @@ damageRemoveDamage (DamagePtr *pPrev, DamagePtr pDamage)
 static void
 damageInsertDamage (DamagePtr *pPrev, DamagePtr pDamage)
 {
+  ErrorF("damageInsertDamage: adding tracker 0x%x to list 0x%x\n", pDamage, *pPrev);
 #if DAMAGE_VALIDATE_ENABLE
     DamagePtr	pOld;
 
@@ -1956,6 +1960,8 @@ DamageCreate (DamageReportFunc  damageReport,
     pDamage->pScreen = pScreen;
 
     (*pScrPriv->funcs.Create) (pDamage);
+
+    ErrorF("created Damage tracker 0x%x (closure 0x%x)\n", pDamage, closure);
 
     return pDamage;
 }

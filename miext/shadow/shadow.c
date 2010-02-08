@@ -138,6 +138,7 @@ shadowSetup(ScreenPtr pScreen)
 
     if (!dixRegisterPrivateKey(&shadowScrPrivateKeyRec, PRIVATE_SCREEN, 0))
 	return FALSE;
+    ErrorF("shadowSetup: for screen 0x%x\n", pScreen);
 
     if (!DamageSetup(pScreen))
 	return FALSE;

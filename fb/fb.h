@@ -161,6 +161,7 @@ typedef CARD32		    FbStip;
 
 typedef int		    FbStride;
 
+#define FB_DEBUG
 
 #ifdef FB_DEBUG
 extern _X_EXPORT void fbValidateDrawable(DrawablePtr d);

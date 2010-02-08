@@ -203,6 +203,9 @@ ProcDamageCreate (ClientPtr client)
     pDamageExt->pDrawable = pDrawable;
     pDamageExt->level = level;
     pDamageExt->pClient = client;
+
+    ErrorF("client request for 0x%x id 0x%x\n", pDrawable, stuff->damage);
+
     pDamageExt->pDamage = DamageCreate (DamageExtReport,
 					DamageExtDestroy,
 					level,
