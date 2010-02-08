@@ -243,6 +243,8 @@ winClipboardProc (void *pvNotUsed)
       goto winClipboardProc_Done;
     }
 
+  XStoreName(pDisplay, iWindow, "xwinclip");
+
   /* Select event types to watch */
   if (XSelectInput (pDisplay,
 		    iWindow,
