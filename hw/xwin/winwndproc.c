@@ -160,6 +160,13 @@ winWindowProc (HWND hwnd, UINT message,
       return 0;
 
     case WM_DISPLAYCHANGE:
+      /*
+        WM_DISPLAYCHANGE seems to be sent when the monitor layout or
+        any monitor's resolution or depth changes, but it's lParam and
+        wParam always indicate the resolution and bpp for the primary
+        monitor (so ignore that as we could be on any monitor...)
+       */
+
       /* We cannot handle a display mode change during initialization */
       if (s_pScreenInfo == NULL)
 	FatalError ("winWindowProc - WM_DISPLAYCHANGE - The display "
@@ -179,22 +186,10 @@ winWindowProc (HWND hwnd, UINT message,
 #endif
 	      ))
 	{
-	  /* 
-	   * Store the new display dimensions and depth.
-	   * We do this here for future compatibility in case we
-	   * ever allow switching from fullscreen to windowed mode.
-	   */
-	  s_pScreenPriv->dwLastWindowsWidth = GetSystemMetrics (SM_CXSCREEN);
-	  s_pScreenPriv->dwLastWindowsHeight = GetSystemMetrics (SM_CYSCREEN);
-	  s_pScreenPriv->dwLastWindowsBitsPixel
-	    = GetDeviceCaps (s_pScreenPriv->hdcScreen, BITSPIXEL);	  
 	  break;
 	}
-      
-      ErrorF ("winWindowProc - WM_DISPLAYCHANGE - orig bpp: %d, last bpp: %d, "
-	      "new bpp: %d\n",
-	      (int) s_pScreenInfo->dwBPP,
-	      (int) s_pScreenPriv->dwLastWindowsBitsPixel,
+
+      ErrorF ("winWindowProc - WM_DISPLAYCHANGE - new bpp: %d\n",
 	      wParam);
 
       ErrorF ("winWindowProc - WM_DISPLAYCHANGE - new width: %d "
@@ -228,7 +223,11 @@ winWindowProc (HWND hwnd, UINT message,
        * We can only display a message for a disruptive depth change,
        * we cannot do anything to correct the situation.
        */
-      if ((s_pScreenInfo->dwBPP != wParam)
+      /*
+        XXX: maybe we need to check if GetSystemMetrics(SM_SAMEDISPLAYFORMAT)
+        has changed as well...
+      */
+      if ((s_pScreenInfo->dwBPP != GetDeviceCaps (s_pScreenPriv->hdcScreen, BITSPIXEL))
 	  && (s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD
 	      || s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL
 #ifdef XWIN_PRIMARYFB
@@ -239,7 +238,7 @@ winWindowProc (HWND hwnd, UINT message,
 	  /* Cannot display the visual until the depth is restored */
 	  ErrorF ("winWindowProc - Disruptive change in depth\n");
 
-	  /* Display Exit dialog */
+	  /* Display depth change dialog */
 	  winDisplayDepthChangeDialog (s_pScreenPriv);
 
 	  /* Flag that we have an invalid screen depth */
@@ -253,14 +252,19 @@ winWindowProc (HWND hwnd, UINT message,
 	  /* Flag that we have a valid screen depth */
 	  s_pScreenPriv->fBadDepth = FALSE;
 	}
-      
+
       /*
-       * Check for a change in display dimensions.
+        If we could cheaply check if this WM_DISPLAYCHANGE change
+        affects the monitor(s) which this X screen is displayed on
+        then we should do so here.  For the moment, assume it does.
+        (this is probably usually the case so that might be an
+        overoptimization)
+      */
+
+      /*
        * We can simply recreate the same-sized primary surface when
        * the display dimensions change.
        */
-      if (s_pScreenPriv->dwLastWindowsWidth != LOWORD (lParam)
-	  || s_pScreenPriv->dwLastWindowsHeight != HIWORD (lParam))
 	{
 	  /*
 	   * NOTE: The non-DirectDraw engines set the ReleasePrimarySurface
@@ -273,7 +277,7 @@ winWindowProc (HWND hwnd, UINT message,
 #if CYGDEBUG
 	  winDebug ("winWindowProc - WM_DISPLAYCHANGE - Dimensions changed\n");
 #endif
-	  
+
 	  /* Release the old primary surface */
 	  (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
 
@@ -298,31 +302,7 @@ winWindowProc (HWND hwnd, UINT message,
 	    }
 #endif
 	}
-      else
-	{
-#if CYGDEBUG
-	  winDebug ("winWindowProc - WM_DISPLAYCHANGE - Dimensions did not "
-		  "change\n");
-#endif
-	}
 
-      /* Store the new display dimensions and depth */
-      if (s_pScreenInfo->fMultipleMonitors)
-	{
-	  s_pScreenPriv->dwLastWindowsWidth
-	    = GetSystemMetrics (SM_CXVIRTUALSCREEN);
-	  s_pScreenPriv->dwLastWindowsHeight
-	    = GetSystemMetrics (SM_CYVIRTUALSCREEN);
-	}
-      else
-	{
-	  s_pScreenPriv->dwLastWindowsWidth
-	    = GetSystemMetrics (SM_CXSCREEN);
-	  s_pScreenPriv->dwLastWindowsHeight
-	    = GetSystemMetrics (SM_CYSCREEN);
-	}
-      s_pScreenPriv->dwLastWindowsBitsPixel
-	= GetDeviceCaps (s_pScreenPriv->hdcScreen, BITSPIXEL);
       break;
 
     case WM_SIZE:
