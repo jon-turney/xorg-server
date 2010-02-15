@@ -315,7 +315,7 @@ winWindowProc (HWND hwnd, UINT message,
 	winDebug ("winWindowProc - WM_SIZE\n");
 #endif
 
-	/* Break if we do not use scrollbars */
+	/* Break if we do not allow resizing */
 	if ((s_pScreenInfo->iResizeMode == notAllowed)
 	    || !s_pScreenInfo->fDecoration
 #ifdef XWIN_MULTIWINDOWEXTWM
@@ -331,6 +331,17 @@ winWindowProc (HWND hwnd, UINT message,
 	/* No need to resize if we get minimized */
 	if (wParam == SIZE_MINIMIZED)
 	  return 0;
+
+        ErrorF ("winWindowProc - WM_SIZE - new client area w: %d h: %d\n",
+                LOWORD (lParam), HIWORD (lParam));
+
+        if (s_pScreenInfo->iResizeMode == resizeWithRandr)
+          {
+            /* Actual resizing is done on WM_EXITSIZEMOVE */
+            return 0;
+          }
+
+        /* Otherwise iResizeMode == resizeWithScrollbars */
 
 	/*
 	 * Get the size of the whole window, including client area,
@@ -348,10 +359,6 @@ winWindowProc (HWND hwnd, UINT message,
 	GetWindowRect (hwnd, &rcWindow);
 	iWidth = rcWindow.right - rcWindow.left;
 	iHeight = rcWindow.bottom - rcWindow.top;
-
-	ErrorF ("winWindowProc - WM_SIZE - window w: %d h: %d, "
-		"new client area w: %d h: %d\n",
-		iWidth, iHeight, LOWORD (lParam), HIWORD (lParam));
 
 	/* Subtract the frame size from the window size. */
 	iWidth -= 2 * GetSystemMetrics (SM_CXSIZEFRAME);
@@ -407,6 +414,36 @@ winWindowProc (HWND hwnd, UINT message,
 	s_pScreenInfo->dwYOffset = -si.nPos;
       }
       return 0;
+
+    case WM_ENTERSIZEMOVE:
+      ErrorF("winWindowProc - WM_ENTERSIZEMOVE\n");
+      break;
+
+    case WM_EXITSIZEMOVE:
+      ErrorF("winWindowProc - WM_EXITSIZEMOVE\n");
+
+      if (s_pScreenInfo->iResizeMode == resizeWithRandr)
+        {
+          /* Set screen size to match new client area, if it is different to current */
+          RECT rcClient;
+          DWORD dwWidth, dwHeight;
+
+          GetClientRect (hwnd, &rcClient);
+          dwWidth = rcClient.right - rcClient.left;
+          dwHeight = rcClient.bottom - rcClient.top;
+
+          if ((s_pScreenInfo->dwWidth != dwWidth) ||
+              (s_pScreenInfo->dwHeight != dwHeight))
+            {
+              winDoRandRScreenSetSize(s_pScreen,
+                                      dwWidth,
+                                      dwHeight,
+                                      (dwWidth / monitorResolution) * 25.4,
+                                      (dwHeight / monitorResolution) * 25.4);
+            }
+        }
+
+      break;
 
     case WM_VSCROLL:
       {
