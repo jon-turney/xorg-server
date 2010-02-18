@@ -1834,7 +1834,6 @@ if test "x$XWIN" = xyes; then
 			dnl if we have windowswmproto, build rootless extension for multwindowextwm mode
 			if test "x$WINDOWSWM" = xyes ; then
 			       AC_DEFINE(ROOTLESS,1,[Build Rootless code])
-			       CFLAGS="$CFLAGS -DROOTLESS_WORKAROUND"
 			fi
 			;;
 		mingw*)
