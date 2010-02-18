@@ -29,6 +29,9 @@
 /* Vendor web address for support */
 #undef __VENDORDWEBSUPPORT__
 
+/* Default log location */
+#undef DEFAULT_LOGDIR
+
 /* Location of system.XWinrc */
 #undef SYSCONFDIR
 

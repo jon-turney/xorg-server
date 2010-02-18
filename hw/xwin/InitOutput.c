@@ -243,7 +243,7 @@ ddxGiveUp (void)
 #endif
 
   if (!g_fLogInited) {
-    LogInit (g_pszLogFile, NULL);
+    g_pszLogFile = LogInit (g_pszLogFile, NULL);
     g_fLogInited = TRUE;
   }  
   LogClose ();
@@ -688,9 +688,6 @@ OsVendorInit (void)
   /* Re-initialize global variables on server reset */
   winInitializeGlobals ();
 
-  LogInit (NULL, NULL);
-  LogSetParameter (XLOG_VERBOSITY, g_iLogVerbose);
-
   winFixupPaths();
 
 #ifdef DDXOSVERRORF
@@ -705,7 +702,7 @@ OsVendorInit (void)
      * avoid the second call 
      */  
     g_fLogInited = TRUE;
-    LogInit (g_pszLogFile, NULL);
+    g_pszLogFile = LogInit (g_pszLogFile, NULL);
   } 
   LogSetParameter (XLOG_FLUSH, 1);
   LogSetParameter (XLOG_VERBOSITY, g_iLogVerbose);
@@ -926,17 +923,16 @@ ddxUseMsg(void)
 
   /* Log file will not be opened for UseMsg unless we open it now */
   if (!g_fLogInited) {
-    LogInit (g_pszLogFile, NULL);
+    g_pszLogFile = LogInit (g_pszLogFile, NULL);
     g_fLogInited = TRUE;
   }  
   LogClose ();
 
   /* Notify user where UseMsg text can be found.*/
   if (!g_fNoHelpMessageBox)
-    winMessageBoxF ("The " PROJECT_NAME " help text has been printed to "
-		  "/tmp/XWin.log.\n"
-		  "Please open /tmp/XWin.log to read the help text.\n",
-		  MB_ICONINFORMATION);
+    winMessageBoxF ("The " PROJECT_NAME " help text has been printed to %s.\n"
+		  "Please open %s to read the help text.\n",
+		  MB_ICONINFORMATION, g_pszLogFile, g_pszLogFile);
 }
 
 /* See Porting Layer Definition - p. 20 */
