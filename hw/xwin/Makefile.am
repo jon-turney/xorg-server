@@ -126,6 +126,8 @@ SRCS =	InitInput.c \
 	winprefs.h \
 	winresource.h \
 	winwindow.h \
+	windisplay.c \
+	windisplay.h \
 	XWin.rc \
 	$(top_srcdir)/Xext/dpmsstubs.c \
 	$(top_srcdir)/Xi/stubs.c \
