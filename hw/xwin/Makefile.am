@@ -199,6 +199,7 @@ include $(top_srcdir)/cpprules.in
 EXTRA_DIST = \
 	$(GLX_EXTRAS) \
 	$(MAN_SRCS) \
+	$(xwinconfig_DATA) \
 	X.ico \
 	XWin.rc \
 	xlaunch/config.cc \
