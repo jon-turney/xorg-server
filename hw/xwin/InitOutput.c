@@ -31,6 +31,8 @@ from The Open Group.
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+/* GLX debugging helpers */
+#include <../glx/glapi.h>
 #include "win.h"
 #include "winmsg.h"
 #include "winconfig.h"
@@ -131,6 +133,9 @@ winValidateArgs (void);
 const char *
 winGetBaseDir(void);
 #endif
+
+static
+void glx_debugging(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -1041,10 +1046,28 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
        * Apply locale specified in LANG environment variable.
        */
       setlocale (LC_ALL, "");
+
+      glx_debugging();
     }
 #endif
 
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");
 #endif
+}
+
+static
+void warn_func(void * p1, const char *format, ...) {
+  va_list v;
+  va_start(v, format);
+  vfprintf(stderr, format, v);
+  va_end(v);
+  fprintf(stderr,"\n");
+}
+
+static
+void glx_debugging(void)
+{
+  _glapi_set_warning_func(warn_func);
+  _glapi_noop_enable_warnings(TRUE);
 }
