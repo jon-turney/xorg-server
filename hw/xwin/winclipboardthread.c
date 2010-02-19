@@ -163,10 +163,7 @@ winClipboardProc (void *pvNotUsed)
    * for all screens on the display.  That is why there is only
    * one clipboard client thread.
    */
-  snprintf (szDisplay,
-	    512,
-	    "127.0.0.1:%s.0",
-	    display);
+  winGetDisplayName(szDisplay, 0);
 
   /* Print the display connection string */
   ErrorF ("winClipboardProc - DISPLAY=%s\n", szDisplay);
