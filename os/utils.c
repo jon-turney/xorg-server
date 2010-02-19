@@ -892,6 +892,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleInterval = atoi(argv[i]);
 		SmartScheduleSlice = SmartScheduleInterval;
 	    }
@@ -902,6 +903,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleMaxSlice = atoi(argv[i]);
 	    }
 	    else
