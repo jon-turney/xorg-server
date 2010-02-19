@@ -63,6 +63,7 @@ hw/dmx/config/xdmxconfig
 hw/dmx/config/xdmxconfig.1x
 hw/dmx/examples/dmxaddinput
 hw/dmx/examples/dmxaddscreen
+hw/dmx/examples/dmxinfo
 hw/dmx/examples/dmxreconfig
 hw/dmx/examples/dmxresize
 hw/dmx/examples/dmxrminput
@@ -72,7 +73,6 @@ hw/dmx/examples/ev
 hw/dmx/examples/evi
 hw/dmx/examples/res
 hw/dmx/examples/xbell
-hw/dmx/examples/xdmx
 hw/dmx/examples/xinput
 hw/dmx/examples/xled
 hw/dmx/examples/xtest
