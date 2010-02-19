@@ -1045,6 +1045,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove) {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow(pWin, hwnd);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
         }
         /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
