@@ -224,7 +224,7 @@ UpdateCurrentTimeIf(void)
 #define SMART_SCHEDULE_DEFAULT_INTERVAL	5
 #define SMART_SCHEDULE_MAX_SLICE	15
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) || defined(__CYGWIN__)
 Bool SmartScheduleDisable = TRUE;
 #else
 Bool SmartScheduleDisable = FALSE;
