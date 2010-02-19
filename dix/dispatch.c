@@ -222,8 +222,12 @@ UpdateCurrentTimeIf(void)
 #define SMART_SCHEDULE_MAX_SLICE	15
 
 #ifdef HAVE_SETITIMER
+#if defined(WIN32) || defined(__CYGWIN__)
+Bool SmartScheduleSignalEnable = FALSE;
+#else
 #define SMART_SCHEDULE_DEFAULT_SIGNAL_ENABLE HAVE_SETITIMER
 Bool SmartScheduleSignalEnable = SMART_SCHEDULE_DEFAULT_SIGNAL_ENABLE;
+#endif
 #endif
 
 long SmartScheduleSlice = SMART_SCHEDULE_DEFAULT_INTERVAL;
