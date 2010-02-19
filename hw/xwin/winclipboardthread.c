@@ -76,6 +76,9 @@ static int
 static int
  winClipboardIOErrorHandler(Display * pDisplay);
 
+static void
+winClipboardThreadExit(void *arg);
+
 /*
  * Main thread function
  */
@@ -101,6 +104,8 @@ winClipboardProc(void *pvNotUsed)
     Bool fUseUnicode;
     char szDisplay[512];
     int iSelectError;
+
+    pthread_cleanup_push(&winClipboardThreadExit, NULL);
 
     winDebug("winClipboardProc - Hello\n");
     ++clipboardRestarts;
@@ -140,7 +145,7 @@ winClipboardProc(void *pvNotUsed)
     else if (iReturn == WIN_JMP_ERROR_IO) {
         /* TODO: Cleanup the Win32 window and free any allocated memory */
         ErrorF("winClipboardProc - setjmp returned for IO Error Handler.\n");
-        pthread_exit(NULL);
+        goto winClipboardProc_Done;
     }
 
     /* Use our generated cookie for authentication */
@@ -183,7 +188,7 @@ winClipboardProc(void *pvNotUsed)
         goto winClipboardProc_Done;
     }
 
-    /* Save the display in the screen privates */
+    /* Save the display in a global used by the wndproc */
     g_pClipboardDisplay = pDisplay;
 
     ErrorF("winClipboardProc - XOpenDisplay () returned and "
@@ -269,8 +274,10 @@ winClipboardProc(void *pvNotUsed)
     winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode);
 
     /* Pre-flush Windows messages */
-    if (!winClipboardFlushWindowsMessageQueue(hwnd))
-        return 0;
+    if (!winClipboardFlushWindowsMessageQueue(hwnd)) {
+        ErrorF("winClipboardProc - winClipboardFlushWindowsMessageQueue failed\n");
+        pthread_exit(NULL);
+    }
 
     /* Signal that the clipboard client has started */
     g_fClipboardStarted = TRUE;
@@ -435,6 +442,7 @@ winClipboardProc(void *pvNotUsed)
         raise(SIGTERM);
     }
 
+    pthread_cleanup_pop(0);
     return NULL;
 }
 
@@ -472,4 +480,15 @@ winClipboardIOErrorHandler(Display * pDisplay)
         g_winClipboardOldIOErrorHandler(pDisplay);
 
     return 0;
+}
+
+/*
+ * winClipboardThreadExit - Thread exit handler
+ */
+
+static void
+winClipboardThreadExit(void *arg)
+{
+    /* clipboard thread has exited, stop server as well */
+    kill(getpid(), SIGTERM);
 }
