@@ -1453,6 +1453,13 @@ Bool
 winInitCursor (ScreenPtr pScreen);
 
 /*
+ * windisplay.c
+ */
+
+void
+winGetDisplayName(char *szDisplay, unsigned int screen);
+
+/*
  * END DDX and DIX Function Prototypes
  */
 
