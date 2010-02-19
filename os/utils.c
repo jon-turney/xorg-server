@@ -905,6 +905,7 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-schedInterval") == 0) {
             if (++i < argc) {
+                SmartScheduleDisable = FALSE;
                 SmartScheduleInterval = atoi(argv[i]);
                 SmartScheduleSlice = SmartScheduleInterval;
             }
@@ -913,6 +914,7 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-schedMax") == 0) {
             if (++i < argc) {
+                SmartScheduleDisable = FALSE;
                 SmartScheduleMaxSlice = atoi(argv[i]);
             }
             else
