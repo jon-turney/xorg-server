@@ -179,6 +179,9 @@ winMultiWindowXMsgProcErrorHandler (Display *pDisplay, XErrorEvent *pErr);
 static int
 winMultiWindowXMsgProcIOErrorHandler (Display *pDisplay);
 
+static void
+winMultiWindowThreadExit(void *arg);
+
 static int
 winRedirectErrorHandler (Display *pDisplay, XErrorEvent *pErr);
 
@@ -630,6 +633,8 @@ winMultiWindowWMProc (void *pArg)
 {
   WMProcArgPtr		pProcArg = (WMProcArgPtr)pArg;
   WMInfoPtr		pWMInfo = pProcArg->pWMInfo;
+
+  pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
   
   /* Initialize the Window Manager */
   winInitMultiWindowWM (pWMInfo, pProcArg);
@@ -842,6 +847,9 @@ winMultiWindowWMProc (void *pArg)
 #if CYGMULTIWINDOW_DEBUG
   ErrorF("-winMultiWindowWMProc ()\n");
 #endif
+
+  pthread_cleanup_pop(0);
+
   return NULL;
 }
 
@@ -863,6 +871,8 @@ winMultiWindowXMsgProc (void *pArg)
   Atom			atmWmChange;
   int			iReturn;
   XIconSize		*xis;
+
+  pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
 
   ErrorF ("winMultiWindowXMsgProc - Hello\n");
 
@@ -1181,7 +1191,7 @@ winMultiWindowXMsgProc (void *pArg)
     }
 
   XCloseDisplay (pProcArg->pDisplay);
-  pthread_exit (NULL);
+  pthread_cleanup_pop(0);
   return NULL;
 }
 
@@ -1522,6 +1532,16 @@ winMultiWindowXMsgProcIOErrorHandler (Display *pDisplay)
   return 0;
 }
 
+/*
+ * winMultiWindowThreadExit - Thread exit handler
+ */
+
+static void
+winMultiWindowThreadExit(void *arg)
+{
+  /* multiwindow client thread has exited, stop server as well */
+  kill(getpid(), SIGTERM);
+}
 
 /*
  * Catch RedirectError to detect other window manager running
