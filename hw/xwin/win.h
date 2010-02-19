@@ -1481,6 +1481,12 @@ winDoRandRScreenSetSize (ScreenPtr  pScreen,
                          CARD16	    height,
                          CARD32	    mmWidth,
                          CARD32	    mmHeight);
+/*
+ * windisplay.c
+ */
+
+void
+winGetDisplayName(char *szDisplay, unsigned int screen);
 
 /*
  * END DDX and DIX Function Prototypes
