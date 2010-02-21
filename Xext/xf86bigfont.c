@@ -86,6 +86,10 @@ static DISPATCH_PROC(SProcXF86BigfontDispatch);
 static DISPATCH_PROC(SProcXF86BigfontQueryVersion);
 static DISPATCH_PROC(SProcXF86BigfontQueryFont);
 
+void XFree86BigfontExtensionInit(void);
+void XF86BigfontFreeFontShm(FontPtr);
+void XF86BigfontCleanup(void);
+
 #ifdef HAS_SHM
 
 /* A random signature, transmitted to the clients so they can verify that the
@@ -143,7 +147,7 @@ CheckForShmSyscall(void)
 #endif
 
 void
-XFree86BigfontExtensionInit()
+XFree86BigfontExtensionInit(void)
 {
     if (AddExtension(XF86BIGFONTNAME,
 		     XF86BigfontNumberEvents,
@@ -302,7 +306,7 @@ XF86BigfontFreeFontShm(
 
 /* Called upon fatal signal. */
 void
-XF86BigfontCleanup()
+XF86BigfontCleanup(void)
 {
 #ifdef HAS_SHM
     while (ShmList)
