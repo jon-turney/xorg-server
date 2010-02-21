@@ -209,14 +209,3 @@ winReshapeMultiWindow (WindowPtr pWin)
   
   return;
 }
-
-void
-winShapeRgnUpdateMultiwindow(HWND hwnd)
-{
-  WindowPtr pWin = GetProp (hwnd, WIN_WINDOW_PROP);
-  if (pWin)
-    {
-      winReshapeMultiWindow(pWin);
-      winUpdateRgnMultiWindow(pWin);
-    }
-}
