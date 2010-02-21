@@ -99,8 +99,7 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #endif
 
 #ifdef XF86BIGFONT
-#define _XF86BIGFONT_SERVER_
-#include <X11/extensions/xf86bigfont.h>
+extern void XF86BigfontCleanup(void);
 #endif
 
 #ifdef DDXOSVERRORF
