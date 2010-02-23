@@ -44,7 +44,7 @@ winBlockHandler (int nScreen,
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
   winScreenPriv((ScreenPtr)pBlockData);
 #endif
-  MSG			msg;
+
 #ifndef HAS_DEVWINDOWS
   struct timeval **tvp = pTimeout;
   if (*tvp != NULL) 
@@ -71,26 +71,11 @@ winBlockHandler (int nScreen,
 	{
 	  ErrorF ("winBlockHandler - pthread_mutex_unlock () failed: %d\n",
 		  iReturn);
-	  goto winBlockHandler_ProcessMessages; 
 	}
-
-      winDebug ("winBlockHandler - pthread_mutex_unlock () returned\n");
-    }
-
-winBlockHandler_ProcessMessages:
-#endif
-
-  /* Process all messages on our queue */
-  while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
-    {
-      if ((g_hDlgDepthChange == 0
-	   || !IsDialogMessage (g_hDlgDepthChange, &msg))
-	  && (g_hDlgExit == 0
-	      || !IsDialogMessage (g_hDlgExit, &msg))
-	  && (g_hDlgAbout == 0
-	      || !IsDialogMessage (g_hDlgAbout, &msg)))
+      else
 	{
-	  DispatchMessage (&msg);
+          winDebug ("winBlockHandler - pthread_mutex_unlock () returned\n");
 	}
     }
+#endif
 }
