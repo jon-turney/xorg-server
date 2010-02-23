@@ -39,6 +39,7 @@ from The Open Group.
 #include "winconfig.h"
 #include "winprefs.h"
 #include "winmsg.h"
+#include "winmonitors.h"
 
 /*
  * References to external symbols
@@ -64,55 +65,6 @@ extern Bool			g_fSoftwareCursor;
 extern Bool			g_fSilentDupError;
 extern Bool                     g_fNativeGl;
 
-/* globals required by callback function for monitor information */
-struct GetMonitorInfoData {
-    int  requestedMonitor;
-    int  monitorNum;
-    Bool bUserSpecifiedMonitor;
-    Bool bMonitorSpecifiedExists;
-    int  monitorOffsetX;
-    int  monitorOffsetY;
-    int  monitorHeight;
-    int  monitorWidth;
-};
-
-typedef wBOOL (*ENUMDISPLAYMONITORSPROC)(HDC,LPCRECT,MONITORENUMPROC,LPARAM);
-ENUMDISPLAYMONITORSPROC _EnumDisplayMonitors;
-
-wBOOL CALLBACK getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data);
-
-static Bool QueryMonitor(int index, struct GetMonitorInfoData *data)
-{
-    /* Load EnumDisplayMonitors from DLL */
-    HMODULE user32;
-    FARPROC func;
-    user32 = LoadLibrary("user32.dll");
-    if (user32 == NULL)
-    {
-        winW32Error(2, "Could not open user32.dll");
-        return FALSE;
-    }
-    func = GetProcAddress(user32, "EnumDisplayMonitors");
-    if (func == NULL)
-    {
-        winW32Error(2, "Could not resolve EnumDisplayMonitors: ");
-        return FALSE;
-    }
-    _EnumDisplayMonitors = (ENUMDISPLAYMONITORSPROC)func;
-    
-    /* prepare data */
-    if (data == NULL)
-        return FALSE;
-    memset(data, 0, sizeof(*data));
-    data->requestedMonitor = index;
-
-    /* query information */
-    _EnumDisplayMonitors(NULL, NULL, getMonitorInfo, (LPARAM) data);
-
-    /* cleanup */
-    FreeLibrary(user32);
-    return TRUE;
-}
 
 /*
  * Function prototypes
@@ -1239,25 +1191,4 @@ winLogVersionInfo (void)
   ErrorF ("Release: %d.%d.%d.%d (%d)\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP, XORG_VERSION_CURRENT);
   ErrorF ("%s\n\n", BUILDERSTRING);
   ErrorF ("Contact: %s\n", VENDOR_CONTACT);
-}
-
-/*
- * getMonitorInfo - callback function used to return information from the enumeration of monitors attached
- */
-
-wBOOL CALLBACK getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data) 
-{
-  struct GetMonitorInfoData* data = (struct GetMonitorInfoData*)_data;
-  // only get data for monitor number specified in <data>
-  data->monitorNum++;
-  if (data->monitorNum == data->requestedMonitor) 
-  {
-	data->bMonitorSpecifiedExists = TRUE;
-	data->monitorOffsetX = rect->left;
-	data->monitorOffsetY = rect->top;
-	data->monitorHeight  = rect->bottom - rect->top;
-	data->monitorWidth   = rect->right  - rect->left;
-    return FALSE;
-  }
-  return TRUE;
 }
