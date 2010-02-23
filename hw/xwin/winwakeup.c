@@ -45,8 +45,8 @@ winWakeupHandler (int nScreen,
 {
   MSG			msg;
 
-  /* Process all messages on our queue */
-  while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
+  /* Process one message from our queue */
+  if (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
     {
       if ((g_hDlgDepthChange == 0
 	   || !IsDialogMessage (g_hDlgDepthChange, &msg))
