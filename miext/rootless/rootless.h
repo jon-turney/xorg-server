@@ -365,4 +365,10 @@ void RootlessRepositionWindows(ScreenPtr pScreen);
  * Bring all windows to the front of the native stack
  */
 void RootlessOrderAllWindows (Bool include_unhitable);
+
+/*
+ * Paint window hook
+ */
+Bool RootlessPaintWindow(WindowPtr pWin, RegionPtr prgn, int what);
+
 #endif /* _ROOTLESS_H */

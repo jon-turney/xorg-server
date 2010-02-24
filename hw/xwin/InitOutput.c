@@ -58,6 +58,7 @@ typedef HRESULT (*SHGETFOLDERPATHPROC)(
 );
 #endif
 #include "dixmain.h"
+#include "rootless.h"
 
 /*
  * References to external symbols
@@ -192,6 +193,12 @@ int main(int argc, char *argv[], char *envp[])
   /* Initialize DDX-specific hooks */
   ddxHooks.ddxBeforeReset = ddxBeforeReset;
   ddxHooks.ddxPushProviders = ddxPushProviders;
+
+#ifdef ROOTLESS
+  // XXX: Xquartz will need to do this
+  // XXX: we actually could only install this hook if we are in rootless mode as an optimisation...
+  ddxHooks.ddxRootlessPaintWindow = RootlessPaintWindow;
+#endif
 
   return dix_main(argc, argv, envp);
 }

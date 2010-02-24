@@ -1635,3 +1635,27 @@ RootlessSetPixmapOfAncestors(WindowPtr pWin)
     }
 }
 
+/*
+  This is called by a hook in miPaintWindow() if we are rootless,
+  to do the work that rootless needs done there
+*/
+Bool RootlessPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
+{
+  DrawablePtr drawable = &pWin->drawable;
+
+  if(!drawable || drawable->type == UNDRAWABLE_WINDOW)
+        return FALSE;
+
+  if(IsFramedWindow(pWin)) {
+        RootlessStartDrawing(pWin);
+        RootlessDamageRegion(pWin, prgn);
+
+        if(pWin->backgroundState == ParentRelative) {
+            if((what == PW_BACKGROUND) ||
+               (what == PW_BORDER && !pWin->borderIsPixel))
+                RootlessSetPixmapOfAncestors(pWin);
+        }
+    }
+
+  return TRUE;
+}

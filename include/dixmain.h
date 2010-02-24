@@ -30,6 +30,7 @@ struct _DdxHooks
 {
   void (*ddxBeforeReset)(void);
   void (*ddxPushProviders)(void);
+  Bool (*ddxRootlessPaintWindow)(WindowPtr pWin, RegionPtr prgn, int what);
 };
 
 typedef struct _DdxHooks DdxHooks;
