@@ -1349,22 +1349,16 @@ UTILS_SYS_LIBS="${SYS_LIBS}"
 AC_SUBST([UTILS_SYS_LIBS])
 
 # The Xorg binary needs to export symbols so that they can be used from modules
-# Some platforms require extra flags to do this.   gcc should set these flags
-# when -rdynamic is passed to it, other compilers/linkers may need to be added
-# here.
+# Some platforms require extra flags to do this.   libtool should set the
+# necessary flags for each platform when -export-dynamic is passed to it.
 XORG_CWARNFLAGS
 if test "x$GCC" = "xyes"; then
        if test "x$WERROR" = "xyes"; then
                CWARNFLAGS="${CWARNFLAGS} -Werror"
        fi
-       LD_EXPORT_SYMBOLS_FLAG="-rdynamic"
 fi
 XSERVER_CFLAGS="$CWARNFLAGS $XSERVER_CFLAGS"
-case $host_os in
-       openbsd*)
-       LD_EXPORT_SYMBOLS_FLAG="-Wl,--export-dynamic"
-       ;;
-esac
+LD_EXPORT_SYMBOLS_FLAG="-export-dynamic"
 AC_SUBST([LD_EXPORT_SYMBOLS_FLAG])
 
 dnl Imake defines SVR4 on SVR4 systems, and many files check for it, so
