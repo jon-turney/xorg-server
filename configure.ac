@@ -1886,14 +1886,9 @@ if test "x$XWIN" = xyes; then
 
 	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau])
 
-	if test "x$WINDOWSWM" = xauto; then
-		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
-	fi
-	if test "x$WINDOWSWM" = xyes ; then
-		PKG_CHECK_MODULES(WINDOWSWM, $WINDOWSWMPROTO)
-		XWINMODULES_CFLAGS="$XWINMODULES_CFLAGS $WINDOWSWM_CFLAGS"
-		AC_DEFINE(ROOTLESS,1,[Build Rootless code])
-	fi
+	PKG_CHECK_MODULES([WINDOWSWM], $WINDOWSWMPROTO)
+	XWINMODULES_CFLAGS="$XWINMODULES_CFLAGS $WINDOWSWM_CFLAGS"
+	AC_DEFINE(ROOTLESS,1,[Build Rootless code])
 
 	case $host_os in
 		cygwin*)
@@ -1935,7 +1930,7 @@ dnl XWin with AIGLX requires OpenGL spec files in order to generate wrapper code
 fi
 AM_CONDITIONAL(XWIN, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
-AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes && test "x$WINDOWSWM" = xyes])
+AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_CLIPBOARD, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes && test "x$AIGLX" = xyes])
 AM_CONDITIONAL(XWIN_NATIVEGDI, [test "x$XWIN" = xyes])
