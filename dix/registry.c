@@ -313,7 +313,7 @@ dixResetRegistry(void)
 	fclose(fh);
     fh = fopen(FILENAME, "r");
     if (!fh)
-	LogMessage(X_WARNING, "Failed to open protocol names file " FILENAME "\n");
+	LogMessage(X_WARNING, "Failed to open protocol names file " FILENAME);
 
     /* Add built-in resources */
     RegisterResourceName(RT_NONE, "NONE");

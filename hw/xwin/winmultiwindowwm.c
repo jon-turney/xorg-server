@@ -952,7 +952,7 @@ winMultiWindowXMsgProc (void *pArg)
       if (pProcArg->pDisplay == NULL)
 	{
 	  ErrorF ("winMultiWindowXMsgProc - Could not open display, try: %d, "
-		  "sleeping: %d\n",
+		  "sleeping: %d\n\f",
 		  iRetries + 1, WIN_CONNECT_DELAY);
 	  ++iRetries;
 	  sleep (WIN_CONNECT_DELAY);
@@ -1331,7 +1331,7 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
       if (pWMInfo->pDisplay == NULL)
 	{
 	  ErrorF ("winInitMultiWindowWM - Could not open display, try: %d, "
-		  "sleeping: %d\n",
+		  "sleeping: %d\n\f",
 		  iRetries + 1, WIN_CONNECT_DELAY);
 	  ++iRetries;
 	  sleep (WIN_CONNECT_DELAY);
@@ -1434,7 +1434,7 @@ winMultiWindowWMErrorHandler (Display *pDisplay, XErrorEvent *pErr)
 static int
 winMultiWindowWMIOErrorHandler (Display *pDisplay)
 {
-  ErrorF ("winMultiWindowWMIOErrorHandler!\n\n");
+  ErrorF ("\nwinMultiWindowWMIOErrorHandler!\n\n");
 
   if (g_shutdown)
     pthread_exit(NULL);
@@ -1474,7 +1474,7 @@ winMultiWindowXMsgProcErrorHandler (Display *pDisplay, XErrorEvent *pErr)
 static int
 winMultiWindowXMsgProcIOErrorHandler (Display *pDisplay)
 {
-  ErrorF ("winMultiWindowXMsgProcIOErrorHandler!\n\n");
+  ErrorF ("\nwinMultiWindowXMsgProcIOErrorHandler!\n\n");
 
   /* Restart at the main entry point */
   longjmp (g_jmpXMsgProcEntry, WIN_JMP_ERROR_IO);
