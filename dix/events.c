@@ -1257,6 +1257,20 @@ PlayReleasedEvents(void)
 static void
 FreezeThaw(DeviceIntPtr dev, Bool frozen)
 {
+    /* ErrorF("FreezeThaw: %s current %d new %d\n", dev->name, dev->deviceGrab.sync.frozen, frozen); */
+
+    if (dev->deviceGrab.sync.frozen != frozen)
+        {
+           if (frozen)
+              {
+                 ErrorF("Freezing %s\n", dev->name);
+              }
+           else
+              {
+                 ErrorF("Thawing %s\n", dev->name);
+              }
+        }
+
     dev->deviceGrab.sync.frozen = frozen;
     if (frozen)
 	dev->public.processInputProc = dev->public.enqueueInputProc;
