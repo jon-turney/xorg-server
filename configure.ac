@@ -787,6 +787,7 @@ LIBXTST="xtst >= 1.0.99.2"
 LIBPCIACCESS="pciaccess >= 0.8.0"
 LIBGLIB="glib-2.0 >= 2.16"
 LIBUDEV="libudev >= 143"
+LIBSELINUX="libselinux >= 2.0.86"
 
 if test "x$CONFIG_UDEV" = xyes &&
  { test "x$CONFIG_DBUS_API" = xyes || test "x$CONFIG_HAL" = xyes; }; then
@@ -1059,7 +1060,7 @@ if test "x$XSELINUX" = xyes; then
 	fi
 	AC_CHECK_HEADERS([libaudit.h], [], AC_MSG_ERROR([SELinux extension requires audit system headers]))
 	AC_CHECK_LIB(audit, audit_open, [], AC_MSG_ERROR([SELinux extension requires audit system library]))
-	PKG_CHECK_MODULES([SELINUX], [libselinux >= 2.0.86])
+	PKG_CHECK_MODULES([SELINUX], $LIBSELINUX)
 	SELINUX_LIBS="$SELINUX_LIBS -laudit"
 	AC_DEFINE(XSELINUX, 1, [Build SELinux extension])
 fi
@@ -1432,7 +1433,7 @@ PKG_CHECK_MODULES([XSERVERLIBS], [$REQUIRED_LIBS])
 #
 XSERVER_CFLAGS="${XSERVER_CFLAGS} ${XSERVERCFLAGS_CFLAGS}"
 XSERVER_LIBS="$DIX_LIB $CONFIG_LIB $MI_LIB $OS_LIB"
-XSERVER_SYS_LIBS="${XSERVERLIBS_LIBS} ${SYS_LIBS} ${LIBS}"
+XSERVER_SYS_LIBS="${XSERVERLIBS_LIBS} ${SYS_LIBS} ${LIBS} ${SELINUX_LIBS}"
 AC_SUBST([XSERVER_LIBS])
 AC_SUBST([XSERVER_SYS_LIBS])
 
@@ -1572,7 +1573,7 @@ if test "x$XORG" = xyes; then
 	AC_CHECK_FUNCS([pci_device_vgaarb_init])
 	LIBS=$SAVE_LIBS
 	CFLAGS=$SAVE_CFLAGS
-	XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $GLX_SYS_LIBS $SELINUX_LIBS"
+	XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $GLX_SYS_LIBS"
 	XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS"
 
 	case $host_os in
