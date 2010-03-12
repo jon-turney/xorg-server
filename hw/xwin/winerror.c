@@ -46,6 +46,8 @@ extern Bool		g_fSilentDupError;
 extern Bool		g_fSilentFatalError;
 extern Bool		g_fLogInited;
 
+/* Last error reported */
+static char lastError[1024] = "";
 
 #ifdef DDXOSVERRORF
 /* Prototype */
@@ -80,6 +82,15 @@ OsVendorVErrorF (const char *pszFormat, va_list va_args)
 	}
     }
 
+  /* Record the error, in case it's a fatal one... */
+  if (strcmp(pszFormat,"\n") != 0)
+    {
+      va_list va_args_copy;
+      va_copy(va_args_copy, va_args);
+      vsnprintf(lastError, sizeof(lastError), pszFormat, va_args_copy);
+      va_end(va_args_copy);
+    }
+
   /* Print the error message to a log file, could be stderr */
   LogVWrite (0, pszFormat, va_args);
 
@@ -92,9 +103,12 @@ OsVendorVErrorF (const char *pszFormat, va_list va_args)
 
 
 /*
- * os/util.c/FatalError () calls our vendor ErrorF, so the message
- * from a FatalError will be logged.  Thus, the message for the
- * fatal error is not passed to this function.
+ * os/log.c:FatalError () calls our vendor ErrorF, so the message
+ * from a FatalError will be logged.
+ *
+ * But the message for the fatal error is not passed to this
+ * function, so we stash the log string in lastError so we can
+ * also report it here
  *
  * Attempt to do last-ditch, safe, important cleanup here.
  */
@@ -111,10 +125,25 @@ OsVendorFatalError (void)
   }
   LogClose ();
 
-  winMessageBoxF (
-          "A fatal error has occurred and " PROJECT_NAME " will now exit.\n" \
-		  "Please open %s for more information.\n",
-		  MB_ICONERROR, (g_pszLogFile?g_pszLogFile:"the logfile"));
+  /*
+     Sometimes the error message we capture in lastError
+     needs some cosmetic cleaning up for use in a dialog box...
+  */
+  {
+    char *s;
+    while ((s = strstr(lastError, "\n\t")) != NULL)
+      {
+        s[0] = ' ';
+        s[1] = '\n';
+      }
+  }
+
+  winMessageBoxF("A fatal error has occurred and " PROJECT_NAME " will now exit.\n\n" \
+                 "%s\n\n"                                               \
+                 "Please open %s for more information.\n",
+                 MB_ICONERROR,
+                 lastError,
+                 (g_pszLogFile ? g_pszLogFile : "the logfile"));
 }
 
 
