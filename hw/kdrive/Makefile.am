@@ -32,4 +32,4 @@ SUBDIRS =			\
 DIST_SUBDIRS = fbdev sdl ephyr src linux fake
 
 relink:
-	@for i in $(SERVER_SUBDIRS) ; do $(MAKE) -C $$i relink ; done
+	$(AM_V_at)for i in $(SERVER_SUBDIRS) ; do $(MAKE) -C $$i relink ; done
