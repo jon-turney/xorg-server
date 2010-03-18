@@ -77,6 +77,8 @@ hw/dmx/examples/xinput
 hw/dmx/examples/xled
 hw/dmx/examples/xtest
 hw/kdrive/ephyr/Xephyr
+hw/kdrive/ephyr/Xephyr.1
+hw/kdrive/ephyr/Xephyr.man
 hw/kdrive/fake/Xfake
 hw/kdrive/fbdev/Xfbdev
 hw/kdrive/sdl/Xsdl
@@ -142,6 +144,10 @@ hw/xquartz/mach-startup/mach_startupUser.c
 hw/xquartz/mach-startup/X11.bin
 hw/xquartz/mach-startup/Xquartz
 hw/xquartz/doc/Xquartz.1
+hw/xwin/XWin.1
+hw/xwin/XWin.man
+hw/xwin/XWinrc.5
+hw/xwin/XWinrc.man
 hw/xwin/winprefslex.c
 hw/xwin/winprefsyacc.c
 hw/xwin/winprefsyacc.h
