@@ -67,7 +67,7 @@ void OsVendorVErrorF (const char *pszFormat, va_list va_args);
 static int iLastScreen = -1;
 static winScreenInfo defaultScreenInfo;
 
-static void
+void
 winInitializeScreenDefaults(void)
 {
   DWORD dwWidth, dwHeight;
@@ -234,21 +234,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
       if (!IS_OPTION("-help") && !IS_OPTION("-h") && !IS_OPTION("--help") &&
           !IS_OPTION("-version") && !IS_OPTION("--version"))
 	{
-
-          /* Log the version information */
-          winLogVersionInfo ();
-
-          /* Log the command line */
-          winLogCommandLine (argc, argv);
-
-	  /*
-	   * Initialize default screen settings.  We have to do this before
-	   * OsVendorInit () gets called, otherwise we will overwrite
-	   * settings changed by parameters such as -fullscreen, etc.
-	   */
-	  winErrorFVerb (2, "ddxProcessArgument - Initializing default "
-			 "screens\n");
-	  winInitializeScreenDefaults();
+          winEarlyInit(argc, argv);
 	}
     }
 

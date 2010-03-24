@@ -277,6 +277,12 @@ static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+extern Bool nolock;
+
+/*
+  Check mounts and issue warnings/activate workarounds as neeed
+
+ */
 static void
 winCheckMount(void)
 {
@@ -286,6 +292,7 @@ winCheckMount(void)
   enum { none = 0, sys_root, user_root, sys_tmp, user_tmp } 
     level = none, curlevel;
   BOOL binary = TRUE;
+  BOOL fat = TRUE;
 
   mnt = setmntent("/etc/mtab", "r");
   if (mnt == NULL)
@@ -328,20 +335,31 @@ winCheckMount(void)
       binary = FALSE;
     else
       binary = TRUE;
+
+    if (strcmp(ent->mnt_type, "vfat") == 0)
+      fat = TRUE;
+    else
+      fat = FALSE;
   }
-    
+
   if (endmntent(mnt) != 1)
   {
     ErrorF("endmntent failed");
     return;
   }
-  
- if (!binary) 
+
+ if (!binary)
    winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+ if (fat)
+   {
+     winMsg(X_WARNING, "/tmp mounted on FAT filesystem, activating -nolock\n");
+     nolock = TRUE;
+   }
 }
 #else
 static void
-winCheckMount(void) 
+winCheckMount(void)
 {
 }
 #endif
@@ -627,11 +645,47 @@ winFixupPaths (void)
 #endif /* RELOCATE_PROJECTROOT */
 }
 
+/*
+ * This is the first chance the DDX gets to do something
+ *
+ * Do initialization here that needs to happen before OsVendorInit()
+ *
+ * Not called if we don't have any arguments ???
+ */
+void
+winEarlyInit(int argc, char *argv[])
+{
+#ifdef DDXOSVERRORF
+  /* This initialises our hook into VErrorF () for catching log messages */
+  OsVendorVErrorFProc = OsVendorVErrorF;
+#endif
+
+  /* Log the version information */
+  winLogVersionInfo();
+
+  /* Log the command line */
+  winLogCommandLine(argc, argv);
+
+  /*
+   * Initialize default screen settings.  We have to do this before
+   * OsVendorInit () gets called, otherwise we will overwrite
+   * settings changed by parameters such as -fullscreen, etc.
+   */
+  winErrorFVerb(2, "ddxProcessArgument - Initializing default screens\n");
+  winInitializeScreenDefaults();
+
+  /* Check mounts */
+  winCheckMount();
+}
+
 void
 OsVendorInit (void)
 {
   /* Re-initialize global variables on server reset */
   winInitializeGlobals ();
+
+  /* LogInit (NULL, NULL); */
+  LogSetParameter (XLOG_VERBOSITY, g_iLogVerbose);
 
   winFixupPaths();
 
@@ -656,8 +710,6 @@ OsVendorInit (void)
   /* Log the version information */
   if (serverGeneration == 1)
     winLogVersionInfo ();
-
-  winCheckMount();  
 
   /* Add a default screen if no screens were specified */
   if (g_iNumScreens == 0)
