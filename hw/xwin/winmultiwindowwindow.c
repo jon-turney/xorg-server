@@ -658,12 +658,6 @@ winUpdateWindowsWindow (WindowPtr pWin)
 	  winCreateWindowsWindow (pWin);
 	  assert (pWinPriv->hWnd != NULL);
 	}
-
-      /* Display the window without activating it */
-      ShowWindow (pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
-      /* Send first paint message */
-      UpdateWindow (pWinPriv->hWnd);
     }
   else if (hWnd != NULL)
     {
