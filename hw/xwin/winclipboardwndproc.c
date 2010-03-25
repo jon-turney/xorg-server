@@ -44,19 +44,7 @@
 
 #define WIN_POLL_TIMEOUT	1
 
-
 /*
- * References to external symbols
- */
-
-extern Bool		g_fUseUnicode;
-extern Bool		g_fUnicodeSupport;
-extern void		*g_pClipboardDisplay;
-extern Window		g_iClipboardWindow;
-extern Atom		g_atomLastOwnedSelection;
-
-
-/* 
  * Local function prototypes
  */
 

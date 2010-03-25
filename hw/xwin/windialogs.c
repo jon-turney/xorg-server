@@ -39,14 +39,6 @@
 #include <shellapi.h>
 #include "winprefs.h"
 
-
-/*
- * References to external globals
- */
-
-#ifdef XWIN_CLIPBOARD
-extern Bool			g_fClipboardStarted;
-#endif
 /*
  * Local function prototypes
  */

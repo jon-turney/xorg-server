@@ -37,14 +37,6 @@ from The Open Group.
 #include "winmsg.h"
 #include "winmonitors.h"
 
-/*
- * References to external symbols
- */
-
-#ifdef XWIN_CLIPBOARD
-extern Bool			g_fUnicodeClipboard;
-extern Bool			g_fClipboard;
-#endif
 
 /*
  * Function prototypes

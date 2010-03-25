@@ -33,25 +33,11 @@
 #endif
 #include "dixstruct.h"
 #include "winclipboard.h"
+#include "winglobals.h"
 
 
-/*
- * Local typedefs
- */
-
-typedef int (*winDispatchProcPtr) (ClientPtr);
 
 int winProcSetSelectionOwner(ClientPtr /* client */);
-
-
-/*
- * References to external symbols
- */
-
-extern pthread_t		g_ptClipboardProc;
-extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
-extern Bool			g_fClipboard;
-extern HWND			g_hwndClipboard;
 
 
 /*

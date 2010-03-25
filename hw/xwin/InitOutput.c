@@ -59,17 +59,6 @@ typedef WINAPI HRESULT (*SHGETFOLDERPATHPROC)(
 #endif
 #include "ddxhooks.h"
 
-/*
- * References to external symbols
- */
-#ifdef XWIN_CLIPBOARD
-extern Bool			g_fUnicodeClipboard;
-extern Bool			g_fClipboardLaunched;
-extern Bool			g_fClipboardStarted;
-extern pthread_t		g_ptClipboardProc;
-extern HWND			g_hwndClipboard;
-extern Bool			g_fClipboard;
-#endif
 
 /*
  * Function prototypes
@@ -954,7 +943,8 @@ ddxUseMsg(void)
   }  
   LogClose (EXIT_NO_ERROR);
 
-  /* Notify user where UseMsg text can be found.*/
+  /* If the UseMsg has been issued because command line options
+     aren't well formed, notify user where UseMsg text can be found.*/
   if (!g_fNoHelpMessageBox)
     winMessageBoxF ("The " PROJECT_NAME " help text has been printed to "
 		  "%s.\n"

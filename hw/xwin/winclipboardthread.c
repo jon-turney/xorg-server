@@ -42,21 +42,6 @@
 #endif
 #include "misc.h"
 
-
-/*
- * References to external symbols
- */
-
-extern Bool		g_fUnicodeClipboard;
-extern unsigned long	serverGeneration;
-extern Bool		g_fClipboardStarted;
-extern Bool             g_fClipboardLaunched;
-extern Bool             g_fClipboard;
-extern HWND		g_hwndClipboard;
-extern void		*g_pClipboardDisplay;
-extern Window		g_iClipboardWindow;
-
-
 /*
  * Global variables
  */
@@ -67,7 +52,7 @@ static XIOErrorHandler g_winClipboardOldIOErrorHandler;
 static pthread_t g_winClipboardProcThread;
 
 Bool				g_fUnicodeSupport = FALSE;
-Bool				g_fUseUnicode = FALSE;
+static Bool			g_fUseUnicode = FALSE;
 
 
 /*

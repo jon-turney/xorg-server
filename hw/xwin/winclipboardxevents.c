@@ -36,14 +36,6 @@
 #include "winclipboard.h"
 #include "misc.h"
 
-
-/*
- * References to external symbols
- */
-
-extern Bool		g_fUnicodeSupport;
-
-
 /*
  * Process any pending X events
  */

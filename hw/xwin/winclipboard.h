@@ -54,6 +54,8 @@
 /* Windows headers */
 #include <X11/Xwindows.h>
 
+/* */
+#include <winclipboard_globals.h>
 
 /* Clipboard module constants */
 #define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"

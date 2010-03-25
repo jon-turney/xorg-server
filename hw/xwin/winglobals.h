@@ -26,6 +26,8 @@
 #ifndef WINGLOBALS_H
 #define WINGLOBALS_H
 
+#include <winclipboard_globals.h>
+
 /*
  * References to external symbols
  */
