@@ -825,6 +825,19 @@ winMultiWindowWMProc (void *pArg)
 
 	case WM_WM_HINTS_EVENT:
 	  UpdateIcon (pWMInfo, pNode->msg.iWindow);
+
+	  pNode->msg.hwndWindow = getHwnd(pWMInfo, pNode->msg.iWindow);
+
+	  /* Determine the Window style, which determines borders and clipping region... */
+	  {
+	    HWND zstyle = HWND_NOTOPMOST;
+	    winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
+	    winUpdateWindowPosition (pNode->msg.hwndWindow, FALSE, &zstyle);
+	  }
+
+	  /* Display the window without activating it */
+	  ShowWindow (pNode->msg.hwndWindow, SW_SHOWNOACTIVATE);
+
 	  break;
 
 	case WM_WM_CHANGE_STATE:
@@ -874,8 +887,8 @@ winMultiWindowXMsgProc (void *pArg)
   int                   iRetries;
   XEvent		event;
   Atom                  atmWmName;
-  Atom                  atmWmHints;
   Atom			atmWmChange;
+  Atom atmWmHints, atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints;
   int			iReturn;
   XIconSize		*xis;
 
@@ -1012,12 +1025,15 @@ winMultiWindowXMsgProc (void *pArg)
   atmWmName   = XInternAtom (pProcArg->pDisplay,
 			     "WM_NAME",
 			     False);
-  atmWmHints   = XInternAtom (pProcArg->pDisplay,
-			      "WM_HINTS",
-			      False);
   atmWmChange  = XInternAtom (pProcArg->pDisplay,
 			      "WM_CHANGE_STATE",
 			      False);
+
+  atmWmHints = XInternAtom (pProcArg->pDisplay, "WM_HINTS", False);
+  atmWindowState = XInternAtom(pProcArg->pDisplay, "_NET_WM_STATE", False);
+  atmMotifWmHints = XInternAtom(pProcArg->pDisplay, "_MOTIF_WM_HINTS", False);
+  atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
+  atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
 
   /*
     iiimxcf had a bug until 2009-04-27, assuming that the
@@ -1133,8 +1149,13 @@ winMultiWindowXMsgProc (void *pArg)
                 }
             }
         }
-      else if (event.type == PropertyNotify
-	       && event.xproperty.atom == atmWmName)
+      else if (event.type == PropertyNotify)
+	{
+	  char *atomName = XGetAtomName(pProcArg->pDisplay, event.xproperty.atom);
+	  winDebug("winMultiWindowXMsgProc: PropertyNotify %s\n", atomName);
+	  XFree(atomName);
+
+	  if (event.xproperty.atom == atmWmName)
 	{
 	  memset (&msg, 0, sizeof (msg));
 
@@ -1144,16 +1165,28 @@ winMultiWindowXMsgProc (void *pArg)
 	  /* Other fields ignored */
 	  winSendMessageToWM (pProcArg->pWMInfo, &msg);
 	}
-      else if (event.type == PropertyNotify
-	       && event.xproperty.atom == atmWmHints)
+          else
 	{
-	  memset (&msg, 0, sizeof (msg));
+	  /*
+            Several properties are considered for WM hints, check if this
+            property change affects any of them...
+            (this list needs to be kept in sync with winApplyHints())
+	  */
+          if ((event.xproperty.atom == atmWmHints) ||
+              (event.xproperty.atom == atmWindowState) ||
+              (event.xproperty.atom == atmMotifWmHints) ||
+              (event.xproperty.atom == atmWindowType) ||
+              (event.xproperty.atom == atmNormalHints))
+            {
+              memset (&msg, 0, sizeof (msg));
+              msg.msg = WM_WM_HINTS_EVENT;
+              msg.iWindow = event.xproperty.window;
 
-	  msg.msg = WM_WM_HINTS_EVENT;
-	  msg.iWindow = event.xproperty.window;
-
-	  /* Other fields ignored */
-	  winSendMessageToWM (pProcArg->pWMInfo, &msg);
+              /* Other fields ignored */
+              winSendMessageToWM (pProcArg->pWMInfo, &msg);
+            }
+	}
+          /* XXX: We should also look for WM_HINTS or _NET_WM_ICON property change and update icon */
 	}
       else if (event.type == ClientMessage
 	       && event.xclient.message_type == atmWmChange
