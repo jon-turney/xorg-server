@@ -490,20 +490,16 @@ SendXMessage (Display *pDisplay, Window iWin, Atom atmType, long nData)
 
 
 /*
- * Updates the name of a HWND according to its X WM_NAME property
+ * See if we can get the stored HWND for this window...
  */
 
-static void
-UpdateName (WMInfoPtr pWMInfo, Window iWindow)
+static HWND
+getHwnd (WMInfoPtr pWMInfo, Window iWindow)
 {
-  wchar_t		*pszName;
   Atom			atmType;
   int			fmtRet;
   unsigned long		items, remain;
-  HWND			*retHwnd, hWnd;
-  XWindowAttributes	attr;
-
-  hWnd = 0;
+  HWND			*retHwnd, hWnd = NULL;
 
   /* See if we can get the cached HWND for this window... */
   if (XGetWindowProperty (pWMInfo->pDisplay,
@@ -512,7 +508,7 @@ UpdateName (WMInfoPtr pWMInfo, Window iWindow)
 			  0,
 			  1,
 			  False,
-			  XA_INTEGER,//pWMInfo->atmPrivMap,
+			  XA_INTEGER,
 			  &atmType,
 			  &fmtRet,
 			  &items,
@@ -527,8 +523,25 @@ UpdateName (WMInfoPtr pWMInfo, Window iWindow)
     }
   
   /* Some sanity checks */
+  if (!hWnd) return NULL;
+  if (!IsWindow (hWnd)) return NULL;
+
+  return hWnd;
+}
+
+/*
+ * Updates the name of a HWND according to its X WM_NAME property
+ */
+
+static void
+UpdateName (WMInfoPtr pWMInfo, Window iWindow)
+{
+  wchar_t		*pszName;
+  HWND			hWnd;
+  XWindowAttributes	attr;
+
+  hWnd = getHwnd (pWMInfo, iWindow);
   if (!hWnd) return;
-  if (!IsWindow (hWnd)) return;
 
   /* Set the Windows window name */
   GetWindowName (pWMInfo->pDisplay, iWindow, &pszName);
@@ -557,36 +570,12 @@ UpdateName (WMInfoPtr pWMInfo, Window iWindow)
 static void
 PreserveWin32Stack(WMInfoPtr pWMInfo, Window iWindow, UINT direction)
 {
-  Atom                  atmType;
-  int                   fmtRet;
-  unsigned long         items, remain;
-  HWND                  hWnd, *retHwnd;
+  HWND                  hWnd;
   DWORD                 myWinProcID, winProcID;
   Window                xWindow;
   WINDOWPLACEMENT       wndPlace;
-  
-  hWnd = NULL;
-  /* See if we can get the cached HWND for this window... */
-  if (XGetWindowProperty (pWMInfo->pDisplay,
-			  iWindow,
-			  pWMInfo->atmPrivMap,
-			  0,
-			  1,
-			  False,
-			  XA_INTEGER,//pWMInfo->atmPrivMap,
-			  &atmType,
-			  &fmtRet,
-			  &items,
-			  &remain,
-			  (unsigned char **) &retHwnd) == Success)
-    {
-      if (retHwnd)
-	{
-	  hWnd = *retHwnd;
-	  XFree (retHwnd);
-	}
-    }
-  
+
+  hWnd = getHwnd (pWMInfo, iWindow);
   if (!hWnd) return;
   
   GetWindowThreadProcessId (hWnd, &myWinProcID);
