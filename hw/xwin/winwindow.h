@@ -158,14 +158,19 @@ winMinimizeWindow (Window id);
  * winmultiwindowicons.c
  */
 
+#if 0
 void
-winUpdateIcon (Window id);
+winUpdateIcon (HWND hWnd, Display *pDisplay, Window id, HICON hIconNew);
+#endif
 
 void 
 winInitGlobalIcons (void);
 
 void 
 winDestroyIcon(HICON hIcon);
+
+void
+winSelectIcons(HICON *pIcon, HICON *pSmallIcon);
 
 #endif /* XWIN_MULTIWINDOW */
 #endif

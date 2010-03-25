@@ -44,8 +44,6 @@
  * External global variables
  */
 
-extern HICON		g_hIconX;
-extern HICON		g_hSmallIconX;
 extern HWND		g_hDlgDepthChange;
 
 /*
@@ -72,6 +70,11 @@ void winInitMultiWindowClass(void)
 
   if (atomXWinClass==0)
   {
+    HICON hIcon, hIconSmall;
+
+    /* Load the default icons */
+    winSelectIcons(&hIcon, &hIconSmall);
+
     /* Setup our window class */
     wcx.cbSize=sizeof(WNDCLASSEX);
     wcx.style = CS_HREDRAW | CS_VREDRAW;
@@ -79,12 +82,12 @@ void winInitMultiWindowClass(void)
     wcx.cbClsExtra = 0;
     wcx.cbWndExtra = 0;
     wcx.hInstance = g_hInstance;
-    wcx.hIcon = g_hIconX;
+    wcx.hIcon = hIcon;
     wcx.hCursor = 0;
     wcx.hbrBackground = (HBRUSH) GetStockObject (WHITE_BRUSH);
     wcx.lpszMenuName = NULL;
     wcx.lpszClassName = WINDOW_CLASS_X;
-    wcx.hIconSm = g_hSmallIconX;
+    wcx.hIconSm = hIconSmall;
 
 #if CYGMULTIWINDOW_DEBUG
     ErrorF ("winCreateWindowsWindow - Creating class: %s\n", WINDOW_CLASS_X);
@@ -497,8 +500,6 @@ winCreateWindowsWindow (WindowPtr pWin)
   HWND			hWnd;
   HWND			hFore = NULL;
   winWindowPriv(pWin);
-  HICON			hIcon;
-  HICON			hIconSmall;
   winPrivScreenPtr	pScreenPriv = pWinPriv->pScreenPriv;
   WinXSizeHints         hints;
   WindowPtr		pDaddy;
@@ -564,11 +565,6 @@ winCreateWindowsWindow (WindowPtr pWin)
 	      (int) GetLastError ());
     }
   pWinPriv->hWnd = hWnd;
-
-  /* Set application or .XWinrc defined Icons */
-  winSelectIcons(pWin, &hIcon, &hIconSmall);
-  if (hIcon) SendMessage (hWnd, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
-  if (hIconSmall) SendMessage (hWnd, WM_SETICON, ICON_SMALL, (LPARAM) hIconSmall);
  
   /* Change style back to popup, already placed... */
   SetWindowLongPtr(hWnd, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);

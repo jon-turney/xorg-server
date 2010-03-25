@@ -489,8 +489,6 @@ ProcWindowsWMFrameDraw (register ClientPtr client)
 
   ShowWindow (pRLWinPriv->hWnd, nCmdShow);
 
-  winMWExtWMUpdateIcon (pWin->drawable.id);
-
   if (wBoundingShape(pWin) != NULL)
     {
       pScreen = pWin->drawable.pScreen;
