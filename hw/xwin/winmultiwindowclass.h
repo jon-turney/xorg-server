@@ -34,6 +34,8 @@
  * Structures
  */
 
+#if 0
+// copied from X11/Xutil.h, sigh...
 typedef struct {
   long		flags;	/* marks which fields in this structure are defined */
   Bool		input;	/* does this application rely on the window manager to
@@ -46,7 +48,7 @@ typedef struct {
   XID		window_group;	/* id of related window group */
   /* this structure may be extended in the future */
 } WinXWMHints;
-
+#endif
 
 /*
  * new version containing base_width, base_height, and win_gravity fields;
@@ -93,8 +95,10 @@ typedef struct {
  * Function prototypes
  */
 
+#if 0
 int
 winMultiWindowGetWMHints (WindowPtr pWin, WinXWMHints *hints);
+#endif
 
 int
 winMultiWindowGetClassHint (WindowPtr pWin, char **res_name, char **res_class);
@@ -105,8 +109,10 @@ winMultiWindowGetWindowRole (WindowPtr pWin, char **res_role);
 int
 winMultiWindowGetWMNormalHints (WindowPtr pWin, WinXSizeHints *hints);
 
+#if 0
 int
 winMultiWindowGetWMName (WindowPtr pWin, char **wmName);
+#endif
 
 int
 winMultiWindowGetTransientFor (WindowPtr pWin, WindowPtr *ppDaddy);

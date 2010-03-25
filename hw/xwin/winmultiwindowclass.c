@@ -131,6 +131,7 @@ winMultiWindowGetClassHint (WindowPtr pWin, char **res_name, char **res_class)
 }
 
 
+#if 0
 int
 winMultiWindowGetWMHints (WindowPtr pWin, WinXWMHints *hints)
 {
@@ -168,6 +169,7 @@ winMultiWindowGetWMHints (WindowPtr pWin, WinXWMHints *hints)
   
   return 0;
 }
+#endif
 
 
 int
@@ -297,6 +299,7 @@ winMultiWindowGetTransientFor (WindowPtr pWin, WindowPtr *ppDaddy)
   return 0;
 }
 
+#if 0
 int
 winMultiWindowGetWMName (WindowPtr pWin, char **wmName)
 {
@@ -349,3 +352,4 @@ winMultiWindowGetWMName (WindowPtr pWin, char **wmName)
   
   return 0;
 }
+#endif
