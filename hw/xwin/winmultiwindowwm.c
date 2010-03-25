@@ -617,7 +617,6 @@ UpdateName (WMInfoPtr pWMInfo, Window iWindow)
 
           /* Set the Windows window name */
           SetWindowTextW (hWnd, pwszWideWindowName);
-          winUpdateIcon (iWindow);
 
           free (pwszWideWindowName);
           free (pszWindowName);
@@ -625,6 +624,37 @@ UpdateName (WMInfoPtr pWMInfo, Window iWindow)
     }
 }
 
+/*
+ * Updates the icon of a HWND according to its X icon properties
+ */
+
+static void
+UpdateIcon (WMInfoPtr pWMInfo, Window iWindow)
+{
+  HWND hWnd;
+  HICON hIconNew = NULL;
+
+  hWnd = getHwnd (pWMInfo, iWindow);
+  if (!hWnd) return;
+
+  {
+    XClassHint class_hint = {0,0};
+    char *window_name = 0;
+
+    if (XGetClassHint(pWMInfo->pDisplay, iWindow, &class_hint))
+      {
+        XFetchName(pWMInfo->pDisplay, iWindow, &window_name);
+
+        hIconNew = (HICON)winOverrideIcon(class_hint.res_name, class_hint.res_class, window_name);
+
+        if (class_hint.res_name) XFree(class_hint.res_name);
+        if (class_hint.res_class) XFree(class_hint.res_class);
+        if (window_name) XFree(window_name);
+      }
+  }
+
+  winUpdateIcon (hWnd, pWMInfo->pDisplay, iWindow, hIconNew);
+}
 
 #if 0
 /*
@@ -668,7 +698,6 @@ PreserveWin32Stack(WMInfoPtr pWMInfo, Window iWindow, UINT direction)
   }
 }
 #endif /* PreserveWin32Stack */
-
 
 /*
  * winMultiWindowWMProc
@@ -762,7 +791,7 @@ winMultiWindowWMProc (void *pArg)
 			   (unsigned char *) &(pNode->msg.hwndWindow),
 			   1);
 	  UpdateName (pWMInfo, pNode->msg.iWindow);
-	  winUpdateIcon (pNode->msg.iWindow);
+	  UpdateIcon (pWMInfo, pNode->msg.iWindow);
 	  break;
 
 	case WM_WM_MAP2:
@@ -793,7 +822,7 @@ winMultiWindowWMProc (void *pArg)
 			   (unsigned char *) &(pNode->msg.hwndWindow),
 			   1);
 	  UpdateName (pWMInfo, pNode->msg.iWindow);
-	  winUpdateIcon (pNode->msg.iWindow);
+	  UpdateIcon (pWMInfo, pNode->msg.iWindow);
 	  {
 	    HWND zstyle = HWND_NOTOPMOST;
 	    winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
@@ -860,7 +889,7 @@ winMultiWindowWMProc (void *pArg)
 	  break;
 
 	case WM_WM_ICON_EVENT:
-	  winUpdateIcon (pNode->msg.iWindow);
+	  UpdateIcon (pWMInfo, pNode->msg.iWindow);
           break;
 
 	case WM_WM_HINTS_EVENT:

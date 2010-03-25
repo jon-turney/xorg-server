@@ -177,7 +177,7 @@ int
 winIconIsOverride (unsigned hiconIn);
 
 HICON
-winOverrideIcon (unsigned long longpWin);
+winOverrideIcon (char *res_name, char *res_class, char *wmName);
 
 unsigned long
 winOverrideStyle (char *res_name, char *res_class, char *wmName);
