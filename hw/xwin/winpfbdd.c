@@ -238,6 +238,10 @@ winFreeFBPrimaryDD (ScreenPtr pScreen)
 {
   winScreenPriv(pScreen);
   winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+  Bool			fReturn;
+  
+  ErrorF ("winCloseScreenPrimaryDD - Freeing screen resources\n");
+
 
   /* Free the offscreen surface, if there is one */
   if (pScreenPriv->pddsOffscreen)
@@ -301,27 +305,6 @@ winCloseScreenPrimaryDD (int nIndex, ScreenPtr pScreen)
   RemoveProp (pScreenPriv->hwndScreen, WIN_SCR_PROP);
 
   winFreeFBPrimaryDD(pScreen);
-
-  /* Delete tray icon, if we have one */
-  if (!pScreenInfo->fNoTrayIcon)
-    winDeleteNotifyIcon (pScreenPriv);
-
-  /* Free the exit confirmation dialog box, if it exists */
-  if (g_hDlgExit != NULL)
-    {
-      DestroyWindow (g_hDlgExit);
-      g_hDlgExit = NULL;
-    }
-
-  /* Kill our window */
-  if (pScreenPriv->hwndScreen)
-    {
-      DestroyWindow (pScreenPriv->hwndScreen);
-      pScreenPriv->hwndScreen = NULL;
-    }
-
-  /* Kill our screeninfo's pointer to the screen */
-  pScreenInfo->pScreen = NULL;
 
   /* Free the screen privates for this screen */
   free ((pointer) pScreenPriv);

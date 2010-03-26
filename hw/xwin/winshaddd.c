@@ -722,51 +722,17 @@ winCloseScreenShadowDD (int nIndex, ScreenPtr pScreen)
   winDebug ("winCloseScreenShadowDD - Freeing screen resources\n");
 #endif
 
-  /* Flag that the screen is closed */
-  pScreenPriv->fClosed = TRUE;
-  pScreenPriv->fActive = FALSE;
-
-  /* Call the wrapped CloseScreen procedure */
-  WIN_UNWRAP(CloseScreen);
-  if (pScreen->CloseScreen)
-    fReturn = (*pScreen->CloseScreen) (nIndex, pScreen);
-
   winFreeFBShadowDD(pScreen);
 
   /* Free the screen DC */
   ReleaseDC (pScreenPriv->hwndScreen, pScreenPriv->hdcScreen);
-
-  /* Delete the window property */
-  RemoveProp (pScreenPriv->hwndScreen, WIN_SCR_PROP);
-
-  /* Delete tray icon, if we have one */
-  if (!pScreenInfo->fNoTrayIcon)
-    winDeleteNotifyIcon (pScreenPriv);
-
-  /* Free the exit confirmation dialog box, if it exists */
-  if (g_hDlgExit != NULL)
-    {
-      DestroyWindow (g_hDlgExit);
-      g_hDlgExit = NULL;
-    }
-
-  /* Kill our window */
-  if (pScreenPriv->hwndScreen)
-    {
-      DestroyWindow (pScreenPriv->hwndScreen);
-      pScreenPriv->hwndScreen = NULL;
-    }
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
   /* Destroy the thread startup mutex */
   pthread_mutex_destroy (&pScreenPriv->pmServerStarted);
 #endif
 
-  /* Kill our screeninfo's pointer to the screen */
-  pScreenInfo->pScreen = NULL;
 
-  /* Free the screen privates for this screen */
-  free ((pointer) pScreenPriv);
 
   return fReturn;
 }

@@ -76,6 +76,8 @@ winMWExtWMProcs = {
 static Bool
 winSaveScreen (ScreenPtr pScreen, int on);
 
+static Bool
+winCloseScreen(int nIndex, ScreenPtr pScreen);
 
 /*
  * Determine what type of screen we are initializing
@@ -542,7 +544,7 @@ winFinishScreenInitFB (int index,
 
   /* Wrap either fb's or shadow's CloseScreen with our CloseScreen */
   pScreenPriv->CloseScreen = pScreen->CloseScreen;
-  pScreen->CloseScreen = pScreenPriv->pwinCloseScreen;
+  pScreen->CloseScreen = winCloseScreen;
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
   /* Create a mutex for modules in separate threads to wait for */
@@ -656,9 +658,6 @@ winFinishScreenInitNativeGDI (int index,
       return FALSE;
     }
 
-  /* Initialize the CloseScreen procedure pointer */
-  pScreen->CloseScreen = NULL;
-
   /* Initialize the mi code */
   if (!miScreenInit (pScreen,
 		     NULL, /* No framebuffer */
@@ -751,7 +750,7 @@ winFinishScreenInitNativeGDI (int index,
 	  "returned\n");
   
   /* mi doesn't use a CloseScreen procedure, so no need to wrap */
-  pScreen->CloseScreen = pScreenPriv->pwinCloseScreen;
+  pScreen->CloseScreen = winCloseScreen;
 
   /* Tell the server that we are enabled */
   pScreenPriv->fEnabled = TRUE;
@@ -770,4 +769,63 @@ static Bool
 winSaveScreen (ScreenPtr pScreen, int on)
 {
   return TRUE;
+}
+
+static Bool
+winCloseScreen(int nIndex, ScreenPtr pScreen)
+{
+  winScreenPriv(pScreen);
+  winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+  Bool fReturn;
+
+  /* Flag that the screen is closed */
+  pScreenPriv->fClosed = TRUE;
+  pScreenPriv->fActive = FALSE;
+
+  /* Call the wrapped CloseScreen procedure */
+  WIN_UNWRAP(CloseScreen);
+  if (*pScreen->CloseScreen)
+    fReturn = (*pScreen->CloseScreen)(nIndex, pScreen);
+
+  /* Call the engine dependent screen finialization procedure */
+  if (!((*pScreenPriv->pwinCloseScreen)(nIndex, pScreen)))
+    {
+      ErrorF ("winScreenFini - pwinCloseScreen() failed\n");
+    }
+
+  /* Delete the window property */
+  RemoveProp (pScreenPriv->hwndScreen, WIN_SCR_PROP);
+
+  /* Delete tray icon, if we have one */
+  if (!pScreenInfo->fNoTrayIcon)
+    winDeleteNotifyIcon (pScreenPriv);
+
+  /* Free the exit confirmation dialog box, if it exists */
+  if (g_hDlgExit != NULL)
+    {
+      DestroyWindow (g_hDlgExit);
+      g_hDlgExit = NULL;
+    }
+
+  ErrorF ("winCloseScreen - Destroying window\n");
+
+  /* Kill our window */
+  if (pScreenPriv->hwndScreen)
+    {
+      DestroyWindow (pScreenPriv->hwndScreen);
+      pScreenPriv->hwndScreen = NULL;
+    }
+
+#if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
+  /* Destroy the thread startup mutex */
+  pthread_mutex_destroy (&pScreenPriv->pmServerStarted);
+#endif
+
+  /* Invalidate our screeninfo's pointer to the screen */
+  pScreenInfo->pScreen = NULL;
+
+  /* Free the screen privates for this screen */
+  free (pScreenPriv);
+
+  return fReturn;
 }

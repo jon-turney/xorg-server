@@ -118,43 +118,13 @@ winCloseScreenNativeGDI (int nIndex, ScreenPtr pScreen)
 
   ErrorF ("winCloseScreenNativeGDI - Freeing screen resources\n");
 
-  /* Flag that the screen is closed */
-  pScreenPriv->fClosed = TRUE;
-  pScreenPriv->fActive = FALSE;
-
-  /* 
+  /*
    * NOTE: mi doesn't use a CloseScreen procedure, so we do not
    * need to call a wrapped procedure here.
    */
 
   /* Delete the window property */
   RemoveProp (pScreenPriv->hwndScreen, WIN_SCR_PROP);
-  
-  ErrorF ("winCloseScreenNativeGDI - Destroying window\n");
-  
-  /* Delete tray icon, if we have one */
-  if (!pScreenInfo->fNoTrayIcon)
-    winDeleteNotifyIcon (pScreenPriv);
-
-  /* Free the exit confirmation dialog box, if it exists */
-  if (g_hDlgExit != NULL)
-    {
-      DestroyWindow (g_hDlgExit);
-      g_hDlgExit = NULL;
-    }
-
-  /* Kill our window */
-  if (pScreenPriv->hwndScreen)
-    {
-      DestroyWindow (pScreenPriv->hwndScreen);
-      pScreenPriv->hwndScreen = NULL;
-    }
-
-  /* Invalidate our screeninfo's pointer to the screen */
-  pScreenInfo->pScreen = NULL;
-
-  /* Free the screen privates for this screen */
-  free (pScreenPriv);
 
   ErrorF ("winCloseScreenNativeGDI - Returning\n");
 
