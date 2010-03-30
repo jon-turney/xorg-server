@@ -40,6 +40,7 @@
 #include "winprefs.h"
 #include "winconfig.h"
 #include "winmsg.h"
+#include "winmonitors.h"
 #include "inputstr.h"
 
 /*
@@ -294,13 +295,59 @@ winWindowProc (HWND hwnd, UINT message,
 		  "primary surface\n");
 #endif
 
-#if 0
-	  /* Multi-Window mode uses RandR for resizes */
-	  if (s_pScreenInfo->fMultiWindow)
-	    {
-	      RRSetScreenConfig ();
-	    }
+	  /*
+             In rootless modes which are monitor or virtual desktop size
+             use RandR to resize the X screen
+          */
+          if ((!s_pScreenInfo->fUserGaveHeightAndWidth) &&
+              (s_pScreenInfo->iResizeMode == resizeWithRandr) &&
+              (TRUE
+#ifdef XWIN_MULTIWINDOWEXTWM
+               || s_pScreenInfo->fMWExtWM
 #endif
+               || s_pScreenInfo->fRootless
+#ifdef XWIN_MULTIWINDOW
+               || s_pScreenInfo->fMultiWindow
+#endif
+               ))
+	    {
+              DWORD dwWidth, dwHeight;
+
+              if (s_pScreenInfo->fMultipleMonitors)
+                {
+                  /* resize to new virtual desktop size */
+                  dwWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                  dwHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                }
+              else
+                {
+                  /* resize to new size of specified monitor */
+                  struct GetMonitorInfoData data;
+                  if (QueryMonitor(s_pScreenInfo->iMonitor, &data))
+                    {
+                      if (data.bMonitorSpecifiedExists == TRUE)
+                        {
+                          dwWidth = data.monitorWidth;
+                          dwHeight = data.monitorHeight;
+                          /*
+                             XXX: monitor may have changed position,
+                             so we might need to update xinerama data
+                          */
+                        }
+                      else
+                        {
+                          ErrorF ("Monitor number %d no longer exists!\n", s_pScreenInfo->iMonitor);
+                        }
+                    }
+                }
+
+              // adjustments made to window size?
+              winDoRandRScreenSetSize(s_pScreen,
+                                      dwWidth,
+                                      dwHeight,
+                                      (dwWidth / monitorResolution) * 25.4,
+                                      (dwHeight / monitorResolution) * 25.4);
+	    }
 	}
 
       break;
