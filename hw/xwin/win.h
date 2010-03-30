@@ -404,6 +404,8 @@ typedef struct
   Bool			fUserGaveHeightAndWidth;
 
   DWORD			dwScreen;
+
+  int			iMonitor;
   DWORD			dwUserWidth;
   DWORD			dwUserHeight;
   DWORD			dwWidth;
