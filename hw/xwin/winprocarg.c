@@ -148,7 +148,7 @@ winInitializeDefaultScreens (void)
 #endif
       g_ScreenInfo[i].fMultipleMonitors = FALSE;
       g_ScreenInfo[i].fLessPointer = FALSE;
-      g_ScreenInfo[i].fScrollbars = FALSE;
+      g_ScreenInfo[i].iResizeMode = notAllowed;
       g_ScreenInfo[i].fNoTrayIcon = FALSE;
       g_ScreenInfo[i].iE3BTimeout = WIN_E3B_OFF;
       g_ScreenInfo[i].fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -806,19 +806,72 @@ ddxProcessArgument (int argc, char *argv[], int i)
 	  /* Parameter is for all screens */
 	  for (j = 0; j < MAXSCREENS; j++)
 	    {
-	      g_ScreenInfo[j].fScrollbars = TRUE;
+	      g_ScreenInfo[j].iResizeMode = resizeWithScrollbars;
 	    }
 	}
       else
 	{
 	  /* Parameter is for a single screen */
-	  g_ScreenInfo[g_iLastScreen].fScrollbars = TRUE;
+	  g_ScreenInfo[g_iLastScreen].iResizeMode = resizeWithScrollbars;
 	}
 
       /* Indicate that we have processed this argument */
       return 1;
     }
 
+  /*
+   * Look for the '-resize' argument
+   */
+  if (IS_OPTION ("-resize") || IS_OPTION ("-noresize") ||
+      (strncmp(argv[i], "-resize=",strlen("-resize=")) == 0))
+    {
+      winResizeMode mode;
+
+      if (IS_OPTION ("-resize"))
+        mode = resizeWithRandr;
+      else if (IS_OPTION ("-noresize"))
+        mode = notAllowed;
+      else if (strncmp(argv[i], "-resize=",strlen("-resize=")) == 0)
+        {
+          char *option = argv[i] + strlen("-resize=");
+          if (strcmp(option, "randr") == 0)
+            mode = resizeWithRandr;
+          else if (strcmp(option, "scrollbars") == 0)
+            mode = resizeWithScrollbars;
+          else if (strcmp(option, "none") == 0)
+            mode = notAllowed;
+          else
+            {
+              ErrorF ("ddxProcessArgument - resize - Invalid resize mode %s\n", option);
+              return 0;
+            }
+        }
+      else
+        {
+          ErrorF ("ddxProcessArgument - resize - Invalid resize option %s\n", argv[i]);
+          return 0;
+        }
+
+      /* Is this parameter attached to a screen or is it global? */
+      if (-1 == g_iLastScreen)
+	{
+	  int j;
+
+	  /* Parameter is for all screens */
+	  for (j = 0; j < MAXSCREENS; j++)
+	    {
+	      g_ScreenInfo[j].iResizeMode = mode;
+	    }
+	}
+      else
+	{
+	  /* Parameter is for a single screen */
+	  g_ScreenInfo[g_iLastScreen].iResizeMode = mode;
+	}
+
+      /* Indicate that we have processed this argument */
+      return 1;
+    }
 
 #ifdef XWIN_CLIPBOARD
   /*

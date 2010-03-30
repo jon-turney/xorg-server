@@ -114,11 +114,40 @@ Do not give the Cygwin/X window a \fIWindows\fP window border, title bar,
 etc.
 This parameter is ignored when the \fB\-fullscreen\fP parameter is specified.
 .TP 8
-.B \-scrollbars
-In windowed mode, allow screens bigger than the \fIWindows\fP desktop.
-Moreover, if the window has decorations, one can now resize it.
-This parameter is ignored when the \fB\-fullscreen\fP parameter is specified.
+.B \-resize
+Select the resize mode of an X screen window in windowed mode.
 
+.B \-resize=none
+
+(default). The window is not resizable.
+
+If the window has decorations, a fixed frame is used.
+
+.B \-resize=scrollbars
+
+The window is resizeable.
+
+If the window has decorations, a resizing frame is used.
+
+Scrollbars are drawn when needed to allow the entire X screen
+to viewed by adjusting them.
+
+This also permits screens bigger than the \fIWindows\fP virtual desktop to be used.
+
+.B \-resize=randr
+
+If the window has decorations, a resizing frame is used.
+
+Resizing the window will use the RANDR extension to change
+the size of the X screen.  Likewise, changing the size of
+the X screen using the RANDR extension will cause the size
+of the \fIWindows\fP window containing the X screen to be changed.
+
+\fB\--resize\fP on its own is equivalent to \fB\--resize=randr\fP
+
+.TP 8
+.B \-scrollbars
+Alternative name for \fB\-resize=scrollbars\fP.
 
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
