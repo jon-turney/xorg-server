@@ -397,8 +397,6 @@ typedef struct
   DWORD			dwUserHeight;
   DWORD			dwWidth;
   DWORD			dwHeight;
-  DWORD			dwWidth_mm;
-  DWORD			dwHeight_mm;
   DWORD			dwPaddedWidth;
 
   /* Did the user specify a screen position? */
