@@ -206,7 +206,11 @@ winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle);
  */
 
 static jmp_buf			g_jmpWMEntry;
+static XIOErrorHandler g_winMultiWindowWMOldIOErrorHandler;
+static pthread_t g_winMultiWindowWMThread;
 static jmp_buf			g_jmpXMsgProcEntry;
+static XIOErrorHandler g_winMultiWindowXMsgProcOldIOErrorHandler;
+static pthread_t g_winMultiWindowXMsgProcThread;
 static Bool			g_shutdown = FALSE;
 static Bool			redirectError = FALSE;
 static Bool			g_fAnotherWMRunning = FALSE;
@@ -910,9 +914,14 @@ winMultiWindowXMsgProc (void *pArg)
 
   ErrorF ("winMultiWindowXMsgProc - pthread_mutex_unlock () returned.\n");
 
+  /* Install our error handler */
+  XSetErrorHandler (winMultiWindowXMsgProcErrorHandler);
+  g_winMultiWindowXMsgProcThread = pthread_self();
+  g_winMultiWindowXMsgProcOldIOErrorHandler = XSetIOErrorHandler (winMultiWindowXMsgProcIOErrorHandler);
+
   /* Set jump point for IO Error exits */
   iReturn = setjmp (g_jmpXMsgProcEntry);
-  
+
   /* Check if we should continue operations */
   if (iReturn != WIN_JMP_ERROR_IO
       && iReturn != WIN_JMP_OKAY)
@@ -927,10 +936,6 @@ winMultiWindowXMsgProc (void *pArg)
       ErrorF ("winInitMultiWindowXMsgProc - Caught IO Error.  Exiting.\n");
       pthread_exit (NULL);
     }
-
-  /* Install our error handler */
-  XSetErrorHandler (winMultiWindowXMsgProcErrorHandler);
-  XSetIOErrorHandler (winMultiWindowXMsgProcIOErrorHandler);
 
   /* Setup the display connection string x */
   winGetDisplayName(pszDisplay, (int)pProcArg->dwScreen);
@@ -1316,9 +1321,14 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
   ErrorF ("winInitMultiWindowWM - pthread_mutex_unlock () returned.\n");
 
+  /* Install our error handler */
+  XSetErrorHandler (winMultiWindowWMErrorHandler);
+  g_winMultiWindowWMThread = pthread_self();
+  g_winMultiWindowWMOldIOErrorHandler = XSetIOErrorHandler (winMultiWindowWMIOErrorHandler);
+
   /* Set jump point for IO Error exits */
   iReturn = setjmp (g_jmpWMEntry);
-  
+
   /* Check if we should continue operations */
   if (iReturn != WIN_JMP_ERROR_IO
       && iReturn != WIN_JMP_OKAY)
@@ -1333,10 +1343,6 @@ winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
       ErrorF ("winInitMultiWindowWM - Caught IO Error.  Exiting.\n");
       pthread_exit (NULL);
     }
-
-  /* Install our error handler */
-  XSetErrorHandler (winMultiWindowWMErrorHandler);
-  XSetIOErrorHandler (winMultiWindowWMIOErrorHandler);
 
   /* Setup the display connection string x */
   winGetDisplayName(pszDisplay, (int)pProcArg->dwScreen);
@@ -1460,12 +1466,18 @@ winMultiWindowWMIOErrorHandler (Display *pDisplay)
 {
   ErrorF ("winMultiWindowWMIOErrorHandler!\n\n");
 
-  if (g_shutdown)
-    pthread_exit(NULL);
+  if (pthread_equal(pthread_self(),g_winMultiWindowWMThread))
+    {
+      if (g_shutdown)
+        pthread_exit(NULL);
 
-  /* Restart at the main entry point */
-  longjmp (g_jmpWMEntry, WIN_JMP_ERROR_IO);
-  
+      /* Restart at the main entry point */
+      longjmp (g_jmpWMEntry, WIN_JMP_ERROR_IO);
+    }
+
+  if (g_winMultiWindowWMOldIOErrorHandler)
+    g_winMultiWindowWMOldIOErrorHandler(pDisplay);
+
   return 0;
 }
 
@@ -1500,9 +1512,15 @@ winMultiWindowXMsgProcIOErrorHandler (Display *pDisplay)
 {
   ErrorF ("winMultiWindowXMsgProcIOErrorHandler!\n\n");
 
-  /* Restart at the main entry point */
-  longjmp (g_jmpXMsgProcEntry, WIN_JMP_ERROR_IO);
-  
+  if (pthread_equal(pthread_self(),g_winMultiWindowXMsgProcThread))
+    {
+      /* Restart at the main entry point */
+      longjmp (g_jmpXMsgProcEntry, WIN_JMP_ERROR_IO);
+    }
+
+  if (g_winMultiWindowXMsgProcOldIOErrorHandler)
+    g_winMultiWindowXMsgProcOldIOErrorHandler(pDisplay);
+
   return 0;
 }
 
