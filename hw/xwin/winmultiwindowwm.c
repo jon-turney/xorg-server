@@ -1614,7 +1614,7 @@ winMultiWindowWMErrorHandler (Display *pDisplay, XErrorEvent *pErr)
 static int
 winMultiWindowWMIOErrorHandler (Display *pDisplay)
 {
-  ErrorF ("winMultiWindowWMIOErrorHandler!\n\n");
+  ErrorF ("winMultiWindowWMIOErrorHandler!\n");
 
   if (pthread_equal(pthread_self(),g_winMultiWindowWMThread))
     {
@@ -1660,7 +1660,7 @@ winMultiWindowXMsgProcErrorHandler (Display *pDisplay, XErrorEvent *pErr)
 static int
 winMultiWindowXMsgProcIOErrorHandler (Display *pDisplay)
 {
-  ErrorF ("winMultiWindowXMsgProcIOErrorHandler!\n\n");
+  ErrorF ("winMultiWindowXMsgProcIOErrorHandler!\n");
 
   if (pthread_equal(pthread_self(),g_winMultiWindowXMsgProcThread))
     {
