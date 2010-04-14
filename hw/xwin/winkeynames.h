@@ -199,6 +199,10 @@
 #define KEY_PREVIOUSSONG /* Media previous              */  136
 #define KEY_STOPCD       /* Media stop                  */  156
 
+#define KEY_SEARCH       /* Search                      */  221
+#define KEY_MAIL         /* Mail                        */  228
+#define KEY_BROWSER      /* Browser                     */  170
+
 /* These are for "notused" and "unknown" entries in translation maps. */
 #define KEY_NOTUSED	  0
 #define KEY_UNKNOWN	255

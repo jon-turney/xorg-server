@@ -101,11 +101,13 @@ winKeyboardMessageHookLL (int iCode, WPARAM wParam, LPARAM lParam)
       switch (wParam)
 	{
 	case WM_KEYDOWN:  case WM_SYSKEYDOWN:
-	case WM_KEYUP:    case WM_SYSKEYUP: 
-	  fPassKeystroke = 
-	    (fPassAltTab && 
-                (p->vkCode == VK_TAB) && ((p->flags & LLKHF_ALTDOWN) != 0))
-	    || (p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)
+	case WM_KEYUP:    case WM_SYSKEYUP:
+	  fPassKeystroke =
+	    (fPassAltTab &&
+             (p->vkCode == VK_TAB) && ((p->flags & LLKHF_ALTDOWN) != 0))
+            || (p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)
+            || (p->vkCode == VK_BROWSER_SEARCH) || (p->vkCode == VK_BROWSER_HOME)
+            || (p->vkCode == VK_LAUNCH_MAIL)
 	    ;
 	  break;
 	}
