@@ -1,0 +1,26 @@
+#!/bin/sh
+# Get the git version if possible and store it in $GITFILE if it differs to
+# the one contained already.
+
+GITFILE="xorg-git-version.h"
+VER=""
+OUTSTR=""
+
+if which git > /dev/null; then
+    VER=`git describe HEAD 2>/dev/null`
+fi
+
+if test -z "$VER"; then
+    OUTSTR="#undef XORG_GIT_VERSION"
+else
+    OUTSTR="#define XORG_GIT_VERSION \"$VER\""
+fi
+
+if test -e "$GITFILE"; then
+    FILE_VER=`cat $GITFILE`
+    if test "$FILE_VER" = "$VER"; then
+        exit 0
+    fi
+fi
+
+echo "$OUTSTR" > $GITFILE

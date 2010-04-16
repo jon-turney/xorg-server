@@ -34,6 +34,8 @@
 #include <xorg-config.h>
 #endif
 
+#include <xorg-git-version.h>
+
 #include <stdlib.h>
 #include <errno.h>
 
@@ -228,6 +230,9 @@ xf86PrintBanner(void)
   xf86ErrorFVerb(0, "\tBefore reporting problems, check "
                  ""__VENDORDWEBSUPPORT__"\n"
                  "\tto make sure that you have the latest version.\n");
+#ifdef XORG_GIT_VERSION
+  xf86ErrorFVerb(0, "git version: " XORG_GIT_VERSION "\n");
+#endif
 }
 
 static void

@@ -63,6 +63,13 @@ sdk_HEADERS =		\
 nodist_sdk_HEADERS = xorg-server.h
 endif
 
+BUILT_SOURCES = xorg-git-version.h
+
+xorg-git-version.h:
+	sh $(top_srcdir)/GIT-GENERATE-VERSION
+
+.PHONY: xorg-git-version.h
+
 AM_CFLAGS = $(DIX_CFLAGS)
 
 EXTRA_DIST = 	\
@@ -70,3 +77,5 @@ EXTRA_DIST = 	\
 	eventconvert.h eventstr.h \
 	protocol-versions.h \
 	xsha1.h
+
+DISTCLEANFILES = xorg-git-version.h

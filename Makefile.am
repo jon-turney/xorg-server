@@ -49,7 +49,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = xorg-server.pc
 endif
 
-EXTRA_DIST = xorg-server.pc.in xorg-server.m4 autogen.sh
+EXTRA_DIST = xorg-server.pc.in xorg-server.m4 autogen.sh GIT-GENERATE-VERSION
 
 DISTCHECK_CONFIGURE_FLAGS=\
 	--with-xkb-path=$(XKB_BASE_DIRECTORY) \
