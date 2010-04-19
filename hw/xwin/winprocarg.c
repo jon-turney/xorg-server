@@ -35,6 +35,7 @@ from The Open Group.
 #define VENDOR_CONTACT BUILDERADDR
 #endif
 #include <../xfree86/common/xorgVersion.h>
+#include <xorg-git-version.h>
 #include "win.h"
 #include "winconfig.h"
 #include "winprefs.h"
@@ -1250,8 +1251,11 @@ winLogVersionInfo (void)
   ErrorF ("Welcome to the XWin X Server\n");
   ErrorF ("Vendor: %s\n", VENDOR_STRING);
   ErrorF ("Release: %d.%d.%d.%d (%d)\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP, XORG_VERSION_CURRENT);
-  ErrorF ("%s\n\n", BUILDERSTRING);
+  if (strlen(BUILDERSTRING)) ErrorF ("%s\n", BUILDERSTRING);
   ErrorF ("Contact: %s\n", VENDOR_CONTACT);
+#ifdef XORG_GIT_VERSION
+  ErrorF ("git version: " XORG_GIT_VERSION "\n");
+#endif
 }
 
 /*
