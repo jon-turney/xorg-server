@@ -68,8 +68,8 @@ winKeybdCtrl (DeviceIntPtr pDevice, KeybdCtrl *pCtrl);
 void
 winTranslateKey (WPARAM wParam, LPARAM lParam, int *piScanCode)
 {
-  int		iKeyFixup = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 1];
-  int		iKeyFixupEx = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 2];
+  int		iKeyFixup = g_iKeyMap[wParam].keycode;
+  int		iKeyFixupEx = g_iKeyMap[wParam].extended_keycode;
   int		iParam = HIWORD (lParam);
   int		iParamScanCode = LOBYTE (iParam);
 
