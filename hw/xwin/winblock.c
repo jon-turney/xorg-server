@@ -50,6 +50,23 @@ winBlockHandler(ScreenPtr pScreen,
         (*tvp)->tv_sec = 0;
         (*tvp)->tv_usec = 100;
     }
+#else
+    /*
+       Sometimes, we have work to do on the Windows message queue,
+       but /dev/windows doesn't appear to be ready.  At the moment,
+       I don't understand how that happens.
+
+       As a workaround, make sure select() just polls rather than
+       blocking if there are still messages to process...
+     */
+    if (GetQueueStatus(QS_ALLINPUT | QS_ALLPOSTMESSAGE) != 0) {
+        struct timeval **tvp = pTimeout;
+
+        if (*tvp != NULL) {
+            (*tvp)->tv_sec = 0;
+            (*tvp)->tv_usec = 0;
+        }
+    }
 #endif
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
