@@ -156,7 +156,7 @@ void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM 
       if (force || getenv("WIN_DEBUG_MESSAGES") || getenv("WIN_DEBUG_WM_USER"))
       {
         winDebug("%s - Message WM_USER + %d\n", function, message - WM_USER);
-        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam, lParam);
+        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x timestamp %d\n", hwnd, wParam, lParam, GetMessageTime());
       }
     }
   else if (message < MESSAGE_NAMES_LEN && MESSAGE_NAMES[message])
@@ -168,7 +168,7 @@ void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM 
       if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer))
       {
         winDebug("%s - Message %s\n", function, MESSAGE_NAMES[message]);
-        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x\n", hwnd, wParam, lParam);
+        winDebug("\thwnd 0x%x wParam 0x%x lParam 0x%x timestamp %d\n", hwnd, wParam, lParam, GetMessageTime());
       }
     }
 }
