@@ -424,10 +424,9 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 
       lastWasControlL = FALSE;
 
-      /* Is next press an Alt_R with the same timestamp? */
+      /* Is next release an Alt_R with the same timestamp? */
+      
       if (fReturn
-	  && (msgNext.message == WM_KEYUP
-	      || msgNext.message == WM_SYSKEYUP)
 	  && msgNext.wParam == VK_MENU
 	  && msgNext.time == lTime
 	  && (HIWORD (msgNext.lParam) & KF_EXTENDED))
