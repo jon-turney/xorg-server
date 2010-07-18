@@ -73,6 +73,10 @@ winTranslateKey (WPARAM wParam, LPARAM lParam, int *piScanCode)
   int		iParam = HIWORD (lParam);
   int		iParamScanCode = LOBYTE (iParam);
 
+#if CYGDEBUG
+  ErrorF("winTranslateKey: wParam %04x lParam %08x timestamp %d\n", wParam, (unsigned int)lParam, GetMessageTime());
+#endif
+
 /* WM_ key messages faked by Vista speech recognition (WSR) don't have a
  * scan code.
  *
