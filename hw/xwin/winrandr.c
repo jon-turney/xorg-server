@@ -195,10 +195,14 @@ winDoRandRScreenSetSize (ScreenPtr  pScreen,
       return FALSE;
     }
 
+  pScreen->width = width;
+  pScreen->height = height;
+  pScreen->mmWidth = mmWidth;
+  pScreen->mmHeight = mmHeight;
+
   /* Update the screen pixmap to point to the new framebuffer */
-  pScreen->width = pScreenInfo->dwWidth;
-  pScreen->height = pScreenInfo->dwHeight;
   winUpdateFBPointer(pScreen, pScreenInfo->pfb);
+
   // pScreen->devPrivate == pScreen->GetScreenPixmap(screen) ?
 
   {
