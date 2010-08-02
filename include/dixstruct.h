@@ -124,6 +124,7 @@ typedef struct _Client {
     long    smart_check_tick;
     
     DeviceIntPtr clientPtr;
+    int         ignoreCount;		/* count for Attend/IgnoreClient */
 }           ClientRec;
 
 /*

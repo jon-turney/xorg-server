@@ -169,7 +169,7 @@ void warn_func(void * p1, char *format, ...);
 
 // some prototypes
 static __GLXscreen * __glXAquaScreenProbe(ScreenPtr pScreen);
-static __GLXdrawable * __glXAquaScreenCreateDrawable(__GLXscreen *screen, DrawablePtr pDraw, int type, XID drawId, __GLXconfig *conf);
+static __GLXdrawable * __glXAquaScreenCreateDrawable(ClientPtr client, __GLXscreen *screen, DrawablePtr pDraw, XID drawId, int type, XID glxDrawId, __GLXconfig *conf);
 
 static void __glXAquaContextDestroy(__GLXcontext *baseContext);
 static int __glXAquaContextMakeCurrent(__GLXcontext *baseContext);
@@ -271,8 +271,7 @@ static void __glXAquaContextDestroy(__GLXcontext *baseContext) {
 
     __GLXAquaContext *context = (__GLXAquaContext *) baseContext;
     
-    GLAQUA_DEBUG_MSG("glAquaContextDestroy (ctx 0x%x)\n",
-                     (unsigned int) baseContext);
+    GLAQUA_DEBUG_MSG("glAquaContextDestroy (ctx %p)\n", baseContext);
     if (context != NULL) {
       if (context->sid != 0 && surface_hash != NULL) {
 		lst = x_hash_table_lookup(surface_hash, x_cvt_uint_to_vptr(context->sid), NULL);
@@ -321,7 +320,7 @@ static void surface_notify(void *_arg, void *data) {
     case AppleDRISurfaceNotifyDestroyed:
         if (surface_hash != NULL)
             x_hash_table_remove(surface_hash, x_cvt_uint_to_vptr(arg->id));
-	draw->base.pDraw = NULL;
+	draw->pDraw = NULL;
 	draw->sid = 0;
         break;
 
@@ -639,10 +638,12 @@ static void __glXAquaDrawableDestroy(__GLXdrawable *base) {
 }
 
 static __GLXdrawable *
-__glXAquaScreenCreateDrawable(__GLXscreen *screen,
+__glXAquaScreenCreateDrawable(ClientPtr client,
+                              __GLXscreen *screen,
 			      DrawablePtr pDraw,
-			      int type,
 			      XID drawId,
+			      int type,
+			      XID glxDrawId,
 			      __GLXconfig *conf) {
   __GLXAquaDrawable *glxPriv;
 
@@ -653,7 +654,7 @@ __glXAquaScreenCreateDrawable(__GLXscreen *screen,
 
   memset(glxPriv, 0, sizeof *glxPriv);
 
-  if(!__glXDrawableInit(&glxPriv->base, screen, pDraw, type, drawId, conf)) {
+  if(!__glXDrawableInit(&glxPriv->base, screen, pDraw, type, glxDrawId, conf)) {
     xfree(glxPriv);
     return NULL;
   }

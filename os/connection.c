@@ -1164,6 +1164,10 @@ IgnoreClient (ClientPtr client)
     OsCommPtr oc = (OsCommPtr)client->osPrivate;
     int connection = oc->fd;
 
+    client->ignoreCount++;
+    if (client->ignoreCount > 1)
+	return;
+
     isItTimeToYield = TRUE;
     if (!GrabInProgress || FD_ISSET(connection, &AllClients))
     {
@@ -1198,6 +1202,11 @@ AttendClient (ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr)client->osPrivate;
     int connection = oc->fd;
+
+    client->ignoreCount--;
+    if (client->ignoreCount)
+	return;
+
     if (!GrabInProgress || GrabInProgress == client->index ||
 	FD_ISSET(connection, &GrabImperviousClients))
     {
