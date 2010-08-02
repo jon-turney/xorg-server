@@ -253,7 +253,7 @@ winRandRScreenSetSize (ScreenPtr  pScreen,
     the X screen is monitor or virtual desktop size, we'd need to
     resize the native display size
   */
-  if (TRUE
+  if (FALSE
 #ifdef XWIN_MULTIWINDOWEXTWM
       || pScreenInfo->fMWExtWM
 #endif
