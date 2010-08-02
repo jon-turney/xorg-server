@@ -277,7 +277,11 @@ static Atom func (void) {					\
 
 typedef Bool (*winAllocateFBProcPtr)(ScreenPtr);
 
+typedef void (*winFreeFBProcPtr)(ScreenPtr);
+
 typedef void (*winShadowUpdateProcPtr)(ScreenPtr, shadowBufPtr);
+
+typedef Bool (*winInitScreenProcPtr)(ScreenPtr);
 
 typedef Bool (*winCloseScreenProcPtr)(int, ScreenPtr);
 
@@ -318,6 +322,12 @@ typedef Bool (*winCreateScreenResourcesProc)(ScreenPtr);
 
 /* Typedef for DIX wrapper functions */
 typedef int (*winDispatchProcPtr) (ClientPtr);
+
+#ifdef XWIN_NATIVEGDI
+/* Typedefs for native GDI wrappers */
+typedef Bool (*RealizeFontPtr) (ScreenPtr pScreen, FontPtr pFont);
+typedef Bool (*UnrealizeFontPtr)(ScreenPtr pScreen, FontPtr pFont);
+#endif
 
 
 /*
@@ -373,6 +383,15 @@ typedef struct {
 } winCursorRec;
 
 /*
+ * Resize modes
+ */
+typedef enum {
+  notAllowed,
+  resizeWithScrollbars,
+  resizeWithRandr
+} winResizeMode;
+
+/*
  * Screen information structure that we need before privates are available
  * in the server startup sequence.
  */
@@ -385,12 +404,12 @@ typedef struct
   Bool			fUserGaveHeightAndWidth;
 
   DWORD			dwScreen;
+
+  int			iMonitor;
   DWORD			dwUserWidth;
   DWORD			dwUserHeight;
   DWORD			dwWidth;
   DWORD			dwHeight;
-  DWORD			dwWidth_mm;
-  DWORD			dwHeight_mm;
   DWORD			dwPaddedWidth;
 
   /* Did the user specify a screen position? */
@@ -435,7 +454,7 @@ typedef struct
 #endif
   Bool                  fMultipleMonitors;
   Bool			fLessPointer;
-  Bool			fScrollbars;
+  winResizeMode		iResizeMode;
   Bool			fNoTrayIcon;
   int			iE3BTimeout;
   /* Windows (Alt+F4) and Unix (Ctrl+Alt+Backspace) Killkey */
@@ -476,11 +495,6 @@ typedef struct _winPrivScreenRec
 
   /* Handle to icons that must be freed */
   HICON			hiconNotifyIcon;
-
-  /* Last width, height, and depth of the Windows display */
-  DWORD			dwLastWindowsWidth;
-  DWORD			dwLastWindowsHeight;
-  DWORD			dwLastWindowsBitsPixel;
 
   /* Palette management */
   ColormapPtr		pcmapInstalled;
@@ -547,7 +561,9 @@ typedef struct _winPrivScreenRec
   
   /* Engine specific functions */
   winAllocateFBProcPtr			pwinAllocateFB;
+  winFreeFBProcPtr			pwinFreeFB;
   winShadowUpdateProcPtr		pwinShadowUpdate;
+  winInitScreenProcPtr			pwinInitScreen;
   winCloseScreenProcPtr			pwinCloseScreen;
   winInitVisualsProcPtr			pwinInitVisuals;
   winAdjustVideoModeProcPtr		pwinAdjustVideoMode;
@@ -592,6 +608,12 @@ typedef struct _winPrivScreenRec
   SetShapeProcPtr			SetShape;
 
   winCursorRec                          cursor;
+
+#ifdef XWIN_NATIVEGDI
+  RealizeFontPtr                        RealizeFont;
+  UnrealizeFontPtr                      UnrealizeFont;
+#endif
+
 } winPrivScreenRec;
 
 

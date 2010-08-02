@@ -114,11 +114,40 @@ Do not give the Cygwin/X window a \fIWindows\fP window border, title bar,
 etc.
 This parameter is ignored when the \fB\-fullscreen\fP parameter is specified.
 .TP 8
-.B \-scrollbars
-In windowed mode, allow screens bigger than the \fIWindows\fP desktop.
-Moreover, if the window has decorations, one can now resize it.
-This parameter is ignored when the \fB\-fullscreen\fP parameter is specified.
+.B \-resize
+Select the resize mode of an X screen window in windowed mode.
 
+.B \-resize=none
+
+(default). The window is not resizable.
+
+If the window has decorations, a fixed frame is used.
+
+.B \-resize=scrollbars
+
+The window is resizeable.
+
+If the window has decorations, a resizing frame is used.
+
+Scrollbars are drawn when needed to allow the entire X screen
+to viewed by adjusting them.
+
+This also permits screens bigger than the \fIWindows\fP virtual desktop to be used.
+
+.B \-resize=randr
+
+If the window has decorations, a resizing frame is used.
+
+Resizing the window will use the RANDR extension to change
+the size of the X screen.  Likewise, changing the size of
+the X screen using the RANDR extension will cause the size
+of the \fIWindows\fP window containing the X screen to be changed.
+
+\fB\--resize\fP on its own is equivalent to \fB\--resize=randr\fP
+
+.TP 8
+.B \-scrollbars
+Alternative name for \fB\-resize=scrollbars\fP.
 
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
@@ -322,12 +351,9 @@ X(__miscmansuffix__), Xserver(1), xdm(1), xinit(1), XWinrc(__filemansuffix__), s
 
 .SH BUGS
 .I XWin
-and this man page still have many limitations.  Some of the more obvious
-ones are:
-.br
-- The display mode can not be changed once the X server has started.
-.br
-- The \fIXWin\fP software is continuously developing; it is therefore possible that
+and this man page still have many limitations.
+
+The \fIXWin\fP software is continuously developing; it is therefore possible that
 this man page is not up to date.  It is always prudent to
 look also at the output of \fIXWin -help\fP in order to
 check the options that are operative.
