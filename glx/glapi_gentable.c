@@ -7567,21 +7567,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
         *procp = dlsym(handle, symboln);
     }
 
-
-    if(!disp->CullParameterdvEXT) {
-        snprintf(symboln, sizeof(symboln), "%sCullParameterdvEXT", symbol_prefix);
-        procp = (void **) &disp->CullParameterdvEXT;
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->CullParameterfvEXT) {
-        snprintf(symboln, sizeof(symboln), "%sCullParameterfvEXT", symbol_prefix);
-        procp = (void **) &disp->CullParameterfvEXT;
-        *procp = dlsym(handle, symboln);
-    }
-
-
     __glapi_gentable_set_remaining_noop(disp);
 
     return disp;

@@ -78,6 +78,11 @@ if dispatchheader :
 
         del dispatch['by_offset']
 
+# CullParameter has been removed from Mesa dispatch table (can only be called indirectly)
+# but xserver code hasn't been regenerated since then
+        del dispatch['CullParameterdvEXT']
+        del dispatch['CullParameterfvEXT']
+
 #
 # read the typemap .tm file
 #
