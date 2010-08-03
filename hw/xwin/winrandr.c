@@ -173,7 +173,7 @@ xf86SetRootClip (ScreenPtr pScreen, Bool enable)
 /*
 
 */
-Bool
+void
 winDoRandRScreenSetSize (ScreenPtr  pScreen,
                          CARD16	    width,
                          CARD16	    height,
@@ -192,7 +192,6 @@ winDoRandRScreenSetSize (ScreenPtr  pScreen,
   if (!(*pScreenPriv->pwinAllocateFB)(pScreen))
     {
       ErrorF ("winRandRScreenSetSize - Could not reallocate framebuffer\n");
-      return FALSE;
     }
 
   pScreen->width = width;
@@ -218,8 +217,6 @@ winDoRandRScreenSetSize (ScreenPtr  pScreen,
 
   /* Indicate that a screen size change took place */
   RRScreenSizeNotify(pScreen);
-
-  return TRUE;
 }
 
 /*
@@ -297,6 +294,8 @@ winRandRScreenSetSize (ScreenPtr  pScreen,
                  0, 0, rcClient.right-rcClient.left, rcClient.bottom-rcClient.top,
                  SWP_NOZORDER | SWP_NOMOVE);
   }
+
+  return TRUE;
 }
 
 /*
