@@ -111,6 +111,7 @@ OsVendorFatalError(const char *f, va_list args)
 void
 winMessageBoxF(const char *pszError, UINT uType, ...)
 {
+    HDESK hDesk;
     char *pszErrorF = NULL;
     char *pszMsgBox = NULL;
     va_list args;
@@ -123,6 +124,22 @@ winMessageBoxF(const char *pszError, UINT uType, ...)
         pszErrorF = NULL;
         goto winMessageBoxF_Cleanup;
     }
+
+  /*
+    Check if we have access to an input desktop
+
+    If we have been run from a service which doesn't have access to an
+    interactive desktop, don't show a message box (error has already been
+    logged)
+
+    (We do this for e.g. as part of tinderbox testing, so we'd rather not
+    stop here waiting for input from a non-existent user who can't see the
+    messagebox)
+   */
+  hDesk = OpenInputDesktop(DF_ALLOWOTHERACCOUNTHOOK, FALSE, GENERIC_WRITE);
+  if (!hDesk)
+    goto winMessageBoxF_Cleanup;
+  CloseDesktop(hDesk);
 
 #define MESSAGEBOXF \
 	"%s\n" \
