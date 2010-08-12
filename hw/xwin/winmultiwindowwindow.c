@@ -513,6 +513,8 @@ winCreateWindowsWindow (WindowPtr pWin)
   if (iY > GetSystemMetrics (SM_CYVIRTUALSCREEN))
     iY = CW_USEDEFAULT;
 
+  winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX, iY);
+
   if (winMultiWindowGetTransientFor (pWin, &pDaddy))
     {
       if (pDaddy)
@@ -534,16 +536,29 @@ winCreateWindowsWindow (WindowPtr pWin)
       }
     }
 
-  /* Create the window */
-  /* Make it OVERLAPPED in create call since WS_POPUP doesn't support */
+  /* Make it WS_OVERLAPPED in create call since WS_POPUP doesn't support */
   /* CW_USEDEFAULT, change back to popup after creation */
-  hWnd = CreateWindowExA (WS_EX_TOOLWINDOW,	/* Extended styles */
+  DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  DWORD dwExStyle = WS_EX_TOOLWINDOW;
+  RECT rc;
+  rc.top = 0;
+  rc.left = 0;
+  rc.bottom = iHeight;
+  rc.right = iWidth;
+  AdjustWindowRectEx(&rc, dwStyle, FALSE, dwExStyle);
+  iHeight = rc.bottom - rc.top;
+  iWidth = rc.right - rc.left;
+
+  winDebug("winCreateWindowsWindow - window size %dx%d\n", iWidth, iHeight);
+
+  /* Create the window */
+  hWnd = CreateWindowExA (dwExStyle,		/* Extended styles */
 			  WINDOW_CLASS_X,	/* Class name */
 			  WINDOW_TITLE_X,	/* Window name */
-			  WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+			  dwStyle,		/* Styles */
 			  iX,			/* Horizontal position */
 			  iY,			/* Vertical position */
-			  iWidth,		/* Right edge */ 
+			  iWidth,		/* Right edge */
 			  iHeight,		/* Bottom edge */
 			  hFore,		/* Null or Parent window if transient*/
 			  (HMENU) NULL,		/* No menu */
