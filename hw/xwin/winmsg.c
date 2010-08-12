@@ -38,6 +38,8 @@
 #endif
 #include <stdarg.h>
 
+extern int g_iLogVerbose;
+
 void winVMsg (int, MessageType, int verb, const char *, va_list);
 
 void
@@ -153,7 +155,7 @@ void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM 
 
   if (message >= WM_USER)
     {
-      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv("WIN_DEBUG_WM_USER"))
+      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv("WIN_DEBUG_WM_USER") || (g_iLogVerbose > 3))
       {
 
         winDebug("%s - Message WM_USER + %d hwnd 0x%x wParam 0x%x lParam 0x%x timestamp %d\n",
@@ -166,7 +168,7 @@ void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM 
       char buffer[64];
       snprintf(buffer, sizeof(buffer), "WIN_DEBUG_%s", msgname);
       buffer[63] = 0;
-      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer))
+      if (force || getenv("WIN_DEBUG_MESSAGES") || getenv(buffer) || (g_iLogVerbose > 3))
       {
 
         winDebug("%s - Message %-20s hwnd 0x%x wParam 0x%x lParam 0x%x timestamp %d\n",
