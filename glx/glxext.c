@@ -134,6 +134,7 @@ DrawableGone(__GLXdrawable * glxPriv, XID xid)
         if (c->currentClient &&
 		(c->drawPriv == glxPriv || c->readPriv == glxPriv)) {
             /* just force a re-bind the next time through */
+            FlushContext(c);
             (*c->loseCurrent) (c);
             lastGLContext = NULL;
         }
