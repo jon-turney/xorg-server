@@ -234,6 +234,7 @@ __glXImageSize(GLenum format, GLenum type, GLenum target,
         case GL_LUMINANCE_INTEGER_EXT:
             elementsPerGroup = 1;
             break;
+        case GL_RG:
         case GL_422_EXT:
         case GL_422_REV_EXT:
         case GL_422_AVERAGE_EXT:
