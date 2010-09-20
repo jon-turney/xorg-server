@@ -212,7 +212,7 @@ OsInit(void)
 	{
 	    FILE *err;
 
-	    if (strlen (display) + strlen (ADMPATH) + 1 < sizeof fname)
+	    if ((display) && (strlen (display) + strlen (ADMPATH) + 1 < sizeof fname))
 		snprintf (fname, sizeof(fname), ADMPATH, display);
 	    else
 		strcpy (fname, devnull);
