@@ -430,6 +430,7 @@ CreateWellKnownSockets(void)
     else { /* -displayfd */
         Bool found = 0;
         for (i = 0; i < 65535 - X_TCP_PORT; i++) {
+            ErrorF("Trying to create socket for display number %d\n", i);
             if (TryCreateSocket(i, &partial) && !partial) {
                 found = 1;
                 break;
