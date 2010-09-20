@@ -166,8 +166,7 @@ int main(int argc, char *argv[], char *envp[])
 	DPMSPowerLevel = 0;
 #endif
 	InitBlockAndWakeupHandlers();
-	/* Perform any operating system dependent initializations you'd like */
-	OsInit();
+
 	if(serverGeneration == 1)
 	{
 	    CreateWellKnownSockets();
@@ -181,6 +180,10 @@ int main(int argc, char *argv[], char *envp[])
 	}
 	else
 	    ResetWellKnownSockets ();
+
+	/* Perform any operating system dependent initializations you'd like */
+	OsInit();
+
 	clients[0] = serverClient;
 	currentMaxClients = 1;
 
