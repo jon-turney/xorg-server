@@ -219,7 +219,7 @@ OsInit(void)
 	{
 	    FILE *err;
 
-	    if (strlen (display) + strlen (ADMPATH) + 1 < sizeof fname)
+	    if ((display) && (strlen (display) + strlen (ADMPATH) + 1 < sizeof fname))
 		sprintf (fname, ADMPATH, display);
 	    else
 		strcpy (fname, devnull);
