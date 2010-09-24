@@ -281,6 +281,8 @@ DoCreateContext(__GLXclientState *cl, GLXContextID gcId,
 	return BadAlloc;
     }
 
+    ErrorF("DoCreateContext: allocated context %x\n", glxc);
+
     /*
     ** Initially, setup the part of the context that could be used by
     ** a GL core that needs windowing information (e.g., Mesa).
@@ -400,6 +402,7 @@ static int AddCurrentContext(__GLXclientState *cl, __GLXcontext *glxc)
     for (i=0; i < num; i++) {
 	if (!table[i]) {
 	    table[i] = glxc;
+	    ErrorF("AddCurrentContext: Context %x was allocated tag %d\n", glxc, i+1);
 	    return i+1;
 	}
     }
@@ -415,6 +418,7 @@ static int AddCurrentContext(__GLXclientState *cl, __GLXcontext *glxc)
     table[num] = glxc;
     cl->currentContexts = table;
     cl->numCurrentContexts++;
+    ErrorF("AddCurrentContext: Context %x was allocated tag %d (grew table)\n", glxc, num+1);
     return num+1;
 }
 
@@ -426,6 +430,7 @@ static void ChangeCurrentContext(__GLXclientState *cl, __GLXcontext *glxc,
 {
     __GLXcontext **table = cl->currentContexts;
     table[tag-1] = glxc;
+    ErrorF("ChangeCurrentContext: Tag %d was changed to context %x\n", tag, glxc);
 }
 
 /*
@@ -438,8 +443,10 @@ __GLXcontext *__glXLookupContextByTag(__GLXclientState *cl, GLXContextTag tag)
     int num = cl->numCurrentContexts;
 
     if (tag < 1 || tag > num) {
+        ErrorF("__glXLookupContextByTag: tag %d (max %d) invalid\n", tag, num);
 	return 0;
     } else {
+        ErrorF("__glXLookupContextByTag: tag %d (max %d) found context %x\n", tag, num, cl->currentContexts[tag-1]);
 	return cl->currentContexts[tag-1];
     }
 }
@@ -552,6 +559,8 @@ DoMakeCurrent(__GLXclientState *cl,
     int error;
     GLuint  mask;
 
+    ErrorF("DoMakeCurrent: oldtag %d\n", tag);
+
     /*
     ** If one is None and the other isn't, it's a bad match.
     */
@@ -615,6 +624,7 @@ DoMakeCurrent(__GLXclientState *cl,
 	readPriv = 0;
     }
 
+    ErrorF("DoMakeCurrent: context %x\n", glxc);
 
     if (prevglxc) {
 	/*
@@ -671,6 +681,8 @@ DoMakeCurrent(__GLXclientState *cl,
     } else {
 	reply.contextTag = 0;
     }
+
+    ErrorF("DoMakeCurrent: replying with tag %d\n", reply.contextTag);
 
     reply.length = 0;
     reply.type = X_Reply;

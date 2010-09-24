@@ -126,6 +126,8 @@ static Bool DrawableGone(__GLXdrawable *glxPriv, XID xid)
 {
     __GLXcontext *c;
 
+   ErrorF("DrawableGone: drawable %x XID %x\n", glxPriv, xid);
+
     /* If this drawable was created using glx 1.3 drawable
      * constructors, we added it as a glx drawable resource under both
      * its glx drawable ID and it X drawable ID.  Remove the other
@@ -155,7 +157,10 @@ static Bool DrawableGone(__GLXdrawable *glxPriv, XID xid)
 
 			for (j = 0; j < cl->numCurrentContexts; j++) {
 			    if (cl->currentContexts[j] == c)
-				cl->currentContexts[j] = NULL;
+				{
+					ErrorF("DrawableGone: clearing tag %d, was context %x\n", j+1, cl->currentContexts[j]);
+					cl->currentContexts[j] = NULL;
+				}
 			}
 		    }
 		}
@@ -216,6 +221,7 @@ GLboolean __glXFreeContext(__GLXcontext *cx)
     /* We can get here through both regular dispatching from
      * __glXDispatch() or as a callback from the resource manager.  In
      * the latter case we need to lift the DRI lock manually. */
+    ErrorF(" __glXFreeContext: deleting context %x\n",cx);
 
     if (!glxBlockClients) {
 	__glXleaveServer(GL_FALSE);
