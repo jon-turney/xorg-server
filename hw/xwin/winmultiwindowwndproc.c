@@ -1015,7 +1015,39 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 #endif
       /* Adjust the X Window to the moved Windows window */
       winAdjustXWindow (pWin, hwnd);
+      if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
       return 0; /* end of WM_SIZE handler */
+
+    case WM_STYLECHANGING:
+      /* when the style changes, adjust the Windows window size so the client area remains the same */
+      {
+        RECT rc;
+        DWORD dwExStyle;
+        DWORD dwStyle;
+        DWORD newStyle = ((STYLESTRUCT *)lParam)->styleNew;
+
+        GetClientRect(hwnd, &rc);
+
+        dwExStyle = GetWindowLongPtr (hwnd, GWL_EXSTYLE);
+        dwStyle = GetWindowLongPtr (hwnd, GWL_STYLE);
+
+        if (wParam == GWL_EXSTYLE)
+          dwExStyle = newStyle;
+
+        if (wParam == GWL_STYLE)
+          dwStyle = newStyle;
+
+	winDebug("winTopLevelWindowProc - WM_STYLECHANGING to %08x %08x\n", dwStyle, dwExStyle);
+	winDebug("winTopLevelWindowProc - WM_STYLECHANGING client area %d x %d\n", rc.right - rc.left, rc.bottom - rc.top);
+
+        AdjustWindowRectEx(&rc, dwStyle, FALSE, dwExStyle);
+	winDebug("winTopLevelWindowProc - WM_STYLECHANGING window size %d x %d\n", rc.right - rc.left, rc.bottom - rc.top);
+
+        SetWindowPos(hwnd, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top,
+                     SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+
+      }
+      return 0;
 
     case WM_MOUSEACTIVATE:
 

@@ -56,8 +56,8 @@ extern DWORD g_dwCurrentThreadID;
 
 extern const char *winGetBaseDir(void);
 
-/* From winmultiwindowflex.l, the real parser */
-extern void parse_file (FILE *fp);
+/* From winprefslex.l, the real parser */
+extern int parse_file (FILE *fp);
 
 /* From winprefyacc.y, the pref structure loaded by the parser */
 extern WINPREFS pref;
@@ -68,10 +68,6 @@ extern HICON		g_hSmallIconX;
 
 /* Currently in use command ID, incremented each new menu item created */
 static int g_cmdid = STARTMENUID;
-
-
-/* Defined in DIX */
-extern char *display;
 
 /* Local function to handle comma-ified icon names */
 static HICON
@@ -721,6 +717,54 @@ winIconIsOverride(unsigned hiconIn)
 
 
 /*
+ * Open and parse the XWinrc config file @path.
+ * If @path is NULL, use the built-in default.
+ */
+static int
+winPrefsLoadPreferences (char *path)
+{
+  FILE *prefFile = NULL;
+
+  if (path)
+    prefFile = fopen (path, "r");
+  else
+    {
+      char defaultPrefs[] =
+        "MENU rmenu {\n"
+        "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
+        "  \"Launch xterm\" EXEC xterm\n"
+        "  \"Load .XWinrc\" RELOAD\n"
+        "  SEPARATOR\n"
+        "}\n"
+        "\n"
+        "ROOTMENU rmenu\n";
+
+      path = "built-in default";
+      prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
+    }
+
+  if (!prefFile)
+    {
+      ErrorF ("LoadPreferences: %s not found\n", path);
+      return FALSE;
+    }
+
+  ErrorF ("LoadPreferences: Loading %s\n", path);
+
+  if((parse_file (prefFile)) != 0)
+    {
+      ErrorF ("LoadPreferences: %s is badly formed!\n", path);
+      fclose (prefFile);
+      return FALSE;
+    }
+
+  fclose (prefFile);
+  return TRUE;
+}
+
+
+
+/*
  * Try and open ~/.XWinrc and system.XWinrc
  * Load it into prefs structure for use by other functions
  */
@@ -729,16 +773,15 @@ LoadPreferences (void)
 {
   char *home;
   char fname[PATH_MAX+NAME_MAX+2];
-  FILE *prefFile;
   char szDisplay[512];
   char *szEnvDisplay;
   int i, j;
   char param[PARAM_MAX+1];
   char *srcParam, *dstParam;
+  int parsed = FALSE;
 
   /* First, clear all preference settings */
   memset (&pref, 0, sizeof(pref));
-  prefFile = NULL;
 
   /* Now try and find a ~/.xwinrc file */
   home = getenv ("HOME");
@@ -748,14 +791,11 @@ LoadPreferences (void)
       if (fname[strlen(fname)-1]!='/')
 	strcat (fname, "/");
       strcat (fname, ".XWinrc");
-      
-      prefFile = fopen (fname, "r");
-      if (prefFile)
-	ErrorF ("winPrefsLoadPreferences: %s\n", fname);
+      parsed = winPrefsLoadPreferences(fname);
     }
 
   /* No home file found, check system default */
-  if (!prefFile)
+  if (!parsed)
     {
       char buffer[MAX_PATH];
 #ifdef RELOCATE_PROJECTROOT
@@ -764,30 +804,27 @@ LoadPreferences (void)
       strncpy(buffer, SYSCONFDIR"/X11/system.XWinrc", sizeof(buffer));
 #endif
       buffer[sizeof(buffer)-1] = 0;
-      prefFile = fopen (buffer, "r");
-      if (prefFile)
-	ErrorF ("winPrefsLoadPreferences: %s\n", buffer);
+      parsed = winPrefsLoadPreferences(buffer);
     }
 
-  /* If we could open it, then read the settings and close it */
-  if (prefFile)
+  /* Neither user nor system configuration found, or were badly formed */
+  if (!parsed)
     {
-      parse_file (prefFile);
-      fclose (prefFile);
+      ErrorF ("LoadPreferences: See \"man XWinrc\" to customize the XWin menu.\n");
+      parsed = winPrefsLoadPreferences(NULL);
     }
 
   /* Setup a DISPLAY environment variable, need to allocate on heap */
   /* because putenv doesn't copy the argument... */
-  snprintf (szDisplay, 512, "DISPLAY=127.0.0.1:%s.0", display);
-  szEnvDisplay = (char *)(malloc (strlen(szDisplay)+1));
+  winGetDisplayName(szDisplay, 0);
+  szEnvDisplay = (char *)(malloc(strlen(szDisplay)+strlen("DISPLAY=")+1));
   if (szEnvDisplay)
     {
-      strcpy (szEnvDisplay, szDisplay);
+      snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
       putenv (szEnvDisplay);
     }
 
   /* Replace any "%display%" in menu commands with display string */
-  snprintf (szDisplay, 512, "127.0.0.1:%s.0", display);
   for (i=0; i<pref.menuItems; i++)
     {
       for (j=0; j<pref.menu[i].menuItems; j++)

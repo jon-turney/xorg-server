@@ -64,7 +64,7 @@
 #define WIN_DEFAULT_BLACKPIXEL			0
 #define WIN_DEFAULT_LINEBIAS			0
 #define WIN_DEFAULT_E3B_TIME			50 /* milliseconds */
-#define WIN_DEFAULT_DPI				75
+#define WIN_DEFAULT_DPI				96
 #define WIN_DEFAULT_REFRESH			0
 #define WIN_DEFAULT_WIN_KILL			TRUE
 #define WIN_DEFAULT_UNIX_KILL			FALSE
@@ -1461,6 +1461,13 @@ winInitCursor (ScreenPtr pScreen);
  */
 void
 winInitializeScreens(int maxscreens);
+
+/*
+ * windisplay.c
+ */
+
+void
+winGetDisplayName(char *szDisplay, unsigned int screen);
 
 /*
  * END DDX and DIX Function Prototypes
