@@ -246,40 +246,7 @@ winWindowProc (HWND hwnd, UINT message,
         (this is probably usually the case so that might be an
         overoptimization)
       */
-
-      /*
-       * We can simply recreate the same-sized primary surface when
-       * the display dimensions change.
-       */
 	{
-	  /*
-	   * NOTE: The non-DirectDraw engines set the ReleasePrimarySurface
-	   * and CreatePrimarySurface function pointers to point
-	   * to the no operation function, NoopDDA.  This allows us
-	   * to blindly call these functions, even if they are not
-	   * relevant to the current engine (e.g., Shadow GDI).
-	   */
-
-#if CYGDEBUG
-	  winDebug ("winWindowProc - WM_DISPLAYCHANGE - Dimensions changed\n");
-#endif
-
-	  /* Release the old primary surface */
-	  (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
-
-#if CYGDEBUG
-	  winDebug ("winWindowProc - WM_DISPLAYCHANGE - Released "
-		  "primary surface\n");
-#endif
-
-	  /* Create the new primary surface */
-	  (*s_pScreenPriv->pwinCreatePrimarySurface) (s_pScreen);
-
-#if CYGDEBUG
-	  winDebug ("winWindowProc - WM_DISPLAYCHANGE - Recreated "
-		  "primary surface\n");
-#endif
-
 	  /*
              In rootless modes which are monitor or virtual desktop size
              use RandR to resize the X screen
@@ -333,6 +300,33 @@ winWindowProc (HWND hwnd, UINT message,
                                       (dwWidth / monitorResolution) * 25.4,
                                       (dwHeight / monitorResolution) * 25.4);
 	    }
+          else
+            {
+              /*
+               * We can simply recreate the same-sized primary surface when
+               * the display dimensions change.
+               */
+
+              /*
+               * NOTE: The non-DirectDraw engines set the ReleasePrimarySurface
+               * and CreatePrimarySurface function pointers to point
+               * to the no operation function, NoopDDA.  This allows us
+               * to blindly call these functions, even if they are not
+               * relevant to the current engine (e.g., Shadow GDI).
+               */
+
+              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Dimensions changed\n");
+
+              /* Release the old primary surface */
+              (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
+
+              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Released primary surface\n");
+
+              /* Create the new primary surface */
+              (*s_pScreenPriv->pwinCreatePrimarySurface) (s_pScreen);
+
+              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Recreated primary surface\n");
+            }
 	}
 
       break;
