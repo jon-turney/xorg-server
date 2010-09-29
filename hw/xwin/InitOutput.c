@@ -57,6 +57,7 @@ typedef HRESULT (*SHGETFOLDERPATHPROC)(
     LPTSTR pszPath
 );
 #endif
+#include "ddxhooks.h"
 
 
 /*
@@ -193,13 +194,12 @@ ddxPushProviders(void)
 #endif
 }
 
-#if defined(DDXBEFORERESET)
 /*
  * Called right before KillAllClients when the server is going to reset,
  * allows us to shutdown our seperate threads cleanly.
  */
 
-void
+static void
 ddxBeforeReset (void)
 {
   winDebug ("ddxBeforeReset - Hello\n");
@@ -208,8 +208,14 @@ ddxBeforeReset (void)
   winClipboardShutdown ();
 #endif
 }
-#endif
 
+void
+ddxMain(void)
+{
+  /* Initialize DDX-specific hooks */
+  ddxHooks.ddxBeforeReset = ddxBeforeReset;
+  ddxHooks.ddxPushProviders = ddxPushProviders;
+}
 
 /* See Porting Layer Definition - p. 57 */
 void

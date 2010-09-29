@@ -130,6 +130,7 @@ int ProcInitialConnection();
 #include "inputstr.h"
 #include "xkbsrv.h"
 #include "site.h"
+#include "ddxhooks.h"
 
 #ifdef XSERVER_DTRACE
 #include "registry.h"
@@ -457,9 +458,10 @@ Dispatch(void)
 	}
 	dispatchException &= ~DE_PRIORITYCHANGE;
     }
-#if defined(DDXBEFORERESET)
-    ddxBeforeReset ();
-#endif
+
+    if (ddxHooks.ddxBeforeReset)
+      ddxHooks.ddxBeforeReset();
+
     KillAllClients();
     free(clientReady);
     dispatchException &= ~DE_RESET;
