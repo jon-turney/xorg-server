@@ -33,16 +33,16 @@ indirect.c: wgl_ext_api.h
 SPEC_FILES = gl.spec gl.tm wglext.spec wgl.tm
 
 gl.spec:
-	wget http://www.opengl.org/registry/api/gl.spec
+	cd $(srcdir) ; wget http://www.opengl.org/registry/api/gl.spec
 
 gl.tm:
-	wget http://www.opengl.org/registry/api/gl.tm
+	cd $(srcdir) ; wget http://www.opengl.org/registry/api/gl.tm
 
 wglext.spec:
-	wget http://www.opengl.org/registry/api/wglext.spec
+	cd $(srcdir) ; wget http://www.opengl.org/registry/api/wglext.spec
 
 wgl.tm:
-	wget http://www.opengl.org/registry/api/wgl.tm
+	cd $(srcdir) ; wget http://www.opengl.org/registry/api/wgl.tm
 
 generated_gl_wrappers.c: gen_gl_wrappers.py gl.spec gl.tm
 	$(srcdir)/gen_gl_wrappers.py --spec=$(srcdir)/gl.spec --typemap=$(srcdir)/gl.tm --dispatch-header=$(top_srcdir)/glx/dispatch.h --staticwrappers >generated_gl_wrappers.c
@@ -51,7 +51,7 @@ generated_wgl_wrappers.c: gen_gl_wrappers.py wglext.spec wgl.tm
 	$(srcdir)/gen_gl_wrappers.py --spec=$(srcdir)/wglext.spec --typemap=$(srcdir)/wgl.tm --prefix=wgl --preresolve >generated_wgl_wrappers.c
 
 wglext.h:
-	wget http://www.opengl.org/registry/api/wglext.h
+	cd $(srcdir) ; wget http://www.opengl.org/registry/api/wglext.h
 
 BUILT_SOURCES = generated_gl_wrappers.c generated_wgl_wrappers.c
 CLEANFILES = $(BUILT_SOURCES)
