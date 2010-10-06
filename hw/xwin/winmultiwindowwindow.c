@@ -539,8 +539,11 @@ winCreateWindowsWindow (WindowPtr pWin)
       {
         iX = CW_USEDEFAULT;
         iY = CW_USEDEFAULT;
+        winDebug("winCreateWindowsWindow - no position hint, window will have default placement\n");
       }
     }
+
+  winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX, iY);
 
   /* Create the window */
   /* Make it OVERLAPPED in create call since WS_POPUP doesn't support */
@@ -564,6 +567,8 @@ winCreateWindowsWindow (WindowPtr pWin)
     }
   pWinPriv->hWnd = hWnd;
 
+  winDebug("winCreateWindowsWindow - CreateWindowExA succeeded, hwnd %x\n", hWnd);
+
   /* Set application or .XWinrc defined Icons */
   winSelectIcons(pWin, &hIcon, &hIconSmall);
   if (hIcon) SendMessage (hWnd, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
@@ -573,6 +578,9 @@ winCreateWindowsWindow (WindowPtr pWin)
   SetWindowLongPtr(hWnd, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
   SetWindowPos (hWnd, 0, 0, 0, 0, 0,
 		SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+  winDebug("winCreateWindowsWindow - SWP_FRAMECHANGED succeeded\n");
+
   /* Make sure it gets the proper system menu for a WS_POPUP, too */
   GetSystemMenu (hWnd, TRUE);
 
@@ -587,9 +595,7 @@ winCreateWindowsWindow (WindowPtr pWin)
   /* Call engine-specific create window procedure */
   (*pScreenPriv->pwinFinishCreateWindowsWindow) (pWin);
 
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("-winCreateWindowsWindow\n");
-#endif
+  winDebug("winCreateWindowsWindow - done\n");
 }
 
 
