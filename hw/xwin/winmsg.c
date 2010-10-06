@@ -181,3 +181,64 @@ void winDebugWin32Message(const char* function, HWND hwnd, UINT message, WPARAM 
 {
 }
 #endif
+
+void winDebugStyleDump(DWORD dwStyle, DWORD dwExStyle)
+{
+  char description[1024] = "\0";
+
+#define stylebitcheck(bit) if (dwStyle & bit) { strcat(description,#bit " "); dwStyle &= ~bit; }
+#define exstylebitcheck(bit) if (dwExStyle & bit) { strcat(description,#bit " "); dwExStyle &= ~bit; }
+
+#undef WS_CAPTION
+#define WS_CAPTION      0x400000 // normally defined to imply WS_BORDER
+
+  stylebitcheck(WS_BORDER);
+  stylebitcheck(WS_CAPTION);
+  stylebitcheck(WS_CHILD); // aka WS_CHILDWINDOW
+  stylebitcheck(WS_CLIPCHILDREN);
+  stylebitcheck(WS_CLIPSIBLINGS);
+  stylebitcheck(WS_DISABLED);
+  stylebitcheck(WS_DLGFRAME);
+  stylebitcheck(WS_GROUP);
+  stylebitcheck(WS_HSCROLL);
+  stylebitcheck(WS_ICONIC);
+  stylebitcheck(WS_MAXIMIZE);
+  stylebitcheck(WS_MAXIMIZEBOX);
+  stylebitcheck(WS_MINIMIZE);
+  stylebitcheck(WS_MINIMIZEBOX);
+  stylebitcheck(WS_POPUP);
+  stylebitcheck(WS_SIZEBOX);
+  stylebitcheck(WS_SYSMENU);
+  stylebitcheck(WS_TABSTOP);
+  stylebitcheck(WS_THICKFRAME);
+  stylebitcheck(WS_VISIBLE);
+  stylebitcheck(WS_VSCROLL);
+
+
+  exstylebitcheck(WS_EX_ACCEPTFILES);
+  exstylebitcheck(WS_EX_APPWINDOW);
+  exstylebitcheck(WS_EX_CLIENTEDGE);
+  exstylebitcheck(WS_EX_COMPOSITED);
+  exstylebitcheck(WS_EX_CONTEXTHELP);
+  exstylebitcheck(WS_EX_CONTROLPARENT);
+  exstylebitcheck(WS_EX_DLGMODALFRAME);
+  exstylebitcheck(WS_EX_LAYERED);
+  exstylebitcheck(WS_EX_LAYOUTRTL);
+  exstylebitcheck(WS_EX_LEFTSCROLLBAR);
+  exstylebitcheck(WS_EX_MDICHILD);
+  exstylebitcheck(WS_EX_NOACTIVATE);
+  exstylebitcheck(WS_EX_NOINHERITLAYOUT);
+  exstylebitcheck(WS_EX_NOPARENTNOTIFY);
+  exstylebitcheck(WS_EX_RIGHT);
+  exstylebitcheck(WS_EX_RTLREADING);
+  exstylebitcheck(WS_EX_STATICEDGE);
+  exstylebitcheck(WS_EX_TOOLWINDOW);
+  exstylebitcheck(WS_EX_TOPMOST);
+  exstylebitcheck(WS_EX_TRANSPARENT);
+  exstylebitcheck(WS_EX_WINDOWEDGE);
+
+  winDebug("%s\n", description);
+
+  if (dwStyle || dwExStyle)
+    winDebug("unknown style bits %x %x\n", dwStyle, dwExStyle);
+}
