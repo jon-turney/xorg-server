@@ -921,15 +921,11 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd)
 
 #define WIDTH(rc) (rc.right - rc.left)
 #define HEIGHT(rc) (rc.bottom - rc.top)
-  
-#if CYGWINDOWING_DEBUG
-  ErrorF ("winAdjustXWindow\n");
-#endif
 
   if (IsIconic (hwnd))
     {
 #if CYGWINDOWING_DEBUG
-      ErrorF ("\timmediately return because the window is iconized\n");
+      ErrorF ("winAdjustXWindow - immediately return because the window is iconized\n");
 #endif
       /*
        * If the Windows window is minimized, its WindowRect has
@@ -947,43 +943,50 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd)
   y = pDraw->y + GetSystemMetrics (SM_YVIRTUALSCREEN);
   SetRect (&rcDraw, x, y, x + pDraw->width, y + pDraw->height);
 #ifdef CYGMULTIWINDOW_DEBUG
-          winDebug("\tDrawable extent {%d, %d, %d, %d}, {%d, %d}\n",
-              rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
-              rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
+  winDebug("winAdjustXWindow - Drawable extent: {%d, %d, %d, %d}, {%d, %d}\n",
+           rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
+           rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
 #endif
+
+  /* Get native window style information */
   dwExStyle = GetWindowLongPtr (hwnd, GWL_EXSTYLE);
   dwStyle = GetWindowLongPtr (hwnd, GWL_STYLE);
 #ifdef CYGMULTIWINDOW_DEBUG
-          winDebug("\tWindowStyle: %08x %08x\n", dwStyle, dwExStyle);
+  winDebug("winAdjustXWindow - WindowStyle: %08x %08x\n", dwStyle, dwExStyle);
 #endif
 
-  /* Compute the window extent implied by drawable extent and window style */
+  /* Adjust the drawable rect for the native style */
   AdjustWindowRectEx (&rcDraw, dwStyle, FALSE, dwExStyle);
+#ifdef CYGMULTIWINDOW_DEBUG
+  winDebug("winAdjustXWindow - Window extent for drawable: {%d, %d, %d, %d}, {%d, %d}\n",
+           rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
+           rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
+#endif
 
   /* The source of adjust */
   GetWindowRect (hwnd, &rcWin);
 #ifdef CYGMULTIWINDOW_DEBUG
-          winDebug("\tCurrent Window extent {%d, %d, %d, %d}, {%d, %d}\n",
-              rcWin.left, rcWin.top, rcWin.right, rcWin.bottom,
-              rcWin.right - rcWin.left, rcWin.bottom - rcWin.top);
-          winDebug("\tWindow extent for drawable {%d, %d, %d, %d}, {%d, %d}\n",
-              rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
-              rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
+  winDebug("winAdjustXWindow - Current Window extent: {%d, %d, %d, %d}, {%d, %d}\n",
+           rcWin.left, rcWin.top, rcWin.right, rcWin.bottom,
+           rcWin.right - rcWin.left, rcWin.bottom - rcWin.top);
 #endif
 
   if (EqualRect (&rcDraw, &rcWin)) {
     /* Bail if no adjust is needed */
-#if CYGWINDOWING_DEBUG
-    ErrorF ("\treturn because already adjusted\n");
+#ifdef CYGMULTIWINDOW_DEBUG
+    winDebug("winAdjustXWindow - return because already adjusted\n");
 #endif
     return 0;
   }
-  
+
   /* Calculate delta values */
   dX = rcWin.left - rcDraw.left;
   dY = rcWin.top - rcDraw.top;
   dW = WIDTH(rcWin) - WIDTH(rcDraw);
   dH = HEIGHT(rcWin) - HEIGHT(rcDraw);
+
+  winDebug("winAdjustXWindow - delta values: dX %ld dY %ld dW %ld dH %ld\n",
+           dX, dY, dW, dH);
 
   /*
    * Adjust.
@@ -995,12 +998,13 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd)
   vlist[1] = pDraw->y + dY - wBorderWidth(pWin);
   vlist[2] = pDraw->width + dW;
   vlist[3] = pDraw->height + dH;
-#if CYGWINDOWING_DEBUG
-  winDebug("\tConfigureWindow to (%ld, %ld) %ldx%ld\n", vlist[0], vlist[1],
+#ifdef CYGMULTIWINDOW_DEBUG
+  winDebug("winAdjustXWindow - ConfigureWindow to (%ld, %ld) - %ldx%ld\n", vlist[0], vlist[1],
+
 	  vlist[2], vlist[3]);
-  winDebug("\tAnticipated Drawable extent {%d, %d, %d, %d}, {%d, %d}\n",
+  winDebug("winAdjustXWindow - Anticipated drawable extent {%d, %d, %d, %d}, {%d, %d}\n",
            x + dX , y + dY, x + dX + pDraw->width, y + dY + pDraw->height,
-           pDraw->width + dW, pDraw->height + dW);
+           pDraw->width + dW, pDraw->height + dH);
 #endif
   return ConfigureWindow (pWin, CWX | CWY | CWWidth | CWHeight,
 			  vlist, wClient(pWin));
