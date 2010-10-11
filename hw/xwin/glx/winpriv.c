@@ -19,7 +19,7 @@ winCreateWindowsWindow (WindowPtr pWin);
  */
 HWND winGetWindowInfo(WindowPtr pWin)
 {
-    winDebug("%s: pWin=%p\n", __FUNCTION__, pWin);
+    winDebug("%s: pWin %p XID 0x%x\n", __FUNCTION__, pWin, pWin->drawable.id);
 
     /* a real window was requested */
     if (pWin != NULL)
@@ -53,8 +53,8 @@ HWND winGetWindowInfo(WindowPtr pWin)
 
             if (pWinPriv->hWnd == NULL)
             {
+              ErrorF("winGetWindowInfo: forcing window to exist\n");
               winCreateWindowsWindow(pWin);
-              ErrorF("winGetWindowInfo: forcing window to exist...\n");
             }
 
             if (pWinPriv->hWnd != NULL)
