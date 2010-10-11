@@ -506,9 +506,7 @@ winCreateWindowsWindow (WindowPtr pWin)
 
   winInitMultiWindowClass();
 
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("winCreateWindowsWindow - pWin: %08x\n", pWin);
-#endif
+  winDebug("winCreateWindowsTopLevelWindow - pWin:%08x XID:0x%x \n", pWin, pWin->drawable.id);
 
   iX = pWin->drawable.x + GetSystemMetrics (SM_XVIRTUALSCREEN);
   iY = pWin->drawable.y + GetSystemMetrics (SM_YVIRTUALSCREEN);
@@ -635,9 +633,7 @@ winDestroyWindowsWindow (WindowPtr pWin)
   HICON hIcon;
   HICON hIconSm;
 
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("winDestroyWindowsWindow\n");
-#endif
+  winDebug("winDestroyWindowsWindow - pWin:%08x XID:0x%x \n", pWin, pWin->drawable.id);
 
   /* Bail out if the Windows window handle is invalid */
   if (pWinPriv->hWnd == NULL)
@@ -672,9 +668,7 @@ winDestroyWindowsWindow (WindowPtr pWin)
 
   winInDestroyWindowsWindow = oldstate;
 
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("-winDestroyWindowsWindow\n");
-#endif
+  winDebug("winDestroyWindowsWindow - done\n");
 }
 
 
