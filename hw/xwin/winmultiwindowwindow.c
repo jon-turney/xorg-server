@@ -517,10 +517,10 @@ winCreateWindowsWindow (WindowPtr pWin)
   iHeight = pWin->drawable.height;
 
   /* ensure window actually ends up somewhere visible */
-  if (iX > GetSystemMetrics (SM_CXVIRTUALSCREEN))
+  if ((iX < GetSystemMetrics (SM_XVIRTUALSCREEN)) || (iX > GetSystemMetrics (SM_CXVIRTUALSCREEN)))
     iX = CW_USEDEFAULT;
 
-  if (iY > GetSystemMetrics (SM_CYVIRTUALSCREEN))
+  if ((iY < GetSystemMetrics (SM_YVIRTUALSCREEN)) || (iY > GetSystemMetrics (SM_CYVIRTUALSCREEN)))
     iY = CW_USEDEFAULT;
 
   winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX, iY);
@@ -550,16 +550,23 @@ winCreateWindowsWindow (WindowPtr pWin)
   /* CW_USEDEFAULT, change back to popup after creation */
   DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
   DWORD dwExStyle = WS_EX_TOOLWINDOW;
+
+  /*
+     Calculate the window coordinates containing the requested client area,
+     being careful to preseve CW_USEDEFAULT
+  */
   RECT rc;
-  rc.top = 0;
-  rc.left = 0;
-  rc.bottom = iHeight;
-  rc.right = iWidth;
+  rc.top = (iY != CW_USEDEFAULT) ? iY : 0;
+  rc.left = (iX != CW_USEDEFAULT) ? iX : 0;
+  rc.bottom = rc.top + iHeight;
+  rc.right = rc.left + iWidth;
   AdjustWindowRectEx(&rc, dwStyle, FALSE, dwExStyle);
+  if (iY != CW_USEDEFAULT) iY = rc.top;
+  if (iX != CW_USEDEFAULT) iX = rc.left;
   iHeight = rc.bottom - rc.top;
   iWidth = rc.right - rc.left;
 
-  winDebug("winCreateWindowsWindow - window size %dx%d\n", iWidth, iHeight);
+  winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX, iY);
 
   /* Create the window */
   hWnd = CreateWindowExA (dwExStyle,		/* Extended styles */
@@ -590,6 +597,10 @@ winCreateWindowsWindow (WindowPtr pWin)
   SetWindowLongPtr(hWnd, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
   SetWindowPos (hWnd, 0, 0, 0, 0, 0,
 		SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+  /* Adjust the X window to match the window placement we actually got... */
+  winAdjustXWindow (pWin, hWnd);
+
   /* Make sure it gets the proper system menu for a WS_POPUP, too */
   GetSystemMenu (hWnd, TRUE);
 
