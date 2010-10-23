@@ -60,10 +60,8 @@ DeviceIntPtr g_pwinKeyboard;
 #ifdef HAS_DEVWINDOWS
 extern int			g_fdMessageQueue;
 #endif
-extern Bool			g_fXdmcpEnabled;
 #ifdef XWIN_CLIPBOARD
 extern winDispatchProcPtr	winProcEstablishConnectionOrig;
-extern winDispatchProcPtr	winProcQueryTreeOrig;
 #endif
 
 
@@ -126,12 +124,6 @@ InitInput (int argc, char *argv[])
     {
       winProcEstablishConnectionOrig = InitialVector[2];
       InitialVector[2] = winProcEstablishConnection;
-    }
-  if (g_fXdmcpEnabled
-      && ProcVector[X_QueryTree] != winProcQueryTree)
-    {
-      winProcQueryTreeOrig = ProcVector[X_QueryTree];
-      ProcVector[X_QueryTree] = winProcQueryTree;
     }
 #endif
 
