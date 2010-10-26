@@ -1163,6 +1163,5 @@ winLogVersionInfo(void)
            XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
     if (strlen(BUILDERSTRING))
         ErrorF("%s\n", BUILDERSTRING);
-    ErrorF("Contact: %s\n", BUILDERADDR);
     ErrorF("\n");
 }
