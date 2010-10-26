@@ -1175,6 +1175,5 @@ winLogVersionInfo(void)
     winOS();
     if (strlen(BUILDERSTRING))
         ErrorF("%s\n", BUILDERSTRING);
-    ErrorF("Contact: %s\n", BUILDERADDR);
     ErrorF("\n");
 }
