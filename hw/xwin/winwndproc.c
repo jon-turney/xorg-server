@@ -190,12 +190,9 @@ winWindowProc (HWND hwnd, UINT message,
 	  break;
 	}
 
-      ErrorF ("winWindowProc - WM_DISPLAYCHANGE - new bpp: %d\n",
-	      wParam);
-
       ErrorF ("winWindowProc - WM_DISPLAYCHANGE - new width: %d "
-	      "new height: %d\n",
-	      LOWORD (lParam), HIWORD (lParam));
+	      "new height: %d new bpp: %d\n",
+	      LOWORD (lParam), HIWORD (lParam), wParam);
 
       /*
        * Check for a disruptive change in depth.
@@ -253,7 +250,7 @@ winWindowProc (HWND hwnd, UINT message,
           */
           if ((!s_pScreenInfo->fUserGaveHeightAndWidth) &&
               (s_pScreenInfo->iResizeMode == resizeWithRandr) &&
-              (TRUE
+              (FALSE
 #ifdef XWIN_MULTIWINDOWEXTWM
                || s_pScreenInfo->fMWExtWM
 #endif
@@ -293,18 +290,35 @@ winWindowProc (HWND hwnd, UINT message,
                     }
                 }
 
-              // adjustments made to window size?
-              winDoRandRScreenSetSize(s_pScreen,
-                                      dwWidth,
-                                      dwHeight,
-                                      (dwWidth / monitorResolution) * 25.4,
-                                      (dwHeight / monitorResolution) * 25.4);
+              /*
+                XXX: probably a small bug here: we don't compute the work area
+                and allow for task bar
+
+                XXX: generally, we don't allow for the task bar being moved after
+                the server is started
+               */
+
+              /* Set screen size to match new size, if it is different to current */
+              if ((s_pScreenInfo->dwWidth != dwWidth) ||
+                  (s_pScreenInfo->dwHeight != dwHeight))
+                {
+                  winDoRandRScreenSetSize(s_pScreen,
+                                          dwWidth,
+                                          dwHeight,
+                                          (dwWidth / monitorResolution) * 25.4,
+                                          (dwHeight / monitorResolution) * 25.4);
+                }
 	    }
           else
             {
               /*
-               * We can simply recreate the same-sized primary surface when
-               * the display dimensions change.
+                If we get here, we are either windowed and using the GDI engine
+                or windowed and non-fullscreen using any engine
+              */
+
+              /*
+               * For ddraw engines, we need to (try to) recreate the same-sized primary surface
+               * when display dimensions change (but not depth, that is disruptive)
                */
 
               /*
@@ -315,17 +329,13 @@ winWindowProc (HWND hwnd, UINT message,
                * relevant to the current engine (e.g., Shadow GDI).
                */
 
-              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Dimensions changed\n");
+              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Releasing and recreating primary surface\n");
 
               /* Release the old primary surface */
               (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
 
-              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Released primary surface\n");
-
               /* Create the new primary surface */
               (*s_pScreenPriv->pwinCreatePrimarySurface) (s_pScreen);
-
-              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Recreated primary surface\n");
             }
 	}
 

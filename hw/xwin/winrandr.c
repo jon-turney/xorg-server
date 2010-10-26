@@ -278,7 +278,7 @@ winRandRScreenSetSize (ScreenPtr  pScreen,
     rcClient.right = width;
     rcClient.bottom = height;
 
-    ErrorF ("winDoRandRScreenSetSize new client area w: %d h: %d\n", width, height);
+    ErrorF ("winRandRScreenSetSize new client area w: %d h: %d\n", width, height);
 
     /* Get the Windows window style and extended style */
     dwExStyle = GetWindowLongPtr(pScreenPriv->hwndScreen, GWL_EXSTYLE);
@@ -290,7 +290,7 @@ winRandRScreenSetSize (ScreenPtr  pScreen,
      */
     AdjustWindowRectEx(&rcClient, dwStyle, FALSE, dwExStyle);
 
-    ErrorF ("winDoRandRScreenSetSize new window area w: %d h: %d\n", rcClient.right-rcClient.left, rcClient.bottom-rcClient.top);
+    ErrorF ("winRandRScreenSetSize new window area w: %d h: %d\n", rcClient.right-rcClient.left, rcClient.bottom-rcClient.top);
 
     SetWindowPos(pScreenPriv->hwndScreen, NULL,
                  0, 0, rcClient.right-rcClient.left, rcClient.bottom-rcClient.top,
