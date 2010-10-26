@@ -1165,6 +1165,7 @@ winLogVersionInfo(void)
     ErrorF("Vendor: %s\n", XVENDORNAME);
     ErrorF("Release: %d.%d.%d.%d\n", XORG_VERSION_MAJOR,
            XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
-    ErrorF("%s\n\n", BUILDERSTRING);
-    ErrorF("Contact: %s\n", BUILDERADDR);
+    if (strlen(BUILDERSTRING))
+        ErrorF("%s\n", BUILDERSTRING);
+    ErrorF("\n");
 }
