@@ -81,10 +81,6 @@ extern Bool                     g_fSoftwareCursor;
  * Prototypes
  */
 
-Bool
-winRandRInit (ScreenPtr pScreen);
-
-
 /*
  * Local functions
  */

@@ -305,8 +305,8 @@ winWindowProc (HWND hwnd, UINT message,
                   winDoRandRScreenSetSize(s_pScreen,
                                           dwWidth,
                                           dwHeight,
-                                          (dwWidth / monitorResolution) * 25.4,
-                                          (dwHeight / monitorResolution) * 25.4);
+                                          (dwWidth * 25.4) / monitorResolution,
+                                          (dwHeight * 25.4) / monitorResolution);
                 }
 	    }
           else
@@ -471,11 +471,12 @@ winWindowProc (HWND hwnd, UINT message,
           if ((s_pScreenInfo->dwWidth != dwWidth) ||
               (s_pScreenInfo->dwHeight != dwHeight))
             {
+              /* mm = dots * (25.4 mm / inch) / (dots / inch) */
               winDoRandRScreenSetSize(s_pScreen,
                                       dwWidth,
                                       dwHeight,
-                                      (dwWidth / monitorResolution) * 25.4,
-                                      (dwHeight / monitorResolution) * 25.4);
+                                      (dwWidth * 25.4) / monitorResolution,
+                                      (dwHeight * 25.4) / monitorResolution);
             }
         }
 

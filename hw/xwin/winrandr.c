@@ -40,13 +40,6 @@
 #error X server must have RandR 1.2 interface
 #endif
 
-/*
- * Local prototypes
- */
-
-Bool
-winRandRInit (ScreenPtr pScreen);
-
 
 /*
  * Answer queries about the RandR features supported.
