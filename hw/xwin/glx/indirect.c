@@ -995,7 +995,7 @@ int glxWinReleaseTexImage(__GLXcontext  *baseContext,
  * lists with the old one...
  */
 
-static void
+static Bool
 glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawableTypeOverride)
 {
   __GLXscreen *screen = gc->base.pGlxScreen;
@@ -1017,10 +1017,10 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
       if (!SetPixelFormat(hdc, winConfig->pixelFormatIndex, NULL))
         {
           ErrorF("SetPixelFormat error: %s\n", glxWinErrorMessage());
-          return;
+          return FALSE;
         }
 
-      return;
+      return TRUE;
     }
 
   /*
@@ -1052,7 +1052,7 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
       if (fbConfigToPixelFormat(gc->base.config, &pfd, drawableTypeOverride))
         {
           ErrorF("glxWinSetPixelFormat: fbConfigToPixelFormat failed\n");
-          return;
+          return FALSE;
         }
 
       if (glxWinDebugSettings.dumpPFD)
@@ -1068,7 +1068,7 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
       if (pixelFormat == 0)
         {
           ErrorF("ChoosePixelFormat error: %s\n", glxWinErrorMessage());
-          return;
+          return FALSE;
         }
 
       GLWIN_DEBUG_MSG("ChoosePixelFormat: chose pixelFormatIndex %d", pixelFormat);
@@ -1077,7 +1077,7 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
       if (!SetPixelFormat(hdc, pixelFormat, &pfd))
         {
           ErrorF("SetPixelFormat error: %s\n", glxWinErrorMessage());
-          return;
+          return FALSE;
         }
     }
   else
@@ -1086,7 +1086,7 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
       if (pixelFormat == 0)
         {
           ErrorF("wglChoosePixelFormat error: %s\n", glxWinErrorMessage());
-          return;
+          return FALSE;
         }
 
       GLWIN_DEBUG_MSG("wglChoosePixelFormat: chose pixelFormatIndex %d", pixelFormat);
@@ -1095,9 +1095,11 @@ glxWinSetPixelFormat(__GLXWinContext *gc, HDC hdc, int bppOverride, int drawable
       if (!SetPixelFormat(hdc, pixelFormat, NULL))
         {
           ErrorF("SetPixelFormat error: %s\n", glxWinErrorMessage());
-          return;
+          return FALSE;
         }
     }
+
+  return TRUE;
 }
 
 static HDC
@@ -1148,7 +1150,13 @@ glxWinMakeDC(__GLXWinContext *gc, __GLXWinDrawable *draw, HDC *hdc, HWND *hwnd)
           gc->hwnd = *hwnd;
 
           /* We must select a pixelformat, but SetPixelFormat can only be called once for a window... */
-          glxWinSetPixelFormat(gc, *hdc, 0, GLX_WINDOW_BIT);
+          if (!glxWinSetPixelFormat(gc, *hdc, 0, GLX_WINDOW_BIT))
+            {
+              ErrorF("glxWinSetPixelFormat error: %s\n", glxWinErrorMessage());
+              ReleaseDC(*hwnd, *hdc);
+              *hdc = NULL;
+              return NULL;
+            }
         }
     }
     break;
