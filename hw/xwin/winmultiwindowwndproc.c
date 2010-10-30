@@ -1126,3 +1126,42 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
     winReorderWindowsMultiWindow();
   return ret;
 }
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc (HWND hwnd, UINT message,
+                    WPARAM wParam, LPARAM lParam)
+{
+#if CYGDEBUG
+  winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+  switch (message)
+    {
+    case WM_ERASEBKGND:
+      return TRUE;
+
+    case WM_PAINT:
+      /*
+        We don't have the bits to draw into the window, they went straight into the OpenGL
+        surface
+
+        XXX: For now, just leave it alone, but ideally we want to send an expose event to
+        the window so it really redraws the affected region...
+      */
+      {
+        PAINTSTRUCT ps;
+        HDC hdcUpdate;
+        hdcUpdate = BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+      }
+      /* XXX: this is exactly what DefWindowProc does? */
+    }
+
+  return DefWindowProc (hwnd, message, wParam, lParam);
+}
