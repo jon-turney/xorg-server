@@ -42,10 +42,16 @@ is" without express or implied warranty.
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include "dixmain.h"
 
 Bool xnestDoFullGeneration = True;
 
 EventList *xnestEvents = NULL;
+
+int main(int argc, char *argv[], char *envp[])
+{
+  return dix_main(argc, argv, envp);
+}
 
 void
 InitOutput(ScreenInfo *screenInfo, int argc, char *argv[])

@@ -70,6 +70,7 @@
 #include <X11/extensions/Xext.h>
 #include <X11/extensions/extutil.h>
 #endif /* GLXEXT */
+#include "dixmain.h"
 
 /* Global variables available to all Xserver/hw/dmx routines. */
 int             dmxNumScreens;
@@ -816,6 +817,11 @@ static void dmxSetDefaultFontPath(char *fp)
     }
 
     defaultFontPath = dmxFontPath;
+}
+
+int main(int argc, char *argv[], char *envp[])
+{
+  return dix_main(argc, argv, envp);
 }
 
 /** This function is called in Xserver/os/utils.c from \a AbortServer().

@@ -109,6 +109,7 @@ Equipment Corporation.
 #else
 #include "dixevents.h"		/* InitEvents() */
 #endif
+#include "dixmain.h"
 
 #ifdef DPMSExtension
 #include <X11/extensions/dpmsconst.h>
@@ -124,12 +125,9 @@ BOOL serverInitComplete = FALSE;
 pthread_mutex_t serverInitCompleteMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t serverInitCompleteCond = PTHREAD_COND_INITIALIZER;
 
-int dix_main(int argc, char *argv[], char *envp[]);
+#endif
 
 int dix_main(int argc, char *argv[], char *envp[])
-#else
-int main(int argc, char *argv[], char *envp[])
-#endif
 {
     int		i;
     HWEventQueueType	alwaysCheckForInput[2];

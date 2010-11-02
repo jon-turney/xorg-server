@@ -86,6 +86,7 @@
 #include "dpmsproc.h"
 #endif
 #include <hotplug.h>
+#include "dixmain.h"
 
 
 #ifdef XF86PM
@@ -116,6 +117,11 @@ static Bool formatsDone = FALSE;
 #ifndef PRE_RELEASE
 #define PRE_RELEASE XORG_VERSION_SNAP
 #endif
+
+int main(int argc, char *argv[], char *envp[])
+{
+  return dix_main(argc, argv, envp);
+}
 
 static void
 xf86PrintBanner(void)

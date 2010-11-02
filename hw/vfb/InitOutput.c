@@ -66,6 +66,7 @@ from The Open Group.
 #endif /* HAS_SHM */
 #include "dix.h"
 #include "miline.h"
+#include "dixmain.h"
 
 #define VFB_DEFAULT_WIDTH      1280
 #define VFB_DEFAULT_HEIGHT     1024
@@ -147,6 +148,11 @@ vfbBitsPerPixel(int depth)
     else if (depth <= 8) return 8;
     else if (depth <= 16) return 16;
     else return 32;
+}
+
+int main(int argc, char *argv[], char *envp[])
+{
+  return dix_main(argc, argv, envp);
 }
 
 void
