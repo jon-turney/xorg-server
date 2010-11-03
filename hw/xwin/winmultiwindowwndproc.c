@@ -481,6 +481,20 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	return 0;
       }
 
+#ifdef XWIN_GLX_WINDOWS
+      if (pWinPriv->fWglUsed)
+        {
+          /*
+             For regions which are being drawn by GL, the shadow framebuffer doesn't have the
+             correct bits, so don't bitblt from the shadow framebuffer
+
+             XXX: For now, just leave it alone, but ideally we want to send an expose event to
+             the window so it really redraws the affected region...
+          */
+          ValidateRect(hwnd, &(ps.rcPaint));
+        }
+      else
+#endif
       /* Try to copy from the shadow buffer */
       if (!BitBlt (hdcUpdate,
 		   ps.rcPaint.left, ps.rcPaint.top,
@@ -1111,4 +1125,43 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
   if (needRestack)
     winReorderWindowsMultiWindow();
   return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc (HWND hwnd, UINT message,
+                    WPARAM wParam, LPARAM lParam)
+{
+#if CYGDEBUG
+  winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+  switch (message)
+    {
+    case WM_ERASEBKGND:
+      return TRUE;
+
+    case WM_PAINT:
+      /*
+        We don't have the bits to draw into the window, they went straight into the OpenGL
+        surface
+
+        XXX: For now, just leave it alone, but ideally we want to send an expose event to
+        the window so it really redraws the affected region...
+      */
+      {
+        PAINTSTRUCT ps;
+        HDC hdcUpdate;
+        hdcUpdate = BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+      }
+      /* XXX: this is exactly what DefWindowProc does? */
+    }
+
+  return DefWindowProc (hwnd, message, wParam, lParam);
 }
