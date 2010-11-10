@@ -449,9 +449,8 @@ winReparentWindowMultiWindow (WindowPtr pWin, WindowPtr pPriorParent)
   ScreenPtr		pScreen = pWin->drawable.pScreen;
   winScreenPriv(pScreen);
 
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("winReparentMultiWindow - pWin: %08x\n", pWin);
-#endif
+  winDebug("winReparentMultiWindow - pWin:%08x XID:0x%x, reparent from pWin:%08x XID:0x%x to pWin:%08x XID:0x%x\n",
+           pWin, pWin->drawable.id, pPriorParent, pPriorParent->drawable.id, pWin->parent, pWin->parent->drawable.id);
 
   WIN_UNWRAP(ReparentWindow);
   if (pScreen->ReparentWindow) 
@@ -761,6 +760,26 @@ winCreateWindowsWindow (WindowPtr pWin)
    }
 }
 
+static int
+winDestroyChildWindowsWindow(WindowPtr pWin, pointer data)
+{
+  winWindowPriv(pWin);
+
+  winDebug("winDestroyChildWindowsWindow - pWin:%08x XID:0x%x \n", pWin, pWin->drawable.id);
+
+  SetProp (pWinPriv->hWnd, WIN_WINDOW_PROP, NULL);
+
+  /* Null our handle to the Window so referencing it will cause an error */
+  pWinPriv->hWnd = NULL;
+
+#ifdef XWIN_GLX_WINDOWS
+  /* No longer note WGL used on this window */
+  pWinPriv->fWglUsed = FALSE;
+#endif
+
+  return WT_WALKCHILDREN; /* continue enumeration */
+}
+
 Bool winInDestroyWindowsWindow = FALSE;
 /*
  * winDestroyWindowsWindow - Destroy a Windows window associated
@@ -774,6 +793,7 @@ winDestroyWindowsWindow (WindowPtr pWin)
   BOOL			oldstate = winInDestroyWindowsWindow;
   HICON hIcon;
   HICON hIconSm;
+  HWND hWnd;
 
   winDebug("winDestroyWindowsWindow - pWin:%08x XID:0x%x \n", pWin, pWin->drawable.id);
 
@@ -784,21 +804,17 @@ winDestroyWindowsWindow (WindowPtr pWin)
   winInDestroyWindowsWindow = TRUE;
 
   /* Store the info we need to destroy after this window is gone */
-  hIcon = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_BIG, 0);
-  hIconSm = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_SMALL, 0);
+  hWnd = pWinPriv->hWnd;
+  hIcon = (HICON)SendMessage(hWnd, WM_GETICON, ICON_BIG, 0);
+  hIconSm = (HICON)SendMessage(hWnd, WM_GETICON, ICON_SMALL, 0);
 
-  SetProp (pWinPriv->hWnd, WIN_WINDOW_PROP, NULL);
+  /* DestroyWindow() implicitly destroys all child windows,
+     so first walk over the child tree of this window, clearing
+     any hWnds */
+  TraverseTree(pWin, winDestroyChildWindowsWindow, 0);
 
   /* Destroy the Windows window */
-  DestroyWindow (pWinPriv->hWnd);
-
-  /* Null our handle to the Window so referencing it will cause an error */
-  pWinPriv->hWnd = NULL;
-
-#ifdef XWIN_GLX_WINDOWS
-  /* No longer note WGL used on this window */
-  pWinPriv->fWglUsed = FALSE;
-#endif
+  DestroyWindow (hWnd);
 
   /* Destroy any icons we created for this window */
   winDestroyIcon(hIcon);
@@ -874,6 +890,12 @@ winUpdateWindowsWindow (WindowPtr pWin)
           /* Send first paint message */
           UpdateWindow (pWinPriv->hWnd);
         }
+    }
+  else if (pWinPriv->hWnd != NULL)
+    {
+      /* If it's been reparented to an unmapped window when previously mapped, destroy the Windows window */
+      winDestroyWindowsWindow (pWin);
+      assert(pWinPriv->hWnd == NULL);
     }
 
 #if CYGMULTIWINDOW_DEBUG
