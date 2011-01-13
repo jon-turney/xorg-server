@@ -28,6 +28,7 @@
 #endif
 #include "ephyr.h"
 #include "ephyrlog.h"
+#include "dixmain.h"
 
 extern Window EphyrPreExistingHostWin;
 extern Bool   EphyrWantGrayScale;
@@ -46,6 +47,12 @@ extern KdKeyboardDriver LinuxEvdevKeyboardDriver;
 #endif
 
 void processScreenArg (char *screen_size, char *parent_id) ;
+
+int
+main(int argc, char *argv[], char *envp[])
+{
+  return dix_main(argc, argv, envp);
+}
 
 void
 InitCard (char *name)

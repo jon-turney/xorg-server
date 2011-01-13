@@ -24,6 +24,13 @@
 #include <kdrive-config.h>
 #endif
 #include "fake.h"
+#include "dixmain.h"
+
+int
+main(int argc, char *argv[], char *envp[])
+{
+  return dix_main(argc, argv, envp);
+}
 
 void
 InitCard (char *name)
