@@ -231,13 +231,13 @@ const char *glxWinErrorMessage(void)
                      sizeof(errorbuffer),
                      NULL ))
     {
-      snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error (%08x)", last_error);
+      snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error", last_error);
     }
 
   if ((errorbuffer[strlen(errorbuffer)-1] == '\n') || (errorbuffer[strlen(errorbuffer)-1] == '\r'))
     errorbuffer[strlen(errorbuffer)-1] = 0;
 
-  sprintf(errorbuffer + strlen(errorbuffer) -1, " (%08x)", last_error);
+  sprintf(errorbuffer + strlen(errorbuffer), " (%08x)", last_error);
 
   return errorbuffer;
 }
