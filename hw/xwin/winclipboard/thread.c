@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <setjmp.h>
 #include <pthread.h>
+#include <locale.h>
 #include <sys/param.h> // for MAX() macro
 
 #ifdef HAS_WINSOCK
@@ -59,6 +60,7 @@
 #endif
 
 #include <X11/Xatom.h>
+#include <X11/Xlocale.h>
 #include <X11/extensions/Xfixes.h>
 #include "winclipboard.h"
 #include "internal.h"
@@ -131,15 +133,28 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
     winDebug("winClipboardProc - Hello\n");
 
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winClipboardProc - XInitThreads failed.\n");
-        goto winClipboardProc_Exit;
-    }
+    {
+        const char *locale;
 
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winClipboardProc - Warning: Locale not supported by X.\n");
+        /* Allow multiple threads to access Xlib */
+        if (XInitThreads() == 0) {
+            ErrorF("winClipboardProc - XInitThreads failed.\n");
+        }
+
+        /*
+         * setlocale applies to all threads in the current process.
+         * Apply locale specified in LANG environment variable.
+         */
+        locale = setlocale(LC_ALL, "");
+        if (!locale) {
+            ErrorF("winClipboardProc - setlocale failed.\n");
+        }
+
+        /* See if X supports the current locale */
+        if (XSupportsLocale() == FALSE) {
+            ErrorF("Warning: Locale '%s' not supported by X, falling back to 'C' locale.\n", locale);
+            setlocale(LC_ALL, "C");
+        }
     }
 
     g_fpAddClipboardFormatListener = (ADDCLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"AddClipboardFormatListener");
@@ -353,7 +368,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 #endif
     }
 
- winClipboardProc_Exit:
     /* broke out of while loop on a shutdown message */
     fShutdown = TRUE;
 
