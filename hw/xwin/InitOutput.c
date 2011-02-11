@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -968,11 +966,24 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Perform some one time initialization */
     if (1 == serverGeneration) {
+        /* Allow multiple threads to access Xlib */
+        if (XInitThreads() == 0) {
+            ErrorF("XInitThreads failed.\n");
+        }
+
         /*
          * setlocale applies to all threads in the current process.
          * Apply locale specified in LANG environment variable.
          */
-        setlocale(LC_ALL, "");
+        if (!setlocale(LC_ALL, "")) {
+            ErrorF("setlocale failed.\n");
+        }
+
+        /* See if X supports the current locale */
+        if (XSupportsLocale() == FALSE) {
+            ErrorF("Warning: Locale not supported by X, falling back to 'C' locale.\n");
+            setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
