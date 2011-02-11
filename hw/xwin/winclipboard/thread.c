@@ -127,16 +127,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
     winDebug("winClipboardProc - Hello\n");
 
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winClipboardProc - XInitThreads failed.\n");
-        goto winClipboardProc_Exit;
-    }
-
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winClipboardProc - Warning: Locale not supported by X.\n");
-    }
 
     g_winClipboardProcThread = pthread_self();
 
@@ -344,7 +334,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 #endif
     }
 
- winClipboardProc_Exit:
     /* broke out of while loop on a shutdown message */
     fShutdown = TRUE;
 
