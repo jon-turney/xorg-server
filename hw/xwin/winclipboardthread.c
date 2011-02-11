@@ -116,19 +116,6 @@ winClipboardProc (void *pvNotUsed)
   /* Save the Unicode support flag in a global */
   g_fUseUnicode = fUseUnicode;
 
-  /* Allow multiple threads to access Xlib */
-  if (XInitThreads () == 0)
-    {
-      ErrorF ("winClipboardProc - XInitThreads failed.\n");
-      pthread_exit (NULL);
-    }
-
-  /* See if X supports the current locale */
-  if (XSupportsLocale () == False)
-    {
-      ErrorF ("winClipboardProc - Warning: Locale not supported by X.\n");
-    }
-
   /* Set error handler */
   XSetErrorHandler (winClipboardErrorHandler);
   g_winClipboardProcThread = pthread_self();
