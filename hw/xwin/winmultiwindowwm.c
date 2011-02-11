@@ -48,7 +48,6 @@
 #include <X11/X.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <X11/Xlocale.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
@@ -893,17 +892,6 @@ winMultiWindowXMsgProc(void *pArg)
 
     ErrorF("winMultiWindowXMsgProc - pthread_mutex_lock () returned.\n");
 
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winMultiWindowXMsgProc - XInitThreads () failed.  Exiting.\n");
-        pthread_exit(NULL);
-    }
-
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winMultiWindowXMsgProc - Warning: locale not supported by X\n");
-    }
-
     /* Release the server started mutex */
     pthread_mutex_unlock(pProcArg->ppmServerStarted);
 
@@ -1262,17 +1250,6 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     }
 
     ErrorF("winInitMultiWindowWM - pthread_mutex_lock () returned.\n");
-
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winInitMultiWindowWM - XInitThreads () failed.  Exiting.\n");
-        pthread_exit(NULL);
-    }
-
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winInitMultiWindowWM - Warning: Locale not supported by X.\n");
-    }
 
     /* Release the server started mutex */
     pthread_mutex_unlock(pProcArg->ppmServerStarted);
