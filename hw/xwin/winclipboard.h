@@ -49,7 +49,6 @@
 #include <X11/Xatom.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
-#include <X11/Xlocale.h>
 
 /* Windows headers */
 #include <X11/Xwindows.h>
