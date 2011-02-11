@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -88,6 +86,9 @@ Bool
 #ifdef RELOCATE_PROJECTROOT
 const char *winGetBaseDir(void);
 #endif
+
+extern Bool XSupportsLocale(void);
+extern Status XInitThreads(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -1027,11 +1028,27 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Perform some one time initialization */
     if (1 == serverGeneration) {
+        const char *locale;
+
+        /* Allow multiple threads to access Xlib */
+        if (XInitThreads() == 0) {
+            ErrorF("XInitThreads failed.\n");
+        }
+
         /*
          * setlocale applies to all threads in the current process.
          * Apply locale specified in LANG environment variable.
          */
-        setlocale(LC_ALL, "");
+        locale = setlocale(LC_ALL, "");
+        if (!locale) {
+            ErrorF("setlocale failed.\n");
+        }
+
+        /* See if X supports the current locale */
+        if (XSupportsLocale() == FALSE) {
+            ErrorF("Warning: Locale '%s' not supported by X, falling back to 'C' locale.\n", locale);
+            setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
