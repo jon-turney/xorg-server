@@ -1210,9 +1210,77 @@ winLogCommandLine (int argc, char *argv[])
 	  "%s\n\n", g_pszCommandLine);
 }
 
+/*
+ * Detect the OS
+ */
+
+static void
+winOS(void)
+{
+  OSVERSIONINFOEX osvi = {0};
+  char *windowstype = "Unknown";
+  char *prodName = "Unknown";
+
+  /* Get operating system version information */
+  osvi.dwOSVersionInfoSize = sizeof(osvi);
+  GetVersionEx((LPOSVERSIONINFO)&osvi);
+
+  /* Branch on platform ID */
+  switch (osvi.dwPlatformId)
+    {
+    case VER_PLATFORM_WIN32_NT:
+      windowstype = "Windows NT";
+
+      if (osvi.dwMajorVersion <= 4)
+        prodName = "Windows NT";
+      else if (osvi.dwMajorVersion == 6)
+      {
+	if (osvi.dwMinorVersion == 1)
+	{
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows 7";
+	  else
+	    prodName = "Windows Server 2008 R2";
+	}
+	else if (osvi.dwMinorVersion == 0)
+	{
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows Vista";
+	  else
+	    prodName = "Windows Server 2008";
+	}
+      } else if (osvi.dwMajorVersion == 5)
+      {
+	if (osvi.dwMinorVersion == 2)
+          {
+            if (GetSystemMetrics(SM_SERVERR2))
+              prodName = "Windows Server 2003 R2";
+            else
+              prodName = "Windows Server 2003";
+          }
+	else if (osvi.dwMinorVersion == 1)
+	  prodName = "Windows XP";
+	else if (osvi.dwMinorVersion == 0)
+	{
+	  prodName = "Windows 2000";
+	  break;
+	}
+      }
+
+      break;
+
+    case VER_PLATFORM_WIN32_WINDOWS:
+      windowstype = "Windows";
+      break;
+    }
+
+  ErrorF("OS: %s %s [%s %ld.%ld build %ld]\n",
+         prodName, osvi.szCSDVersion,
+         windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber);
+}
 
 /*
- * winLogVersionInfo - Log Cygwin/X version information
+ * winLogVersionInfo - Log version information
  */
 
 void
@@ -1227,6 +1295,7 @@ winLogVersionInfo (void)
   ErrorF ("Welcome to the XWin X Server\n");
   ErrorF ("Vendor: %s\n", XVENDORNAME);
   ErrorF ("Release: %d.%d.%d.%d (%d)\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP, XORG_VERSION_CURRENT);
+  winOS();
   if (strlen(BUILDERSTRING)) ErrorF ("%s\n", BUILDERSTRING);
   ErrorF("\n");
 }
