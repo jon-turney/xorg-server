@@ -52,6 +52,16 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
     pthread_mutex_lock(&s_pmPrinting);
 #endif
 
+    /* If we want to silence it,
+     * detect if we are going to abort due to duplication error */
+    if (g_fSilentDupError) {
+        if ((strcmp(pszFormat, "InitOutput - Duplicate invocation on display number: %s.  Exiting.\n") == 0)
+            || (strcmp(pszFormat, "Server is already active for display %s\n%s %s\n%s\n") == 0)
+            || (strcmp(pszFormat, "MakeAllCOTSServerListeners: server already running\n") == 0)) {
+            g_fSilentFatalError = TRUE;
+        }
+    }
+
     /* Print the error message to a log file, could be stderr */
     LogVWrite(0, pszFormat, va_args);
 
