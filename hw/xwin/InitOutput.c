@@ -84,8 +84,6 @@ void
 OsVendorVErrorF (const char *pszFormat, va_list va_args);
 #endif
 
-static Bool
-winCheckDisplayNumber (void);
 
 void
 winLogCommandLine (int argc, char *argv[]);
@@ -933,15 +931,6 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 		  "Exiting.\n");
     }
 
-  /* Check for duplicate invocation on same display number.*/
-  if (serverGeneration == 1 && !winCheckDisplayNumber ())
-    {
-      if (g_fSilentDupError)
-        g_fSilentFatalError = TRUE;  
-      FatalError ("InitOutput - Duplicate invocation on display "
-		  "number: %s.  Exiting.\n", display);
-    }
-
 #ifdef XWIN_XF86CONFIG
   /* Try to read the xorg.conf-style configuration file */
   if (!winReadConfigfile ())
@@ -1008,79 +997,4 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");
 #endif
-}
-
-
-/*
- * winCheckDisplayNumber - Check if another instance of Cygwin/X is
- * already running on the same display number.  If no one exists,
- * make a mutex to prevent new instances from running on the same display.
- *
- * return FALSE if the display number is already used.
- */
-
-static Bool
-winCheckDisplayNumber (void)
-{
-  int			nDisp;
-  HANDLE		mutex;
-  char			name[MAX_PATH];
-  char *		pszPrefix = '\0';
-  OSVERSIONINFO		osvi = {0};
-
-  /* Check display range */
-  nDisp = atoi (display);
-  if (nDisp < 0 || nDisp > 65535)
-    {
-      ErrorF ("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-      return FALSE;
-    }
-
-  /* Set first character of mutex name to null */
-  name[0] = '\0';
-
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx (&osvi);
-
-  /* Want a mutex shared among all terminals on NT > 4.0 */
-  if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT
-      && osvi.dwMajorVersion >= 5)
-    {
-      pszPrefix = "Global\\";
-    }
-
-  /* Setup Cygwin/X specific part of name */
-  snprintf (name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
-
-  /* Windows automatically releases the mutex when this process exits */
-  mutex = CreateMutex (NULL, FALSE, name);
-  if (!mutex)
-    {
-      LPVOID lpMsgBuf;
-
-      /* Display a fancy error message */
-      FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		     FORMAT_MESSAGE_FROM_SYSTEM | 
-		     FORMAT_MESSAGE_IGNORE_INSERTS,
-		     NULL,
-		     GetLastError (),
-		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		     (LPTSTR) &lpMsgBuf,
-		     0, NULL);
-      ErrorF ("winCheckDisplayNumber - CreateMutex failed: %s\n",
-	      (LPSTR)lpMsgBuf);
-      LocalFree (lpMsgBuf);
-
-      return FALSE;
-    }
-  if (GetLastError () == ERROR_ALREADY_EXISTS)
-    {
-      ErrorF ("winCheckDisplayNumber - "
-	      PROJECT_NAME " is already running on display %d\n",
-	      nDisp);
-      return FALSE;
-    }
-
-  return TRUE;
 }
