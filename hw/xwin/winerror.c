@@ -65,6 +65,17 @@ OsVendorFatalError(const char *f, va_list args)
 {
     char errormsg[1024] = "";
 
+    /* If we want to silence it,
+     * detect if we are going to abort due to duplication error */
+    if (g_fSilentDupError) {
+        if ((strcmp(f, "InitOutput - Duplicate invocation on display number: %s.  Exiting.\n") == 0)
+            || (strcmp(f, "Server is already active for display %s\n%s %s\n%s\n") == 0)
+            || (strcmp(f, "Cannot establish any listening sockets - Make sure an X server isn't already running") == 0)
+            || (strcmp(f, "_XSERVTransMakeAllCOTSServerListeners: server already running\n") == 0)) {
+            g_fSilentFatalError = TRUE;
+        }
+    }
+
     /* Don't give duplicate warning if UseMsg was called */
     if (g_fSilentFatalError)
         return;

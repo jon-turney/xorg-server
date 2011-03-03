@@ -53,6 +53,7 @@ extern Bool g_fXdmcpEnabled;
 extern Bool g_fCompositeAlpha;
 
 extern Bool g_fNoHelpMessageBox;
+extern Bool g_fSilentDupError;
 extern Bool g_fNativeGl;
 extern Bool g_fHostInTitle;
 

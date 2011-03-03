@@ -1045,6 +1045,11 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
+    if (IS_OPTION("-silent-dup-error")) {
+        g_fSilentDupError = TRUE;
+        return 1;
+    }
+
     if (IS_OPTION("-wgl")) {
         g_fNativeGl = TRUE;
         return 1;
