@@ -836,6 +836,11 @@ winUseMsg(void)
            "\t -screen 0 1024x768@3        ; 3rd monitor size 1024x768\n"
            "\t -screen 0 @1 ; on 1st monitor using its full resolution (the default)\n");
 
+    ErrorF("-silent-dup-error\n"
+           "\tIf another instance of " EXECUTABLE_NAME
+           " with the same display number is running\n"
+           "\texit silently and don't display any error message.\n");
+
     ErrorF("-swcursor\n"
            "\tDisable the usage of the Windows cursor and use the X11 software\n"
            "\tcursor instead.\n");
