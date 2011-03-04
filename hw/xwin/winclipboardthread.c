@@ -110,7 +110,7 @@ winClipboardProc (void *pvNotUsed)
 
   pthread_cleanup_push(&winClipboardThreadExit, NULL);
 
-  ErrorF ("winClipboardProc - Hello\n");
+  winDebug ("winClipboardProc - Hello\n");
   ++clipboardRestarts;
 
   /* Do we have Unicode support? */

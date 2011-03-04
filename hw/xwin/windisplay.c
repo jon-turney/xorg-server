@@ -52,5 +52,5 @@ winGetDisplayName(char *szDisplay, unsigned int screen)
       snprintf(szDisplay, 512, "localhost:%s.%d", display, screen);
     }
 
-  ErrorF ("winGetDisplay: DISPLAY=%s\n", szDisplay);
+  winDebug("winGetDisplay: DISPLAY=%s\n", szDisplay);
 }
