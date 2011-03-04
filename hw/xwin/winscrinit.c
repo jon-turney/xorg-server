@@ -463,7 +463,7 @@ winFinishScreenInitFB (int index,
     if (pScreen->a) { \
         pScreenPriv->a = pScreen->a; \
     } else { \
-        ErrorF("null screen fn " #a "\n"); \
+        winDebug("winScreenInit - null screen fn " #a "\n"); \
         pScreenPriv->a = NULL; \
     }
 
@@ -499,7 +499,7 @@ winFinishScreenInitFB (int index,
     if (pScreen->a) { \
         pScreenPriv->a = pScreen->a; \
     } else { \
-        ErrorF("null screen fn " #a "\n"); \
+        winDebug("null screen fn " #a "\n"); \
         pScreenPriv->a = NULL; \
     }
 

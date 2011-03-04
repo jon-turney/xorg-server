@@ -77,8 +77,8 @@ winBlockHandler (int nScreen,
   if (pScreenPriv != NULL && !pScreenPriv->fServerStarted)
     {
       int		iReturn;
-      
-      winDebug ("winBlockHandler - Releasing pmServerStarted\n");
+
+      ErrorF ("winBlockHandler - pthread_mutex_unlock()\n");
 
       /* Flag that modules are to be started */
       pScreenPriv->fServerStarted = TRUE;

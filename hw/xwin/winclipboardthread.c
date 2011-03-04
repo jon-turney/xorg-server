@@ -105,7 +105,7 @@ winClipboardProc (void *pvNotUsed)
 
   pthread_cleanup_push(&winClipboardThreadExit, NULL);
 
-  ErrorF ("winClipboardProc - Hello\n");
+  winDebug ("winClipboardProc - Hello\n");
 
   /* Do we have Unicode support? */
   g_fUnicodeSupport = winClipboardDetectUnicodeSupport ();
