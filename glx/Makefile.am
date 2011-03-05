@@ -1,4 +1,4 @@
-if AIGLX
+if AIGLX_DRI_LOADER
 GLXDRI_LIBRARY = libglxdri.la
 endif
 
@@ -48,9 +48,7 @@ glapi_sources =					\
 	glthread.h
 
 libglxdri_la_SOURCES = \
-        glxdri.c \
-        extension_string.c \
-        extension_string.h
+        glxdri.c
 
 if DRI2_AIGLX
 libglxdri_la_SOURCES += glxdri2.c
@@ -61,6 +59,8 @@ libglxdri_la_LIBADD = $(DLOPEN_LIBS)
 libglx_la_SOURCES = \
 	$(indirect_sources) \
 	$(glapi_sources) \
+	extension_string.c \
+	extension_string.h \
 	indirect_util.c \
 	indirect_util.h \
 	indirect_program.c \

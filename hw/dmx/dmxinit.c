@@ -833,8 +833,8 @@ void AbortDDX(void)
     }
 }
 
-#ifdef DDXBEFORERESET
-void ddxBeforeReset(void)
+#ifdef DDXMAIN
+void ddxMain(void)
 {
 }
 #endif
