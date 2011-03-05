@@ -68,20 +68,6 @@ winDetectSupportedEngines (void)
   osvi.dwOSVersionInfoSize = sizeof (osvi);
   GetVersionEx (&osvi);
 
-  /* Branch on platform ID */
-  switch (osvi.dwPlatformId)
-    {
-    case VER_PLATFORM_WIN32_NT:
-      /* Engine 4 is supported on NT only */
-      winErrorFVerb (2, "winDetectSupportedEngines - Windows NT/2000/XP\n");
-      break;
-
-    case VER_PLATFORM_WIN32_WINDOWS:
-      /* Engine 4 is supported on NT only */
-      winErrorFVerb (2, "winDetectSupportedEngines - Windows 95/98/Me\n");
-      break;
-    }
-
   /* Do we have DirectDraw? */
   if (g_hmodDirectDraw != NULL)
     {
@@ -110,7 +96,7 @@ winDetectSupportedEngines (void)
       else
 	{
 	  /* We have DirectDraw */
-	  winErrorFVerb (2, "winDetectSupportedEngines - DirectDraw installed\n");
+	  winErrorFVerb (2, "winDetectSupportedEngines - DirectDraw installed, allowing ShadowDD\n");
 	  g_dwEnginesSupported |= WIN_SERVER_SHADOW_DD;
 
 #ifdef XWIN_PRIMARYFB
@@ -118,11 +104,11 @@ winDetectSupportedEngines (void)
 	  if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT)
 	    {
 	      g_dwEnginesSupported |= WIN_SERVER_PRIMARY_DD;
-	      winErrorFVerb (2, "winDetectSupportedEngines - Allowing PrimaryDD\n");
+	      winErrorFVerb (2, "winDetectSupportedEngines - Windows NT, allowing PrimaryDD\n");
 	    }
 #endif
 	}
-      
+
       /* Try to query for DirectDraw4 interface */
       ddrval = IDirectDraw_QueryInterface (lpdd,
 					   &IID_IDirectDraw4,
@@ -130,7 +116,7 @@ winDetectSupportedEngines (void)
       if (SUCCEEDED (ddrval))
 	{
 	  /* We have DirectDraw4 */
-	  winErrorFVerb (2, "winDetectSupportedEngines - DirectDraw4 installed\n");
+	  winErrorFVerb (2, "winDetectSupportedEngines - DirectDraw4 installed, allowing ShadowDDNL\n");
 	  g_dwEnginesSupported |= WIN_SERVER_SHADOW_DDNL;
 	}
 

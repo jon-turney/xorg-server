@@ -88,12 +88,27 @@ winInitializeScreenDefaults(void)
   dwWidth = GetSystemMetrics (SM_CXSCREEN);
   dwHeight = GetSystemMetrics (SM_CYSCREEN);
 
-  winErrorFVerb (2, "winInitializeScreenDefaults - w %d h %d\n",
-	  (int) dwWidth, (int) dwHeight);
+  winErrorFVerb(2, "winInitializeScreenDefaults - primary monitor w %d h %d\n", (int) dwWidth, (int) dwHeight);
 
-  /* Set a default DPI, if no parameter was passed */
+  /* Set a default DPI, if no '-dpi' option was used */
   if (monitorResolution == 0)
-    monitorResolution = WIN_DEFAULT_DPI;
+    {
+      HDC hdc = GetDC(NULL);
+      if (hdc)
+        {
+          int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+          int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+
+          winErrorFVerb(2, "winInitializeDefaultScreens - native DPI x %d y %d\n", dpiX, dpiY);
+          monitorResolution = dpiY;
+          ReleaseDC(NULL, hdc);
+        }
+      else
+        {
+          winErrorFVerb(1, "winInitializeDefaultScreens - Failed to retrieve native DPI, falling back to default of %d DPI\n", WIN_DEFAULT_DPI);
+          monitorResolution = WIN_DEFAULT_DPI;
+        }
+    }
 
   defaultScreenInfo.iMonitor = 1;
   defaultScreenInfo.dwWidth  = dwWidth;
@@ -139,7 +154,7 @@ winInitializeScreenDefaults(void)
 static void
 winInitializeScreen(int i)
 {
-  winErrorFVerb (2, "winInitializeScreen - %d\n",i);
+  winErrorFVerb (3, "winInitializeScreen - %d\n",i);
 
   /* Initialize default screen values, if needed */
   winInitializeScreenDefaults();
@@ -155,7 +170,7 @@ void
 winInitializeScreens(int maxscreens)
 {
   int i;
-  winErrorFVerb (2, "winInitializeScreens - %i\n", maxscreens);
+  winErrorFVerb (3, "winInitializeScreens - %i\n", maxscreens);
 
   if (maxscreens > g_iNumScreens)
     {
@@ -1195,9 +1210,77 @@ winLogCommandLine (int argc, char *argv[])
 	  "%s\n\n", g_pszCommandLine);
 }
 
+/*
+ * Detect the OS
+ */
+
+static void
+winOS(void)
+{
+  OSVERSIONINFOEX osvi = {0};
+  char *windowstype = "Unknown";
+  char *prodName = "Unknown";
+
+  /* Get operating system version information */
+  osvi.dwOSVersionInfoSize = sizeof(osvi);
+  GetVersionEx((LPOSVERSIONINFO)&osvi);
+
+  /* Branch on platform ID */
+  switch (osvi.dwPlatformId)
+    {
+    case VER_PLATFORM_WIN32_NT:
+      windowstype = "Windows NT";
+
+      if (osvi.dwMajorVersion <= 4)
+        prodName = "Windows NT";
+      else if (osvi.dwMajorVersion == 6)
+      {
+	if (osvi.dwMinorVersion == 1)
+	{
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows 7";
+	  else
+	    prodName = "Windows Server 2008 R2";
+	}
+	else if (osvi.dwMinorVersion == 0)
+	{
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows Vista";
+	  else
+	    prodName = "Windows Server 2008";
+	}
+      } else if (osvi.dwMajorVersion == 5)
+      {
+	if (osvi.dwMinorVersion == 2)
+          {
+            if (GetSystemMetrics(SM_SERVERR2))
+              prodName = "Windows Server 2003 R2";
+            else
+              prodName = "Windows Server 2003";
+          }
+	else if (osvi.dwMinorVersion == 1)
+	  prodName = "Windows XP";
+	else if (osvi.dwMinorVersion == 0)
+	{
+	  prodName = "Windows 2000";
+	  break;
+	}
+      }
+
+      break;
+
+    case VER_PLATFORM_WIN32_WINDOWS:
+      windowstype = "Windows";
+      break;
+    }
+
+  ErrorF("OS: %s %s [%s %ld.%ld build %ld]\n",
+         prodName, osvi.szCSDVersion,
+         windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber);
+}
 
 /*
- * winLogVersionInfo - Log Cygwin/X version information
+ * winLogVersionInfo - Log version information
  */
 
 void
@@ -1211,7 +1294,8 @@ winLogVersionInfo (void)
 
   ErrorF ("Welcome to the XWin X Server\n");
   ErrorF ("Vendor: %s\n", XVENDORNAME);
-  ErrorF ("Release: %d.%d.%d.%d (%d)\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP, XORG_VERSION_CURRENT);
-  ErrorF ("%s\n\n", BUILDERSTRING);
-  ErrorF ("Contact: %s\n", BUILDERADDR);
+  ErrorF ("Release: %d.%d.%d.%d\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
+  winOS();
+  if (strlen(BUILDERSTRING)) ErrorF ("%s\n", BUILDERSTRING);
+  ErrorF("\n");
 }

@@ -145,6 +145,7 @@ Bool AnyClientsWriteBlocked;	/* true if some client blocked on write */
 static Bool RunFromSmartParent;	/* send SIGUSR1 to parent process */
 Bool RunFromSigStopParent;	/* send SIGSTOP to our own process; Upstart (or
 				   equivalent) will send SIGCONT back. */
+static char dynamic_display[7];
 Bool PartialNetwork;	/* continue even if unable to bind all addrs */
 static Pid_t ParentProcess;
 
@@ -269,6 +270,23 @@ lookup_trans_conn (int fd)
     return NULL;
 }
 
+int
+TransIsListening(char *protocol)
+{
+  /* look for this transport in the list of listeners */
+  int i;
+  for (i = 0; i < ListenTransCount; i++)
+    {
+      if (!strcmp(protocol, ListenTransConns[i]->transptr->TransName))
+        {
+          return 1;
+        }
+    }
+
+  return 0;
+}
+
+
 /* Set MaxClients and lastfdesc, and allocate ConnectionTranslation */
 
 void
@@ -358,7 +376,23 @@ NotifyParentProcess(void)
     }
     if (RunFromSigStopParent)
 	raise (SIGSTOP);
+    if (dynamic_display[0]) {
+        write(displayfd, dynamic_display, strlen(dynamic_display));
+        write(displayfd, "\n", 1);
+    }
 #endif
+}
+
+static Bool
+TryCreateSocket(int num, int *partial)
+{
+    char port[20];
+
+    sprintf(port, "%d", num);
+
+    return _XSERVTransMakeAllCOTSServerListeners(port, partial,
+						 &ListenTransCount,
+						 &ListenTransConns);
 }
 
 /*****************
@@ -371,7 +405,6 @@ CreateWellKnownSockets(void)
 {
     int		i;
     int		partial;
-    char 	port[20];
 
     FD_ZERO(&AllSockets);
     FD_ZERO(&AllClients);
@@ -386,32 +419,45 @@ CreateWellKnownSockets(void)
 
     FD_ZERO (&WellKnownConnections);
 
-    sprintf (port, "%d", atoi (display));
-
-    if ((_XSERVTransMakeAllCOTSServerListeners (port, &partial,
-	&ListenTransCount, &ListenTransConns) >= 0) &&
-	(ListenTransCount >= 1))
+    if (display)
     {
-	if (!PartialNetwork && partial)
+	if (TryCreateSocket(atoi(display), &partial) &&
+	    (ListenTransCount >= 1))
+	    if (!PartialNetwork && partial)
+		FatalError ("Failed to establish all listening sockets");
+    }
+    else /* -displayfd */
+    {
+	Bool found = 0;
+	for (i = 0; i < 65535 - 1024; i++)
 	{
-	    FatalError ("Failed to establish all listening sockets");
-	}
-	else
-	{
-	    ListenTransFds = malloc(ListenTransCount * sizeof (int));
-
-	    for (i = 0; i < ListenTransCount; i++)
+	    ErrorF("Trying to create socket for display number %d\n", i);
+	    if (!TryCreateSocket(i, &partial) && !partial)
 	    {
-		int fd = _XSERVTransGetConnectionNumber (ListenTransConns[i]);
-		
-		ListenTransFds[i] = fd;
-		FD_SET (fd, &WellKnownConnections);
-
-		if (!_XSERVTransIsLocal (ListenTransConns[i]))
-		{
-		    DefineSelf (fd);
-		}
+		found = 1;
+		break;
 	    }
+	    else
+		CloseWellKnownConnections();
+	}
+	if (!found)
+	    FatalError("Failed to find a socket to listen on");
+	sprintf(dynamic_display, "%d", i);
+	display = dynamic_display;
+    }
+
+    ListenTransFds = malloc(ListenTransCount * sizeof (int));
+
+    for (i = 0; i < ListenTransCount; i++)
+    {
+	int fd = _XSERVTransGetConnectionNumber (ListenTransConns[i]);
+
+	ListenTransFds[i] = fd;
+	FD_SET (fd, &WellKnownConnections);
+
+	if (!_XSERVTransIsLocal (ListenTransConns[i]))
+	{
+	    DefineSelf (fd);
 	}
     }
 

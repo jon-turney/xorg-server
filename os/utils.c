@@ -671,6 +671,17 @@ ProcessCommandLine(int argc, char *argv[])
 	    else
 		UseMsg();
 	}
+	else if (strcmp(argv[i], "-displayfd") == 0)
+	{
+	    if (++i < argc)
+	    {
+		displayfd = atoi(argv[i]);
+		display = NULL;
+		nolock = TRUE;
+	    }
+	    else
+		UseMsg();
+	}
 #ifdef DPMSExtension
 	else if ( strcmp( argv[i], "dpms") == 0)
 	    /* ignored for compatibility */ ;
@@ -903,6 +914,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleInterval = atoi(argv[i]);
 		SmartScheduleSlice = SmartScheduleInterval;
 	    }
@@ -913,6 +925,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleMaxSlice = atoi(argv[i]);
 	    }
 	    else

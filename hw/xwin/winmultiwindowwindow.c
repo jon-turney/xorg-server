@@ -506,12 +506,18 @@ winCreateWindowsWindow (WindowPtr pWin)
   iWidth = pWin->drawable.width;
   iHeight = pWin->drawable.height;
 
-  /* ensure window actually ends up somewhere visible */
-  if (iX > GetSystemMetrics (SM_CXVIRTUALSCREEN))
-    iX = CW_USEDEFAULT;
+  /* If it's an InputOutput window, and so is going to end up being made visible,
+     make sure the window actually ends up somewhere where it will be visible */
+  if (pWin->drawable.class != InputOnly)
+    {
+      if ((iX < GetSystemMetrics (SM_XVIRTUALSCREEN)) || (iX > GetSystemMetrics (SM_CXVIRTUALSCREEN)))
+        iX = CW_USEDEFAULT;
 
-  if (iY > GetSystemMetrics (SM_CYVIRTUALSCREEN))
-    iY = CW_USEDEFAULT;
+      if ((iY < GetSystemMetrics (SM_YVIRTUALSCREEN)) || (iY > GetSystemMetrics (SM_CYVIRTUALSCREEN)))
+        iY = CW_USEDEFAULT;
+    }
+
+  winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX, iY);
 
   if (winMultiWindowGetTransientFor (pWin, &pDaddy))
     {
@@ -534,16 +540,36 @@ winCreateWindowsWindow (WindowPtr pWin)
       }
     }
 
-  /* Create the window */
-  /* Make it OVERLAPPED in create call since WS_POPUP doesn't support */
+  /* Make it WS_OVERLAPPED in create call since WS_POPUP doesn't support */
   /* CW_USEDEFAULT, change back to popup after creation */
-  hWnd = CreateWindowExA (WS_EX_TOOLWINDOW,	/* Extended styles */
+  DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  DWORD dwExStyle = WS_EX_TOOLWINDOW;
+
+  /*
+     Calculate the window coordinates containing the requested client area,
+     being careful to preseve CW_USEDEFAULT
+  */
+  RECT rc;
+  rc.top = (iY != CW_USEDEFAULT) ? iY : 0;
+  rc.left = (iX != CW_USEDEFAULT) ? iX : 0;
+  rc.bottom = rc.top + iHeight;
+  rc.right = rc.left + iWidth;
+  AdjustWindowRectEx(&rc, dwStyle, FALSE, dwExStyle);
+  if (iY != CW_USEDEFAULT) iY = rc.top;
+  if (iX != CW_USEDEFAULT) iX = rc.left;
+  iHeight = rc.bottom - rc.top;
+  iWidth = rc.right - rc.left;
+
+  winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX, iY);
+
+  /* Create the window */
+  hWnd = CreateWindowExA (dwExStyle,		/* Extended styles */
 			  WINDOW_CLASS_X,	/* Class name */
 			  WINDOW_TITLE_X,	/* Window name */
-			  WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+			  dwStyle,		/* Styles */
 			  iX,			/* Horizontal position */
 			  iY,			/* Vertical position */
-			  iWidth,		/* Right edge */ 
+			  iWidth,		/* Right edge */
 			  iHeight,		/* Bottom edge */
 			  hFore,		/* Null or Parent window if transient*/
 			  (HMENU) NULL,		/* No menu */
@@ -565,6 +591,10 @@ winCreateWindowsWindow (WindowPtr pWin)
   SetWindowLongPtr(hWnd, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
   SetWindowPos (hWnd, 0, 0, 0, 0, 0,
 		SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+  /* Adjust the X window to match the window placement we actually got... */
+  winAdjustXWindow (pWin, hWnd);
+
   /* Make sure it gets the proper system menu for a WS_POPUP, too */
   GetSystemMenu (hWnd, TRUE);
 
@@ -592,7 +622,9 @@ winDestroyWindowsWindow (WindowPtr pWin)
   MSG			msg;
   winWindowPriv(pWin);
   BOOL			oldstate = winInDestroyWindowsWindow;
-  
+  HICON hIcon;
+  HICON hIconSm;
+
 #if CYGMULTIWINDOW_DEBUG
   ErrorF ("winDestroyWindowsWindow\n");
 #endif
@@ -603,12 +635,21 @@ winDestroyWindowsWindow (WindowPtr pWin)
 
   winInDestroyWindowsWindow = TRUE;
 
+  /* Store the info we need to destroy after this window is gone */
+  hIcon = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_BIG, 0);
+  hIconSm = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_SMALL, 0);
+
   SetProp (pWinPriv->hWnd, WIN_WINDOW_PROP, NULL);
+
   /* Destroy the Windows window */
   DestroyWindow (pWinPriv->hWnd);
 
   /* Null our handle to the Window so referencing it will cause an error */
   pWinPriv->hWnd = NULL;
+
+  /* Destroy any icons we created for this window */
+  winDestroyIcon(hIcon);
+  winDestroyIcon(hIconSm);
 
   /* Process all messages on our queue */
   while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
@@ -655,7 +696,8 @@ winUpdateWindowsWindow (WindowPtr pWin)
 	}
 
       /* Display the window without activating it */
-      ShowWindow (pWinPriv->hWnd, SW_SHOWNOACTIVATE);
+      if (pWin->drawable.class != InputOnly)
+        ShowWindow (pWinPriv->hWnd, SW_SHOWNOACTIVATE);
 
       /* Send first paint message */
       UpdateWindow (pWinPriv->hWnd);

@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -49,7 +47,7 @@ from The Open Group.
 #endif
 #ifdef RELOCATE_PROJECTROOT
 #include <shlobj.h>
-typedef HRESULT (*SHGETFOLDERPATHPROC)(
+typedef WINAPI HRESULT (*SHGETFOLDERPATHPROC)(
     HWND hwndOwner,
     int nFolder,
     HANDLE hToken,
@@ -90,8 +88,6 @@ void
 OsVendorVErrorF (const char *pszFormat, va_list va_args);
 #endif
 
-static Bool
-winCheckDisplayNumber (void);
 
 void
 winLogCommandLine (int argc, char *argv[]);
@@ -937,15 +933,6 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 		  "Exiting.\n");
     }
 
-  /* Check for duplicate invocation on same display number.*/
-  if (serverGeneration == 1 && !winCheckDisplayNumber ())
-    {
-      if (g_fSilentDupError)
-        g_fSilentFatalError = TRUE;  
-      FatalError ("InitOutput - Duplicate invocation on display "
-		  "number: %s.  Exiting.\n", display);
-    }
-
 #ifdef XWIN_XF86CONFIG
   /* Try to read the xorg.conf-style configuration file */
   if (!winReadConfigfile ())
@@ -1022,90 +1009,31 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   /* Perform some one time initialization */
   if (1 == serverGeneration)
     {
+      /* Allow multiple threads to access Xlib */
+      if (XInitThreads () == 0)
+        {
+          ErrorF ("XInitThreads failed.\n");
+        }
+
       /*
        * setlocale applies to all threads in the current process.
        * Apply locale specified in LANG environment variable.
        */
-      setlocale (LC_ALL, "");
+      if (!setlocale (LC_ALL, ""))
+        {
+          ErrorF ("setlocale failed.\n");
+        }
+
+      /* See if X supports the current locale */
+      if (XSupportsLocale () == FALSE)
+        {
+          ErrorF ("Warning: Locale not supported by X, falling back to 'C' locale.\n");
+          setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");
 #endif
-}
-
-
-/*
- * winCheckDisplayNumber - Check if another instance of Cygwin/X is
- * already running on the same display number.  If no one exists,
- * make a mutex to prevent new instances from running on the same display.
- *
- * return FALSE if the display number is already used.
- */
-
-static Bool
-winCheckDisplayNumber (void)
-{
-  int			nDisp;
-  HANDLE		mutex;
-  char			name[MAX_PATH];
-  char *		pszPrefix = '\0';
-  OSVERSIONINFO		osvi = {0};
-
-  /* Check display range */
-  nDisp = atoi (display);
-  if (nDisp < 0 || nDisp > 65535)
-    {
-      ErrorF ("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-      return FALSE;
-    }
-
-  /* Set first character of mutex name to null */
-  name[0] = '\0';
-
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx (&osvi);
-
-  /* Want a mutex shared among all terminals on NT > 4.0 */
-  if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT
-      && osvi.dwMajorVersion >= 5)
-    {
-      pszPrefix = "Global\\";
-    }
-
-  /* Setup Cygwin/X specific part of name */
-  snprintf (name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
-
-  /* Windows automatically releases the mutex when this process exits */
-  mutex = CreateMutex (NULL, FALSE, name);
-  if (!mutex)
-    {
-      LPVOID lpMsgBuf;
-
-      /* Display a fancy error message */
-      FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		     FORMAT_MESSAGE_FROM_SYSTEM | 
-		     FORMAT_MESSAGE_IGNORE_INSERTS,
-		     NULL,
-		     GetLastError (),
-		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		     (LPTSTR) &lpMsgBuf,
-		     0, NULL);
-      ErrorF ("winCheckDisplayNumber - CreateMutex failed: %s\n",
-	      (LPSTR)lpMsgBuf);
-      LocalFree (lpMsgBuf);
-
-      return FALSE;
-    }
-  if (GetLastError () == ERROR_ALREADY_EXISTS)
-    {
-      ErrorF ("winCheckDisplayNumber - "
-	      PROJECT_NAME " is already running on display %d\n",
-	      nDisp);
-      return FALSE;
-    }
-
-  return TRUE;
 }
