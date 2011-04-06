@@ -231,7 +231,7 @@ const char *glxWinErrorMessage(void)
                      sizeof(errorbuffer),
                      NULL ))
     {
-      snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error", last_error);
+      snprintf(errorbuffer, sizeof(errorbuffer), "Unknown error");
     }
 
   if ((errorbuffer[strlen(errorbuffer)-1] == '\n') || (errorbuffer[strlen(errorbuffer)-1] == '\r'))
