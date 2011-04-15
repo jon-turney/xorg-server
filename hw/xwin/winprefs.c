@@ -650,11 +650,17 @@ winPrefsLoadPreferences(char *path)
             "MENU rmenu {\n"
             "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
             "  \"Launch xterm\" EXEC xterm\n"
-            "  \"Load .XWinrc\" RELOAD\n"
+            "  SEPARATOR\n"
+            "  FAQ EXEC \"cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html\"\n"
+            "  \"User's Guide\" EXEC \"cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html\"\n"
+            "  SEPARATOR\n"
+            "  \"Reload .XWinrc\" RELOAD\n"
             "  SEPARATOR\n" "}\n" "\n" "ROOTMENU rmenu\n";
 
         path = "built-in default";
         prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
+
+
     }
 
     if (!prefFile) {
@@ -731,6 +737,9 @@ LoadPreferences(void)
         snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
         putenv(szEnvDisplay);
     }
+
+    /* Setup XWINLOGFILE environment variable */
+    setenv("XWINLOGFILE", g_pszLogFile, TRUE);
 
     /* Replace any "%display%" in menu commands with display string */
     for (i = 0; i < pref.menuItems; i++) {
