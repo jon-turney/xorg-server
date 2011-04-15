@@ -81,38 +81,46 @@
 // own configuration file.
 
 // Make some menus...
-menu apps {
-	xterm	exec	"xterm"
-	"Emacs"	exec	"emacs"
-	notepad	exec	notepad
-	xload	exec	"xload -display %display%"  # Comment
-}
+# menu apps {
+#	xterm	exec	"xterm"
+#	"Emacs"	exec	"emacs"
+#	notepad	exec	notepad
+#	xload	exec	"xload -display %display%"  # Comment
+# }
 
 menu root {
+//	"Applications"	menu	apps
 // Comments fit here, too...
+//	SEPARATOR
+
+	FAQ            EXEC "cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html"
+	"User's Guide" EXEC "cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html"
+	SEPARATOR
+	"View logfile" EXEC "xterm -title $XWINLOGFILE -e less +F $XWINLOGFILE"
+	SEPARATOR
+
 	"Reload .XWinrc"	RELOAD
-	"Applications"	menu	apps
 	SEParATOR
-}
-
-menu aot {
-	Separator
-	"Always on Top"	alwaysontop
-}
-
-menu xtermspecial {
-	"Emacs"		exec	"emacs"
-	"Always on Top"	alwaysontop
-	SepArAtor
 }
 
 RootMenu root
 
-DefaultSysMenu aot atend
-
-SysMenu {
-	"xterm"	xtermspecial atstart
-}
+# menu aot {
+# 	Separator
+# 	"Always on Top"	alwaysontop
+# }
+#
+# menu xtermspecial {
+# 	"Emacs"		exec	"emacs"
+#  	"Always on Top"	alwaysontop
+# 	SepArAtor
+# }
+#
+# DefaultSysMenu aot atend
+#
+# SysMenu {
+# 	"xterm"	xtermspecial atstart
+# }
 
 # IconDirectory	"c:\winnt\"
 
