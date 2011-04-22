@@ -309,7 +309,7 @@ xf86ModulelistFromConfig(pointer **optlist)
             }
             if (found == FALSE) {
 		XF86LoadPtr ptr = (XF86LoadPtr)xf86configptr->conf_modules;
-	            ptr = xf86addNewLoadDirective(ptr, ModuleDefaults[i].name, XF86_LOAD_MODULE, ModuleDefaults[i].load_opt);
+                xf86addNewLoadDirective(ptr, ModuleDefaults[i].name, XF86_LOAD_MODULE, ModuleDefaults[i].load_opt);
                 xf86Msg(X_INFO, "\"%s\" will be loaded by default.\n", ModuleDefaults[i].name);
             }
          }
@@ -318,7 +318,7 @@ xf86ModulelistFromConfig(pointer **optlist)
 	for (i=0 ; ModuleDefaults[i].name != NULL ; i++) {
 	    if (ModuleDefaults[i].toLoad == TRUE) {
 		XF86LoadPtr ptr = (XF86LoadPtr)xf86configptr->conf_modules;
-		ptr = xf86addNewLoadDirective(ptr, ModuleDefaults[i].name, XF86_LOAD_MODULE, ModuleDefaults[i].load_opt);
+		xf86addNewLoadDirective(ptr, ModuleDefaults[i].name, XF86_LOAD_MODULE, ModuleDefaults[i].load_opt);
 	    }
 	}
     }
@@ -1224,7 +1224,8 @@ checkCoreInputDevices(serverLayoutPtr servlayoutp, Bool implicitLayout)
             devs[count - 1] = xnfalloc(sizeof(InputInfoRec));
 	    *devs[count - 1] = Pointer;
 	    devs[count - 1]->options =
-				xf86addNewOption(NULL, xnfstrdup("CorePointer"), NULL);
+				xf86addNewOption(devs[count -1]->options,
+				    xnfstrdup("CorePointer"), NULL);
 	    devs[count] = NULL;
 	    servlayoutp->inputs = devs;
 	}
@@ -1364,7 +1365,8 @@ checkCoreInputDevices(serverLayoutPtr servlayoutp, Bool implicitLayout)
             devs[count - 1] = xnfalloc(sizeof(InputInfoRec));
 	    *devs[count - 1] = Keyboard;
 	    devs[count - 1]->options =
-				xf86addNewOption(NULL, xnfstrdup("CoreKeyboard"), NULL);
+				xf86addNewOption(devs[count - 1]->options,
+				    xnfstrdup("CoreKeyboard"), NULL);
 	    devs[count] = NULL;
 	    servlayoutp->inputs = devs;
 	}
@@ -1457,8 +1459,9 @@ configInputDevices(XF86ConfLayoutPtr layout, serverLayoutPtr servlayoutp)
     while (irp) {
 	indp[count] = xf86AllocateInput();
 	if (!configInput(indp[count], irp->iref_inputdev, X_CONFIG)) {
-	    while(count--)
+	    do {
 		free(indp[count]);
+	    } while(count--);
 	    free(indp);
 	    return FALSE;
 	}
@@ -1483,7 +1486,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
 {
     XF86ConfAdjacencyPtr adjp;
     XF86ConfInactivePtr idp;
-    int count = 0;
+    int saved_count, count = 0;
     int scrnum;
     XF86ConfLayoutPtr l;
     MessageType from;
@@ -1551,6 +1554,9 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
 	    scrnum = adjp->adj_scrnum;
 	if (!configScreen(slp[count].screen, adjp->adj_screen, scrnum,
 			  X_CONFIG)) {
+	    do {
+		free(slp[count].screen);
+	    } while(count--);
 	    free(slp);
 	    return FALSE;
 	}
@@ -1639,6 +1645,10 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
 	}
     }
 
+    if (!count)
+	saved_count = 1;
+    else
+	saved_count = count;
     /*
      * Count the number of inactive devices.
      */
@@ -1655,16 +1665,14 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     idp = conf_layout->lay_inactive_lst;
     count = 0;
     while (idp) {
-	if (!configDevice(&gdp[count], idp->inactive_device, FALSE)) {
-	    free(gdp);
-	    return FALSE;
-	}
+	if (!configDevice(&gdp[count], idp->inactive_device, FALSE))
+	    goto bail;
         count++;
         idp = (XF86ConfInactivePtr)idp->list.next;
     }
 
     if (!configInputDevices(conf_layout, servlayoutp))
-	return FALSE;
+	goto bail;
 
     servlayoutp->id = conf_layout->lay_identifier;
     servlayoutp->screens = slp;
@@ -1673,6 +1681,14 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     from = X_DEFAULT;
 
     return TRUE;
+
+bail:
+    do {
+	free(slp[saved_count].screen);
+    } while(saved_count--);
+    free(slp);
+    free(gdp);
+    return FALSE;
 }
 
 /*
@@ -1785,9 +1801,11 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
     XF86ConfDisplayPtr dispptr;
     XF86ConfAdaptorLinkPtr conf_adaptor;
     Bool defaultMonitor = FALSE;
+    XF86ConfScreenRec local_conf_screen;
 
     if (!conf_screen) {
-        conf_screen = xnfcalloc(1, sizeof(XF86ConfScreenRec));
+        memset(&local_conf_screen, 0, sizeof(local_conf_screen));
+        conf_screen = &local_conf_screen;
         conf_screen->scrn_identifier = "Default Screen Section";
         xf86Msg(X_DEFAULT, "No screen section available. Using defaults.\n");
     }
