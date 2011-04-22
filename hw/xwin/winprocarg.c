@@ -1218,12 +1218,16 @@ winLogCommandLine (int argc, char *argv[])
  * Detect the OS
  */
 
+typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
+
 static void
 winOS(void)
 {
   OSVERSIONINFOEX osvi = {0};
   char *windowstype = "Unknown";
   char *prodName = "Unknown";
+  char *isWow = "Unknown";
+  LPFN_ISWOW64PROCESS fnIsWow64Process;
 
   /* Get operating system version information */
   osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -1278,9 +1282,31 @@ winOS(void)
       break;
     }
 
-  ErrorF("OS: %s %s [%s %ld.%ld build %ld]\n",
+  /* Check if we are running under WoW64 */
+  fnIsWow64Process = (LPFN_ISWOW64PROCESS)GetProcAddress(GetModuleHandle("kernel32"),"IsWow64Process");
+  if (NULL != fnIsWow64Process)
+    {
+      wBOOL bIsWow64 = FALSE;
+      if (fnIsWow64Process(GetCurrentProcess(),&bIsWow64))
+        {
+          isWow = bIsWow64 ? " (WoW64)" : " (Win32)";
+        }
+      else
+        {
+          /* IsWow64Process() failed */
+          isWow = " (WoWUnknown)";
+        }
+    }
+  else
+    {
+      /* OS doesn't support IsWow64Process() */
+      isWow = "";
+    }
+
+  ErrorF("OS: %s %s [%s %ld.%ld build %ld]%s\n",
          prodName, osvi.szCSDVersion,
-         windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber);
+         windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber,
+         isWow);
 }
 
 /*
