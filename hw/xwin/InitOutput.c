@@ -40,6 +40,7 @@ from The Open Group.
 #endif
 #ifdef __CYGWIN__
 #include <mntent.h>
+#include <sys/statvfs.h>
 #endif
 #if defined(WIN32)
 #include "xkbsrv.h"
@@ -86,6 +87,8 @@ Bool
 #ifdef RELOCATE_PROJECTROOT
 const char *winGetBaseDir(void);
 #endif
+
+static void winCheckMount(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -170,6 +173,8 @@ main(int argc, char *argv[], char *envp[])
     if (iReturn != 0) {
         ErrorF("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
     }
+
+    winCheckMount();
 
     return dix_main(argc, argv, envp);
 }
@@ -257,6 +262,8 @@ AbortDDX(enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *
 winCheckMntOpt(const struct mntent *mnt, const char *opt)
@@ -281,6 +288,9 @@ winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -290,6 +300,7 @@ winCheckMount(void)
     enum { none = 0, sys_root, user_root, sys_tmp, user_tmp }
         level = none, curlevel;
     BOOL binary = TRUE;
+    struct statvfs buf;
 
     mnt = setmntent("/etc/mtab", "r");
     if (mnt == NULL) {
@@ -337,6 +348,21 @@ winCheckMount(void)
 
     if (!binary)
         winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+    /*
+       Use statvfs(), which on Cygwin passes through the flags returned by
+       GetVolumeInformation(), to determine if hardlinks are available
+
+       This should use the same LOCK_DIR as LockServer()
+    */
+    if (!statvfs("/tmp", &buf)) {
+        if (!(buf.f_flag & FILE_SUPPORTS_HARD_LINKS)) {
+            winMsg(X_WARNING, "/tmp mounted on a filesystem without hardlinks, activating -nolock\n");
+            nolock = TRUE;
+        }
+    } else {
+        winMsg(X_WARNING, "statvfs() /tmp failed\n");
+    }
 }
 #else
 static void
