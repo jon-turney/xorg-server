@@ -98,6 +98,8 @@ const char *
 winGetBaseDir(void);
 #endif
 
+static void winCheckMount(void);
+
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
  * we change this pixmap format later if we detect that the display
@@ -198,6 +200,8 @@ ddxMain(void)
     {
       ErrorF ("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
     }
+
+  winCheckMount();
 }
 
 /* See Porting Layer Definition - p. 57 */
@@ -281,6 +285,8 @@ AbortDDX (enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
 {
@@ -302,6 +308,9 @@ static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -311,6 +320,7 @@ winCheckMount(void)
   enum { none = 0, sys_root, user_root, sys_tmp, user_tmp } 
     level = none, curlevel;
   BOOL binary = TRUE;
+  BOOL fat = TRUE;
 
   mnt = setmntent("/etc/mtab", "r");
   if (mnt == NULL)
@@ -353,20 +363,31 @@ winCheckMount(void)
       binary = FALSE;
     else
       binary = TRUE;
+
+    if (strcmp(ent->mnt_type, "vfat") == 0)
+      fat = TRUE;
+    else
+      fat = FALSE;
   }
-    
+
   if (endmntent(mnt) != 1)
   {
     ErrorF("endmntent failed");
     return;
   }
-  
- if (!binary) 
+
+ if (!binary)
    winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+ if (fat)
+   {
+     winMsg(X_WARNING, "/tmp mounted on FAT filesystem, activating -nolock\n");
+     nolock = TRUE;
+   }
 }
 #else
 static void
-winCheckMount(void) 
+winCheckMount(void)
 {
 }
 #endif
