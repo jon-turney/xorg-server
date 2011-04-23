@@ -255,7 +255,7 @@ UnlockServer(void)
 #else /* LOCK_SERVER */
 static Bool StillLocking = FALSE;
 static char LockFile[PATH_MAX];
-static Bool nolock = FALSE;
+Bool nolock = FALSE;
 
 /*
  * LockServer --
