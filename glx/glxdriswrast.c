@@ -432,12 +432,17 @@ static const char dri_driver_path[] = DRI_DRIVER_PATH;
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
-    const char *driverName = "swrast";
+    const char *driverName;
     __GLXDRIscreen *screen;
     char filename[128];
     const __DRIextension **extensions;
     const __DRIconfig **driConfigs;
     int i;
+
+    if (getenv("GALLIUM_DRIVER"))
+      driverName = "swrastg";
+    else
+      driverName = "swrast";
 
     screen = calloc(1, sizeof *screen);
     if (screen == NULL)
