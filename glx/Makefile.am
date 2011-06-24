@@ -47,8 +47,11 @@ glapi_sources =					\
 	glprocs.h				\
 	glthread.h
 
-libglxdri_la_SOURCES = \
-        glxdri.c
+libglxdri_la_SOURCES =
+
+if DRI
+libglxdri_la_SOURCES += glxdri.c
+endif
 
 if DRI2_AIGLX
 libglxdri_la_SOURCES += glxdri2.c

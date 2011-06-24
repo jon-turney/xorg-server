@@ -26,8 +26,8 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.57)
-AC_INIT([xorg-server], 1.10.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2011-04-15"
+AC_INIT([xorg-server], 1.10.2, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2011-05-28"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
@@ -1013,7 +1013,8 @@ if test "x$GLX" = xno; then
         AIGLX=no
 fi
 
-if test "x$AIGLX" = xyes -a "x$DRI" = xyes; then
+
+if test "x$AIGLX" = xyes -a "x$GLX" = xyes -a \( "x$DRI" = xyes -o "x$DRI2" = xyes \); then
 	AC_DEFINE(AIGLX, 1, [Build AIGLX loader])
 fi
 AM_CONDITIONAL(AIGLX_DRI_LOADER, test "x$DRI" = xyes && test "x$AIGLX" = xyes)
