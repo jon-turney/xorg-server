@@ -308,7 +308,12 @@ for w in sorted(wrappers.keys()) :
 if dispatchheader :
         print 'void glWinSetupDispatchTable(void)'
         print '{'
-        print '  struct _glapi_table *disp = _glapi_get_dispatch();'
+        print '  static struct _glapi_table *disp = NULL;'
+        print ''
+        print '  if (disp) { _glapi_get_dispatch(); return; }'
+        print ''
+        print '  disp = calloc(1, sizeof(struct _glapi_table));'
+        print '  assert(disp);'
 
         for d in sorted(dispatch.keys()) :
                 if wrappers.has_key(d) :
@@ -316,4 +321,7 @@ if dispatchheader :
                 else :
                         print '#warning  No wrapper for ' + prefix + d + ' !'
 
+        print ''
+        print '  _glapi_set_dispatch(disp);'
+        print ''
         print '}'
