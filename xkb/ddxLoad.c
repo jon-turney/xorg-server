@@ -278,6 +278,10 @@ XkbDDXCompileKeymapByNames(	XkbDescPtr		xkb,
 		nameRtrn[nameRtrnLen-1]= '\0';
 	    }
             free(buf);
+#if defined(WIN32) || defined(__CYGWIN__)
+            /* remove the temporary file */
+            unlink(tmpname);
+#endif
 	    return TRUE;
 	}
 	else

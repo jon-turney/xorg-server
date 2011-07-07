@@ -235,6 +235,9 @@ int	rval;
     buf = malloc(PATH_MAX * sizeof(char));
     if (!buf) {
         fclose(in);
+#if defined(WIN32) || defined(__CYGWIN__)
+	unlink(tmpname);
+#endif
         return BadAlloc;
     }
     while ((status==Success)&&((tmp=fgets(buf,PATH_MAX,in))!=NULL)) {
