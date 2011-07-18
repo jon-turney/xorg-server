@@ -159,5 +159,14 @@ void
 void
  winMinimizeWindow(Window id);
 
+void
+ winTaskbarInit(void);
+
+void
+ winTaskbarDestroy(void);
+
+void
+ winSetAppID(HWND hWnd, const char *AppID);
+
 #endif                          /* XWIN_MULTIWINDOW */
 #endif
