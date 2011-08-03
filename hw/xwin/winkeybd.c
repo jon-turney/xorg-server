@@ -348,12 +348,21 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 
       /*
        * Try again if the first call fails.
-       * NOTE: This usually happens when TweakUI is enabled.
        */
       if (!fReturn)
 	{
-	  /* Voodoo to make sure that the Alt_R message has posted */
-	  Sleep (0);
+          /*
+            Voodoo to try to make sure that the Alt_R message has posted.
+
+            Sometimes, the AltGr message is not yet posted when
+            the fake Ctrl_L message arrives.
+
+            (TweakUI has been reported to cause this to occur)
+
+            We hope that waiting 1 millisecond means that all messages
+            with the same millisecond-resolution MSG.time are now available
+          */
+	  Sleep (1);
 
 	  /* Look for fake Ctrl_L preceeding an Alt_R press. */
 	  fReturn = PeekMessage (&msgNext, NULL,
@@ -368,7 +377,7 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 	  && msgNext.time == lTime
 	  && (HIWORD (msgNext.lParam) & KF_EXTENDED))
 	{
-	  /* 
+	  /*
 	   * Next key press is Alt_R with same timestamp as current
 	   * Ctrl_L message.  Therefore, this Ctrl_L press is a fake
 	   * event, so discard it.
@@ -377,7 +386,7 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 	}
     }
 
-  /* 
+  /*
    * Fake Ctrl_L releases will be followed by an Alt_R release
    * with the same timestamp as the Ctrl_L release.
    */
@@ -392,27 +401,36 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 
       /* Look for fake Ctrl_L release preceeding an Alt_R release. */
       fReturn = PeekMessage (&msgNext, NULL,
-			     WM_KEYUP, WM_SYSKEYUP, 
+			     WM_KEYUP, WM_SYSKEYUP,
 			     PM_NOREMOVE);
 
       /*
        * Try again if the first call fails.
-       * NOTE: This usually happens when TweakUI is enabled.
        */
       if (!fReturn)
 	{
-	  /* Voodoo to make sure that the Alt_R message has posted */
-	  Sleep (0);
+          /*
+            Voodoo to try to make sure that the Alt_R message has posted.
+
+            Sometimes, the AltGr message is not yet posted when
+            the fake Ctrl_L message arrives.
+
+            (TweakUI has been reported to cause this to occur)
+
+            We hope that waiting 1 millisecond means that all messages
+            with the same millisecond-resolution MSG.time are now available
+          */
+	  Sleep (1);
 
 	  /* Look for fake Ctrl_L release preceeding an Alt_R release. */
 	  fReturn = PeekMessage (&msgNext, NULL,
-				 WM_KEYUP, WM_SYSKEYUP, 
+				 WM_KEYUP, WM_SYSKEYUP,
 				 PM_NOREMOVE);
 	}
 
       if (msgNext.message != WM_KEYUP && msgNext.message != WM_SYSKEYUP)
           fReturn = 0;
-      
+
       /* Is next press an Alt_R with the same timestamp? */
       if (fReturn
 	  && (msgNext.message == WM_KEYUP
@@ -429,7 +447,7 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 	  return TRUE;
 	}
     }
-  
+
   /* Not a fake control left press/release */
   return FALSE;
 }
