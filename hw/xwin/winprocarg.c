@@ -1145,6 +1145,115 @@ winLogCommandLine(int argc, char *argv[])
 }
 
 /*
+ * Detect the OS
+ */
+
+typedef BOOL(WINAPI * LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
+
+static void
+winOS(void)
+{
+    OSVERSIONINFOEX osvi = { 0 };
+    char *windowstype = "Unknown";
+    char *prodName = "Unknown";
+    char *isWow = "Unknown";
+
+    /* Get operating system version information */
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    GetVersionEx((LPOSVERSIONINFO) & osvi);
+
+    /* Branch on platform ID */
+    switch (osvi.dwPlatformId) {
+    case VER_PLATFORM_WIN32_NT:
+        windowstype = "Windows NT";
+
+        if (osvi.dwMajorVersion <= 4)
+            prodName = "Windows NT";
+        else if (osvi.dwMajorVersion == 6) {
+            if (osvi.dwMinorVersion == 3) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 8.1";
+                else
+                    prodName = "Windows Server 2012 R2";
+            }
+            if (osvi.dwMinorVersion == 2) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 8";
+                else
+                    prodName = "Windows Server 2012";
+            }
+            else if (osvi.dwMinorVersion == 1) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 7";
+                else
+                    prodName = "Windows Server 2008 R2";
+            }
+            else if (osvi.dwMinorVersion == 0) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows Vista";
+                else
+                    prodName = "Windows Server 2008";
+            }
+        }
+        else if (osvi.dwMajorVersion == 5) {
+            if (osvi.dwMinorVersion == 2) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows XP x64 Edition";
+                else if (GetSystemMetrics(SM_SERVERR2))
+                    prodName = "Windows Server 2003 R2";
+                else
+                    prodName = "Windows Server 2003";
+            }
+            else if (osvi.dwMinorVersion == 1)
+                prodName = "Windows XP";
+            else if (osvi.dwMinorVersion == 0) {
+                prodName = "Windows 2000";
+                break;
+            }
+        }
+
+        break;
+
+    case VER_PLATFORM_WIN32_WINDOWS:
+        windowstype = "Windows";
+        break;
+    }
+
+#ifdef __x86_64__
+    isWow = "(Win64)";
+#else
+    {
+      /* Check if we are running under WoW64 */
+      LPFN_ISWOW64PROCESS fnIsWow64Process;
+
+      fnIsWow64Process =
+        (LPFN_ISWOW64PROCESS) GetProcAddress(GetModuleHandle("kernel32"),
+                                             "IsWow64Process");
+      if (NULL != fnIsWow64Process) {
+        wBOOL bIsWow64 = FALSE;
+
+        if (fnIsWow64Process(GetCurrentProcess(), &bIsWow64)) {
+          isWow = bIsWow64 ? " (WoW64)" : " (Win32)";
+        }
+        else {
+          /* IsWow64Process() failed */
+          isWow = " (WoWUnknown)";
+        }
+      }
+      else {
+        /* OS doesn't support IsWow64Process() */
+        isWow = "";
+      }
+    }
+#endif
+
+    ErrorF("OS: %s %s [%s %d.%d build %d]%s\n",
+           prodName, osvi.szCSDVersion,
+           windowstype, (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion,
+           (int)osvi.dwBuildNumber, isWow);
+}
+
+/*
  * winLogVersionInfo - Log version information
  */
 
@@ -1161,6 +1270,7 @@ winLogVersionInfo(void)
     ErrorF("Vendor: %s\n", XVENDORNAME);
     ErrorF("Release: %d.%d.%d.%d\n", XORG_VERSION_MAJOR,
            XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
+    winOS();
     if (strlen(BUILDERSTRING))
         ErrorF("%s\n", BUILDERSTRING);
     ErrorF("\n");
