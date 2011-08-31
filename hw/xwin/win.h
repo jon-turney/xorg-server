@@ -1411,6 +1411,12 @@ void
 winGetDisplayName(char *szDisplay, unsigned int screen);
 
 /*
+ * winmsgwindow.c
+ */
+Bool
+winCreateMsgWindowThread(void);
+
+/*
  * END DDX and DIX Function Prototypes
  */
 

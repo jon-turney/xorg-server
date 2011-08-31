@@ -185,6 +185,19 @@ ddxBeforeReset(void)
 int
 main(int argc, char *argv[], char *envp[])
 {
+    int iReturn;
+
+    /* Create & acquire the termination mutex */
+    iReturn = pthread_mutex_init(&g_pmTerminating, NULL);
+    if (iReturn != 0) {
+        ErrorF("ddxMain - pthread_mutex_init () failed: %d\n", iReturn);
+    }
+
+    iReturn = pthread_mutex_lock(&g_pmTerminating);
+    if (iReturn != 0) {
+        ErrorF("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
+    }
+
     return dix_main(argc, argv, envp);
 }
 
@@ -245,6 +258,19 @@ ddxGiveUp(enum ExitCode error)
 
     /* Tell Windows that we want to end the app */
     PostQuitMessage(0);
+
+    {
+        winDebug("ddxGiveUp - Releasing termination mutex\n");
+
+        int iReturn = pthread_mutex_unlock(&g_pmTerminating);
+
+        if (iReturn != 0) {
+            ErrorF("winMsgWindowProc - pthread_mutex_unlock () failed: %d\n",
+                   iReturn);
+        }
+    }
+
+    winDebug("ddxGiveUp - End\n");
 }
 
 /* See Porting Layer Definition - p. 57 */
@@ -955,6 +981,10 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Store the instance handle */
     g_hInstance = GetModuleHandle(NULL);
+
+    /* Create the messaging window */
+    if (serverGeneration == 1)
+        winCreateMsgWindowThread();
 
     /* Initialize each screen */
     for (i = 0; i < g_iNumScreens; ++i) {

@@ -1223,7 +1223,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-    case WM_ENDSESSION:
     case WM_GIVEUP:
         /* Tell X that we are giving up */
 #ifdef XWIN_MULTIWINDOW
