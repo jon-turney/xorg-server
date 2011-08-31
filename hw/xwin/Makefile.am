@@ -90,6 +90,7 @@ SRCS =	InitInput.c \
 	winmonitors.c \
 	winmouse.c \
 	winmsg.c \
+	winmsgwindow.c \
 	winmultiwindowclass.c \
 	winmultiwindowicons.c \
 	winprefs.c \
