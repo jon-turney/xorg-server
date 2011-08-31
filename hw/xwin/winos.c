@@ -37,19 +37,27 @@ static const char*
 IsWow64(void)
 {
 #ifdef __x86_64__
-    return " (64-bit)";
+    return " (Win64)";
 #else
-    WINBOOL bIsWow64;
+    /* Check if we are running under WoW64 */
     LPFN_ISWOW64PROCESS fnIsWow64Process =
         (LPFN_ISWOW64PROCESS) GetProcAddress(GetModuleHandle(TEXT("kernel32")),
                                              "IsWow64Process");
     if (NULL != fnIsWow64Process) {
-        if (fnIsWow64Process(GetCurrentProcess(), &bIsWow64))
-            return bIsWow64 ? " (WoW64)" : " (32-bit)";
-    }
+        WINBOOL bIsWow64 = FALSE;
 
-    /* OS doesn't support IsWow64Process() */
-    return "";
+        if (fnIsWow64Process(GetCurrentProcess(), &bIsWow64)) {
+            return bIsWow64 ? " (WoW64)" : " (Win32)";
+        }
+        else {
+            /* IsWow64Process() failed */
+            return " (Unknown)";
+        }
+    }
+    else {
+        /* OS doesn't support IsWow64Process() */
+        return "";
+    }
 #endif
 }
 
@@ -61,12 +69,89 @@ void
 winOS(void)
 {
     OSVERSIONINFOEX osvi = {0};
+    const char *windowstype = "Unknown";
+    const char *prodName = "Unknown";
+    const char *isWow = "Unknown";
 
     /* Get operating system version information */
     osvi.dwOSVersionInfoSize = sizeof(osvi);
     GetVersionEx((LPOSVERSIONINFO)&osvi);
 
-    ErrorF("OS: Windows NT %d.%d build %d%s\n",
-           (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion,
-           (int)osvi.dwBuildNumber, IsWow64());
+    /* Branch on platform ID */
+    switch (osvi.dwPlatformId) {
+    case VER_PLATFORM_WIN32_NT:
+        windowstype = "Windows NT";
+
+        if (osvi.dwMajorVersion <= 4)
+            prodName = "Windows NT";
+        else if (osvi.dwMajorVersion == 10) {
+            if (osvi.dwMinorVersion == 0) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 10";
+                else
+                    prodName = "Windows Server 2016";
+            }
+        }
+        else if (osvi.dwMajorVersion == 6) {
+            if (osvi.dwMinorVersion == 4) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 10";
+                else
+                    prodName = "Windows Server 2016";
+            }
+            if (osvi.dwMinorVersion == 3) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 8.1";
+                else
+                    prodName = "Windows Server 2012 R2";
+            }
+            if (osvi.dwMinorVersion == 2) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 8";
+                else
+                    prodName = "Windows Server 2012";
+            }
+            else if (osvi.dwMinorVersion == 1) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 7";
+                else
+                    prodName = "Windows Server 2008 R2";
+            }
+            else if (osvi.dwMinorVersion == 0) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows Vista";
+                else
+                    prodName = "Windows Server 2008";
+            }
+        }
+        else if (osvi.dwMajorVersion == 5) {
+            if (osvi.dwMinorVersion == 2) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows XP x64 Edition";
+                else if (GetSystemMetrics(SM_SERVERR2))
+                    prodName = "Windows Server 2003 R2";
+                else
+                    prodName = "Windows Server 2003";
+            }
+            else if (osvi.dwMinorVersion == 1)
+                prodName = "Windows XP";
+            else if (osvi.dwMinorVersion == 0) {
+                prodName = "Windows 2000";
+                break;
+            }
+        }
+
+        break;
+
+    case VER_PLATFORM_WIN32_WINDOWS:
+        windowstype = "Windows";
+        break;
+    }
+
+    isWow = IsWow64();
+
+    ErrorF("OS: %s %s [%s %d.%d build %d]%s\n",
+           prodName, osvi.szCSDVersion,
+           windowstype, (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion,
+           (int)osvi.dwBuildNumber, isWow);
 }
