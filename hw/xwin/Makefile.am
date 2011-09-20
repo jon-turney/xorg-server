@@ -122,7 +122,6 @@ SRCS =	InitInput.c \
 	winresource.h \
 	winwindow.h \
 	XWin.rc \
-	$(top_srcdir)/Xi/stubs.c \
 	$(top_srcdir)/mi/miinitext.c \
 	$(top_srcdir)/fb/fbcmap_mi.c \
 	$(SRCS_CLIPBOARD) \
@@ -148,7 +147,8 @@ INCLUDES = -I$(top_srcdir)/miext/rootless
 
 XWIN_SYS_LIBS += -ldxguid
 XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la \
-                $(top_builddir)/Xext/libXextdpmsstubs.la
+                $(top_builddir)/Xext/libXextdpmsstubs.la \
+                $(top_builddir)/Xi/libXistubs.la
 
 XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
 XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
