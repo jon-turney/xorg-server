@@ -44,7 +44,7 @@ winBlockHandler (int nScreen,
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
   winScreenPriv((ScreenPtr)pBlockData);
 #endif
-  MSG			msg;
+
 #ifndef HAS_DEVWINDOWS
   struct timeval **tvp = pTimeout;
   if (*tvp != NULL) 
@@ -52,6 +52,24 @@ winBlockHandler (int nScreen,
     (*tvp)->tv_sec = 0;
     (*tvp)->tv_usec = 100;
   }
+#else
+  /*
+    Sometimes, we have work to do on the Windows message queue,
+    but /dev/windows doesn't appear to be ready.  At the moment,
+    I don't understand how that happens.
+
+    As a workaround, make sure select() just polls rather than
+    blocking if there are still messages to process...
+   */
+  if (GetQueueStatus(QS_ALLINPUT | QS_ALLPOSTMESSAGE) != 0)
+    {
+      struct timeval **tvp = pTimeout;
+      if (*tvp != NULL)
+        {
+          (*tvp)->tv_sec = 0;
+          (*tvp)->tv_usec = 0;
+        }
+    }
 #endif
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
@@ -59,8 +77,8 @@ winBlockHandler (int nScreen,
   if (pScreenPriv != NULL && !pScreenPriv->fServerStarted)
     {
       int		iReturn;
-      
-      winDebug ("winBlockHandler - Releasing pmServerStarted\n");
+
+      ErrorF ("winBlockHandler - pthread_mutex_unlock()\n");
 
       /* Flag that modules are to be started */
       pScreenPriv->fServerStarted = TRUE;
@@ -71,26 +89,18 @@ winBlockHandler (int nScreen,
 	{
 	  ErrorF ("winBlockHandler - pthread_mutex_unlock () failed: %d\n",
 		  iReturn);
-	  goto winBlockHandler_ProcessMessages; 
 	}
-
-      winDebug ("winBlockHandler - pthread_mutex_unlock () returned\n");
+      else
+	{
+          winDebug ("winBlockHandler - pthread_mutex_unlock () returned\n");
+	}
     }
-
-winBlockHandler_ProcessMessages:
 #endif
 
-  /* Process all messages on our queue */
-  while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
-    {
-      if ((g_hDlgDepthChange == 0
-	   || !IsDialogMessage (g_hDlgDepthChange, &msg))
-	  && (g_hDlgExit == 0
-	      || !IsDialogMessage (g_hDlgExit, &msg))
-	  && (g_hDlgAbout == 0
-	      || !IsDialogMessage (g_hDlgAbout, &msg)))
-	{
-	  DispatchMessage (&msg);
-	}
-    }
+  /*
+    At least one X client has asked to suspend the screensaver, so
+    reset Windows' display idle timer
+  */
+  if (screenSaverSuspended)
+    SetThreadExecutionState(ES_DISPLAY_REQUIRED);
 }

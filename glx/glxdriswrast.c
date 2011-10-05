@@ -424,9 +424,14 @@ initializeExtensions(__GLXDRIscreen *screen)
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
-    const char *driverName = "swrast";
+    const char *driverName;
     __GLXDRIscreen *screen;
     const __DRIconfig **driConfigs;
+
+    if (getenv("GALLIUM_DRIVER"))
+      driverName = "swrastg";
+    else
+      driverName = "swrast";
 
     screen = calloc(1, sizeof *screen);
     if (screen == NULL)

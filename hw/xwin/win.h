@@ -64,7 +64,7 @@
 #define WIN_DEFAULT_BLACKPIXEL			0
 #define WIN_DEFAULT_LINEBIAS			0
 #define WIN_DEFAULT_E3B_TIME			50 /* milliseconds */
-#define WIN_DEFAULT_DPI				75
+#define WIN_DEFAULT_DPI				96
 #define WIN_DEFAULT_REFRESH			0
 #define WIN_DEFAULT_WIN_KILL			TRUE
 #define WIN_DEFAULT_UNIX_KILL			FALSE
@@ -102,6 +102,8 @@
 #define MOUSE_POLLING_INTERVAL		50
 
 #define WIN_E3B_OFF		-1
+#define WIN_E3B_DEFAULT         0
+
 #define WIN_FD_INVALID		-1
 
 #define WIN_SERVER_NONE		0x0L	/* 0 */
@@ -398,6 +400,8 @@ typedef struct
   DWORD			dwScreen;
 
   int			iMonitor;
+  HMONITOR              hMonitor;
+
   DWORD			dwUserWidth;
   DWORD			dwUserHeight;
   DWORD			dwWidth;
@@ -673,7 +677,6 @@ extern DeviceIntPtr             g_pwinKeyboard;
 
 extern FARPROC			g_fpDirectDrawCreate;
 extern FARPROC			g_fpDirectDrawCreateClipper;
-extern FARPROC			g_fpTrackMouseEvent;
 
 
 /*
@@ -1481,6 +1484,18 @@ winDoRandRScreenSetSize (ScreenPtr  pScreen,
                          CARD16	    height,
                          CARD32	    mmWidth,
                          CARD32	    mmHeight);
+/*
+ * windisplay.c
+ */
+
+void
+winGetDisplayName(char *szDisplay, unsigned int screen);
+
+/*
+ * winmsgwindow.c
+ */
+Bool
+winCreateMsgWindowThread(void);
 
 /*
  * END DDX and DIX Function Prototypes

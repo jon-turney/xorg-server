@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -70,12 +68,6 @@ extern HWND			g_hwndClipboard;
 extern Bool			g_fClipboard;
 #endif
 
-
-/*
-  module handle for dynamically loaded comctl32 library
-*/
-static HMODULE g_hmodCommonControls = NULL;
-
 /*
  * Function prototypes
  */
@@ -90,8 +82,6 @@ void
 OsVendorVErrorF (const char *pszFormat, va_list va_args);
 #endif
 
-static Bool
-winCheckDisplayNumber (void);
 
 void
 winLogCommandLine (int argc, char *argv[]);
@@ -106,6 +96,8 @@ winValidateArgs (void);
 const char *
 winGetBaseDir(void);
 #endif
+
+static void winCheckMount(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -188,6 +180,26 @@ ddxBeforeReset (void)
 }
 #endif
 
+void
+ddxMain(void)
+{
+  int iReturn;
+
+  /* Create & acquire the termination mutex */
+  iReturn = pthread_mutex_init (&g_pmTerminating, NULL);
+  if (iReturn != 0)
+    {
+      ErrorF ("ddxMain - pthread_mutex_init () failed: %d\n", iReturn);
+    }
+
+  iReturn = pthread_mutex_lock (&g_pmTerminating);
+  if (iReturn != 0)
+    {
+      ErrorF ("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
+    }
+
+  winCheckMount();
+}
 
 /* See Porting Layer Definition - p. 57 */
 void
@@ -208,6 +220,9 @@ ddxGiveUp (enum ExitCode error)
     }
 
 #ifdef XWIN_MULTIWINDOW
+  /* Unload libraries for taskbar grouping */
+  winTaskbarDestroy ();
+
   /* Notify the worker threads we're exiting */
   winDeinitMultiWindowWM ();
 #endif
@@ -235,14 +250,6 @@ ddxGiveUp (enum ExitCode error)
    * we are guaranteed to not need the DirectDraw functions.
    */
   winReleaseDDProcAddresses();
-
-  /* Unload our TrackMouseEvent function pointer */
-  if (g_hmodCommonControls != NULL)
-    {
-      FreeLibrary (g_hmodCommonControls);
-      g_hmodCommonControls = NULL;
-      g_fpTrackMouseEvent = (FARPROC) (void (*)(void))NoopDDA;
-    }
   
   /* Free concatenated command line */
   free(g_pszCommandLine);
@@ -253,8 +260,19 @@ ddxGiveUp (enum ExitCode error)
 
   /* Tell Windows that we want to end the app */
   PostQuitMessage (0);
-}
 
+  {
+    winDebug ("ddxGiveUp - Releasing termination mutex\n");
+
+    int iReturn = pthread_mutex_unlock (&g_pmTerminating);
+    if (iReturn != 0)
+      {
+        ErrorF ("winMsgWindowProc - pthread_mutex_unlock () failed: %d\n", iReturn);
+      }
+  }
+
+  winDebug ("ddxGiveUp - End\n");
+}
 
 /* See Porting Layer Definition - p. 57 */
 void
@@ -267,6 +285,8 @@ AbortDDX (enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
 {
@@ -288,6 +308,9 @@ static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -297,6 +320,7 @@ winCheckMount(void)
   enum { none = 0, sys_root, user_root, sys_tmp, user_tmp } 
     level = none, curlevel;
   BOOL binary = TRUE;
+  BOOL fat = TRUE;
 
   mnt = setmntent("/etc/mtab", "r");
   if (mnt == NULL)
@@ -339,20 +363,31 @@ winCheckMount(void)
       binary = FALSE;
     else
       binary = TRUE;
+
+    if (strcmp(ent->mnt_type, "vfat") == 0)
+      fat = TRUE;
+    else
+      fat = FALSE;
   }
-    
+
   if (endmntent(mnt) != 1)
   {
     ErrorF("endmntent failed");
     return;
   }
-  
- if (!binary) 
+
+ if (!binary)
    winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+ if (fat)
+   {
+     winMsg(X_WARNING, "/tmp mounted on FAT filesystem, activating -nolock\n");
+     nolock = TRUE;
+   }
 }
 #else
 static void
-winCheckMount(void) 
+winCheckMount(void)
 {
 }
 #endif
@@ -704,8 +739,35 @@ OsVendorInit (void)
       /* We have to flag this as an explicit screen, even though it isn't */
       g_ScreenInfo[0].fExplicitScreen = TRUE;
     }
-}
 
+  /* Work out what the default emulate3buttons setting should be, and apply
+     it if nothing was explicitly specified */
+  {
+    int mouseButtons = GetSystemMetrics(SM_CMOUSEBUTTONS);
+    int j;
+
+    for (j = 0; j < g_iNumScreens; j++)
+      {
+        if (g_ScreenInfo[j].iE3BTimeout == WIN_E3B_DEFAULT)
+          {
+            if (mouseButtons < 3)
+              {
+                static Bool reportOnce = TRUE;
+                g_ScreenInfo[j].iE3BTimeout = WIN_DEFAULT_E3B_TIME;
+                if (reportOnce)
+                  {
+                    reportOnce = FALSE;
+                    winMsg(X_PROBED, "Windows reports only %d mouse buttons, defaulting to -emulate3buttons\n", mouseButtons);
+                  }
+              }
+            else
+              {
+                g_ScreenInfo[j].iE3BTimeout = WIN_E3B_OFF;
+              }
+          }
+      }
+  }
+}
 
 static void
 winUseMsg (void)
@@ -737,7 +799,7 @@ winUseMsg (void)
 	  "\tSpecify an optional bitdepth to use in fullscreen mode\n"
 	  "\twith a DirectDraw engine.\n");
 
-  ErrorF ("-emulate3buttons [timeout]\n"
+  ErrorF ("-[no]emulate3buttons [timeout]\n"
 	  "\tEmulate 3 button mouse with an optional timeout in\n"
 	  "\tmilliseconds.\n");
 
@@ -937,15 +999,6 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 		  "Exiting.\n");
     }
 
-  /* Check for duplicate invocation on same display number.*/
-  if (serverGeneration == 1 && !winCheckDisplayNumber ())
-    {
-      if (g_fSilentDupError)
-        g_fSilentFatalError = TRUE;  
-      FatalError ("InitOutput - Duplicate invocation on display "
-		  "number: %s.  Exiting.\n", display);
-    }
-
 #ifdef XWIN_XF86CONFIG
   /* Try to read the xorg.conf-style configuration file */
   if (!winReadConfigfile ())
@@ -979,29 +1032,17 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   /* Detect supported engines */
   winDetectSupportedEngines ();
 
-  /* Load common controls library */
-  g_hmodCommonControls = LoadLibraryEx ("comctl32.dll", NULL, 0);
-
-  /* Load TrackMouseEvent function pointer */  
-  g_fpTrackMouseEvent = GetProcAddress (g_hmodCommonControls,
-					 "_TrackMouseEvent");
-  if (g_fpTrackMouseEvent == NULL)
-    {
-      winErrorFVerb (1, "InitOutput - Could not get pointer to function\n"
-	      "\t_TrackMouseEvent in comctl32.dll.  Try installing\n"
-	      "\tInternet Explorer 3.0 or greater if you have not\n"
-	      "\talready.\n");
-
-      /* Free the library since we won't need it */
-      FreeLibrary (g_hmodCommonControls);
-      g_hmodCommonControls = NULL;
-
-      /* Set function pointer to point to no operation function */
-      g_fpTrackMouseEvent = (FARPROC) (void (*)(void))NoopDDA;
-    }
+#ifdef XWIN_MULTIWINDOW
+  /* Load libraries for taskbar grouping */
+  winTaskbarInit ();
+#endif
 
   /* Store the instance handle */
   g_hInstance = GetModuleHandle (NULL);
+
+  /* Create the messaging window */
+  if (serverGeneration == 1)
+    winCreateMsgWindowThread();
 
   /* Initialize each screen */
   for (i = 0; i < g_iNumScreens; ++i)
@@ -1022,90 +1063,31 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   /* Perform some one time initialization */
   if (1 == serverGeneration)
     {
+      /* Allow multiple threads to access Xlib */
+      if (XInitThreads () == 0)
+        {
+          ErrorF ("XInitThreads failed.\n");
+        }
+
       /*
        * setlocale applies to all threads in the current process.
        * Apply locale specified in LANG environment variable.
        */
-      setlocale (LC_ALL, "");
+      if (!setlocale (LC_ALL, ""))
+        {
+          ErrorF ("setlocale failed.\n");
+        }
+
+      /* See if X supports the current locale */
+      if (XSupportsLocale () == FALSE)
+        {
+          ErrorF ("Warning: Locale not supported by X, falling back to 'C' locale.\n");
+          setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");
 #endif
-}
-
-
-/*
- * winCheckDisplayNumber - Check if another instance of Cygwin/X is
- * already running on the same display number.  If no one exists,
- * make a mutex to prevent new instances from running on the same display.
- *
- * return FALSE if the display number is already used.
- */
-
-static Bool
-winCheckDisplayNumber (void)
-{
-  int			nDisp;
-  HANDLE		mutex;
-  char			name[MAX_PATH];
-  char *		pszPrefix = '\0';
-  OSVERSIONINFO		osvi = {0};
-
-  /* Check display range */
-  nDisp = atoi (display);
-  if (nDisp < 0 || nDisp > 65535)
-    {
-      ErrorF ("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-      return FALSE;
-    }
-
-  /* Set first character of mutex name to null */
-  name[0] = '\0';
-
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx (&osvi);
-
-  /* Want a mutex shared among all terminals on NT > 4.0 */
-  if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT
-      && osvi.dwMajorVersion >= 5)
-    {
-      pszPrefix = "Global\\";
-    }
-
-  /* Setup Cygwin/X specific part of name */
-  snprintf (name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
-
-  /* Windows automatically releases the mutex when this process exits */
-  mutex = CreateMutex (NULL, FALSE, name);
-  if (!mutex)
-    {
-      LPVOID lpMsgBuf;
-
-      /* Display a fancy error message */
-      FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		     FORMAT_MESSAGE_FROM_SYSTEM | 
-		     FORMAT_MESSAGE_IGNORE_INSERTS,
-		     NULL,
-		     GetLastError (),
-		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		     (LPTSTR) &lpMsgBuf,
-		     0, NULL);
-      ErrorF ("winCheckDisplayNumber - CreateMutex failed: %s\n",
-	      (LPSTR)lpMsgBuf);
-      LocalFree (lpMsgBuf);
-
-      return FALSE;
-    }
-  if (GetLastError () == ERROR_ALREADY_EXISTS)
-    {
-      ErrorF ("winCheckDisplayNumber - "
-	      PROJECT_NAME " is already running on display %d\n",
-	      nDisp);
-      return FALSE;
-    }
-
-  return TRUE;
 }

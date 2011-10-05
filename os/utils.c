@@ -233,7 +233,7 @@ OsSignal(int sig, OsSigHandlerPtr handler)
 
 static Bool StillLocking = FALSE;
 static char LockFile[PATH_MAX];
-static Bool nolock = FALSE;
+Bool nolock = FALSE;
 
 /*
  * LockServer --
@@ -660,6 +660,17 @@ ProcessCommandLine(int argc, char *argv[])
 	    else
 		UseMsg();
 	}
+	else if (strcmp(argv[i], "-displayfd") == 0)
+	{
+	    if (++i < argc)
+	    {
+		displayfd = atoi(argv[i]);
+		display = NULL;
+		nolock = TRUE;
+	    }
+	    else
+		UseMsg();
+	}
 #ifdef DPMSExtension
 	else if ( strcmp( argv[i], "dpms") == 0)
 	    /* ignored for compatibility */ ;
@@ -892,6 +903,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleInterval = atoi(argv[i]);
 		SmartScheduleSlice = SmartScheduleInterval;
 	    }
@@ -902,6 +914,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleMaxSlice = atoi(argv[i]);
 	    }
 	    else
@@ -1291,6 +1304,7 @@ static struct pid {
 
 OsSigHandlerPtr old_alarm = NULL; /* XXX horrible awful hack */
 
+#if !defined(__CYGWIN__)
 pointer
 Popen(char *command, char *type)
 {
@@ -1375,6 +1389,7 @@ Popen(char *command, char *type)
 
     return iop;
 }
+#endif
 
 /* fopen that drops privileges */
 pointer

@@ -321,6 +321,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
   static Bool		s_fTracking = FALSE;
   Bool			needRestack = FALSE;
   LRESULT		ret;
+  static Bool		hasEnteredSizeMove = FALSE;
 
 #if CYGDEBUG
   winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam, lParam);
@@ -549,8 +550,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	  tme.hwndTrack = hwnd;
 
 	  /* Call the tracking function */
-	  if (!(*g_fpTrackMouseEvent) (&tme))
-	    ErrorF ("winTopLevelWindowProc - _TrackMouseEvent failed\n");
+	  if (!TrackMouseEvent(&tme))
+	    ErrorF ("winTopLevelWindowProc - TrackMouseEvent failed\n");
 
 	  /* Flag that we are tracking now */
 	  s_fTracking = TRUE;
@@ -832,6 +833,9 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       break;
 
     case WM_CLOSE:
+      /* Remove property AppUserModelID */
+      winSetAppID (hwnd, NULL);
+
       /* Branch on if the window was killed in X already */
       if (pWinPriv->fXKilled)
         {
@@ -868,7 +872,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
     case WM_MOVE:
       /* Adjust the X Window to the moved Windows window */
-      winAdjustXWindow (pWin, hwnd);
+      if (!hasEnteredSizeMove) winAdjustXWindow (pWin, hwnd);
+      /* else: Wait for WM_EXITSIZEMOVE */
       return 0;
 
     case WM_SHOWWINDOW:
@@ -898,7 +903,22 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 		   & ~WS_CAPTION & ~WS_SIZEBOX);
 
 	      winUpdateWindowPosition (hwnd, FALSE, &zstyle);
-	      SetForegroundWindow (hwnd);
+
+              {
+                WinXWMHints hints;
+                if (winMultiWindowGetWMHints(pWin, &hints))
+                  {
+                    /*
+                      Give the window focus, unless it has an InputHint
+                      which is FALSE (this is used by e.g. glean to
+                      avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input)))
+                      {
+                        SetForegroundWindow (hwnd);
+                      }
+                  }
+              }
 	    }
 	  wmMsg.msg = WM_WM_MAP3;
 	}
@@ -994,6 +1014,16 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       */
       break; 
 
+    case WM_ENTERSIZEMOVE:
+      hasEnteredSizeMove = TRUE;
+      return 0;
+
+    case WM_EXITSIZEMOVE:
+      /* Adjust the X Window to the moved Windows window */
+      hasEnteredSizeMove = FALSE;
+      winAdjustXWindow (pWin, hwnd);
+      return 0;
+
     case WM_SIZE:
       /* see dix/window.c */
 #if CYGWINDOWING_DEBUG
@@ -1018,8 +1048,13 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 		(int)(GetTickCount ()));
       }
 #endif
-      /* Adjust the X Window to the moved Windows window */
-      winAdjustXWindow (pWin, hwnd);
+      if (!hasEnteredSizeMove)
+        {
+          /* Adjust the X Window to the moved Windows window */
+          winAdjustXWindow (pWin, hwnd);
+          if (wParam == SIZE_MINIMIZED) winReorderWindowsMultiWindow();
+        }
+        /* else: wait for WM_EXITSIZEMOVE */
       return 0; /* end of WM_SIZE handler */
 
     case WM_STYLECHANGING:

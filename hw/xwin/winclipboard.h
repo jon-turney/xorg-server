@@ -50,7 +50,6 @@
 #include <X11/Xatom.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
-#include <X11/Xlocale.h>
 
 /* Windows headers */
 #include <X11/Xwindows.h>
@@ -71,6 +70,8 @@
 #define WIN_XEVENTS_SHUTDOWN			1
 #define WIN_XEVENTS_CONVERT			2
 #define WIN_XEVENTS_NOTIFY			3
+#define WIN_CLIPBOARD_RETRIES			40
+#define WIN_CLIPBOARD_DELAY			1
 
 #define WM_WM_REINIT                           (WM_USER + 1)
 
