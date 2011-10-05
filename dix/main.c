@@ -137,6 +137,10 @@ int main(int argc, char *argv[], char *envp[])
 
     display = "0";
 
+#ifdef DDXMAIN
+    ddxMain();
+#endif
+
     InitRegions();
 
     CheckUserParameters(argc, argv, envp);
