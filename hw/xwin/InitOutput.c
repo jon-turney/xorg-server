@@ -365,6 +365,22 @@ winDirectoryExists(const char * path)
   return ret;
 }
 
+static BOOL
+winFileIs(const char * path, mode_t mask)
+{
+  BOOL ret = FALSE;
+  if (access(path, 0) == 0)
+  {
+    struct stat pathstat;
+    stat(path, &pathstat);
+    if (pathstat.st_mode & mask)
+    {
+      ret = TRUE;
+    }
+  }
+  ErrorF("winFileExists(\"%s\") = %d\n", path, ret);
+  return ret;
+}
 
 const char *
 winGetBaseDir(void)
@@ -394,6 +410,46 @@ winGetBaseDir(void)
     inited = TRUE;
   }
   return buffer;
+}
+
+
+static void
+winVerifyEnvironment(const char * basedir, mode_t mask, const char * varname, const char * dirsuffix)
+{
+  if (getenv(varname) == NULL)
+  {
+    char buffer[MAX_PATH];
+    snprintf(buffer, sizeof(buffer), "%s\\%s",
+             PROJECTROOT, dirsuffix);
+    buffer[sizeof(buffer) - 1] = 0;
+    if (winFileIs(buffer, mask))
+    {
+      snprintf(buffer, sizeof(buffer), "%s=%s\\%s",
+               varname, PROJECTROOT, dirsuffix);
+      buffer[sizeof(buffer) - 1] = 0;
+      putenv(buffer);
+    }
+    else
+    {
+      snprintf(buffer, sizeof(buffer), "%s\\%s",
+               basedir, dirsuffix);
+      buffer[sizeof(buffer) - 1] = 0;
+      if (winFileIs(buffer, mask))
+      {
+        snprintf(buffer, sizeof(buffer), "%s=%s\\%s",
+                 varname, basedir, dirsuffix);
+        buffer[sizeof(buffer) - 1] = 0;
+        putenv(buffer);
+      }
+      else
+      {
+        ErrorF("winVerifyEnvironment: Could not find a valid path for \"%s\"\n", varname);
+      }
+    }
+
+    putenv(buffer);
+  }
+
 }
 #endif
 
@@ -586,32 +642,12 @@ winFixupPaths (void)
         winMsg (font_from, "FontPath set to \"%s\"\n", defaultFontPath);
 
 #ifdef RELOCATE_PROJECTROOT
-    if (getenv("XKEYSYMDB") == NULL)
-    {
-        char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XKEYSYMDB=%s\\XKeysymDB",
-                basedir);
-        buffer[sizeof(buffer)-1] = 0;
-        putenv(buffer);
-    }
-    if (getenv("XERRORDB") == NULL)
-    {
-        char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XERRORDB=%s\\XErrorDB",
-                basedir);
-        buffer[sizeof(buffer)-1] = 0;
-        putenv(buffer);
-    }
-    if (getenv("XLOCALEDIR") == NULL)
-    {
-        char buffer[MAX_PATH];
-        snprintf(buffer, sizeof(buffer), "XLOCALEDIR=%s\\locale",
-                basedir);
-        buffer[sizeof(buffer)-1] = 0;
-        putenv(buffer);
-    }
-    if (getenv("HOME") == NULL)
-    {
+  winVerifyEnvironment(basedir, S_IFREG, "XKEYSYMDB", "XKeysymDB");
+  winVerifyEnvironment(basedir, S_IFREG, "XERRORDB", "XErrorDB");
+  winVerifyEnvironment(basedir, S_IFDIR, "XLOCALEDIR", "locale");
+  if (getenv("HOME") == NULL)
+  {
+
         char buffer[MAX_PATH + 5];
         strncpy(buffer, "HOME=", 5);
 
@@ -623,18 +659,20 @@ winFixupPaths (void)
         {
             winMsg (X_ERROR, "Can not determine HOME directory\n");
         }
+  }
+  if (!g_fLogFileChanged)
+  {
+    static char buffer[MAX_PATH];
+    DWORD size = GetTempPath(sizeof(buffer), buffer);
+    if (size && size < sizeof(buffer))
+    {
+      snprintf(buffer + size, sizeof(buffer) - size,
+               "XWin.%s.log", display);
+      buffer[sizeof(buffer) - 1] = 0;
+      g_pszLogFile = buffer;
+      winMsg(X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
     }
-    if (!g_fLogFileChanged) {
-        static char buffer[MAX_PATH];
-        DWORD size = GetTempPath(sizeof(buffer), buffer);
-        if (size && size < sizeof(buffer))
-        {
-            snprintf(buffer + size, sizeof(buffer) - size, 
-                    "XWin.%s.log", display); 
-            buffer[sizeof(buffer)-1] = 0;
-            g_pszLogFile = buffer;
-            winMsg (X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
-        }
+  }
   {
     static char xkbbasedir[MAX_PATH];
 
