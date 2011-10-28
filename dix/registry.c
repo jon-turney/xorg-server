@@ -70,8 +70,14 @@ double_size(void *p, unsigned n, unsigned size)
         s = 0;
         n = f = BASE_SIZE * size;
     }
+	{
+	    char * newptr = realloc(*ptr, n);
+	    if (!newptr) {
+		free(*ptr);
+	    }
+	    *ptr = newptr;
+	}
 
-    *ptr = realloc(*ptr, n);
     if (!*ptr) {
         dixResetRegistry();
         return FALSE;
