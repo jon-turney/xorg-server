@@ -1254,6 +1254,25 @@ OsAbort (void)
  * as well.  As it is now, xkbcomp messages don't end up in the log file.
  */
 
+#ifdef __CYGWIN__
+#include <process.h>
+int
+System(char *command)
+{
+    int status;
+    if (!command)
+	return 1;
+
+    DebugF("System: `%s'\n", command);
+
+    /*
+      Use spawnl() rather than execl() to implement System() on cygwin to
+      avoid fork emulation overhead and brittleness
+    */
+    status = spawnl(_P_WAIT, "/bin/sh", "sh", "-c", command, (char *)NULL);
+    return status;
+}
+#else
 int
 System(char *command)
 {
@@ -1295,6 +1314,7 @@ System(char *command)
 
     return p == -1 ? -1 : status;
 }
+#endif
 
 static struct pid {
     struct pid *next;
