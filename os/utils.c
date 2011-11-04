@@ -210,6 +210,9 @@ char *SeatId = NULL;
 OsSigHandlerPtr
 OsSignal(int sig, OsSigHandlerPtr handler)
 {
+#ifdef X_NOT_POSIX
+    return signal(sig, handler);
+#else
     struct sigaction act, oact;
 
     sigemptyset(&act.sa_mask);
@@ -220,6 +223,7 @@ OsSignal(int sig, OsSigHandlerPtr handler)
     if (sigaction(sig, &act, &oact))
       perror("sigaction");
     return oact.sa_handler;
+#endif
 }
 
 /*
