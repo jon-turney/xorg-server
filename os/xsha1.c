@@ -148,7 +148,14 @@ x_sha1_final(void *ctx, unsigned char result[20])
 
 #elif defined(HAVE_SHA1_IN_LIBGCRYPT)   /* Use libgcrypt for SHA1 */
 
-#include <gcrypt.h>
+# if defined(WIN32) && !defined(__CYGWIN__)
+/*
+ * Must be included before any other header includes windows.h, to avoid
+ * conflicting definitions.
+ */
+#  include <X11/Xwindows.h>
+# endif
+# include <gcrypt.h>
 
 void *
 x_sha1_init(void)
