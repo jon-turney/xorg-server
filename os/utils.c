@@ -666,7 +666,7 @@ ProcessCommandLine(int argc, char *argv[])
                 UseMsg();
         }
         else if (strcmp(argv[i], "-core") == 0) {
-#if !defined(WIN32) || !defined(__MINGW32__)
+#if !defined(WIN32) || defined(__CYGWIN__)
             struct rlimit core_limit;
 
             getrlimit(RLIMIT_CORE, &core_limit);
