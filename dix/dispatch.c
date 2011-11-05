@@ -1425,7 +1425,6 @@ CreatePmap:
 	}
 	if (AddResource(stuff->pid, RT_PIXMAP, (pointer)pMap))
 	    return Success;
-	(*pDraw->pScreen->DestroyPixmap)(pMap);
     }
     return BadAlloc;
 }
