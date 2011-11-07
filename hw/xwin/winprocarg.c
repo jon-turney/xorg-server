@@ -1106,6 +1106,11 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
+    if (IS_OPTION("-nohostintitle")) {
+        g_fHostInTitle = FALSE;
+        return 1;
+    }
+
     return 0;
 }
 
