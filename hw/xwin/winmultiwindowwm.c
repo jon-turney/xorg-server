@@ -61,6 +61,7 @@
 #include "windowstr.h"
 #include "winmultiwindowicons.h"
 #include "windisplay.h"
+#include "winglobals.h"
 
 #ifdef XWIN_MULTIWINDOWEXTWM
 #include <X11/extensions/windowswmstr.h>
@@ -68,6 +69,10 @@
 /* We need the native HWND atom for intWM, so for consistency use the
    same name as extWM would if we were building with enabled... */
 #define WINDOWSWM_NATIVE_HWND "_WINDOWSWM_NATIVE_HWND"
+#endif
+
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
 #endif
 
 extern void winDebug(const char *format, ...);
@@ -435,7 +440,10 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
 {
     int nResult;
     XTextProperty xtpWindowName;
+    XTextProperty xtpClientMachine;
     char *pszWindowName;
+    char *pszClientMachine;
+    char hostname[HOST_NAME_MAX + 1];
 
 #if CYGMULTIWINDOW_DEBUG
     ErrorF("GetWindowName\n");
@@ -455,6 +463,40 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
 
     pszWindowName = Xutf8TextPropertyToString(pDisplay, &xtpWindowName);
     XFree(xtpWindowName.value);
+
+    if (g_fHostInTitle) {
+        /* Try to get client machine name */
+        nResult = XGetWMClientMachine(pDisplay, iWin, &xtpClientMachine);
+        if (nResult && xtpClientMachine.value && xtpClientMachine.nitems) {
+            pszClientMachine =
+                Xutf8TextPropertyToString(pDisplay, &xtpClientMachine);
+            XFree(xtpClientMachine.value);
+
+            /*
+               If we have a client machine name
+               and it's not the local host name...
+             */
+            if (strlen(pszClientMachine) &&
+                !gethostname(hostname, HOST_NAME_MAX + 1) &&
+                strcmp(hostname, pszClientMachine)) {
+                /* ... add ' (on <clientmachine>)' to end of window name */
+                *ppWindowName =
+                    malloc(strlen(pszWindowName) +
+                           strlen(pszClientMachine) + 7);
+                strcpy(*ppWindowName, pszWindowName);
+                strcat(*ppWindowName, " (on ");
+                strcat(*ppWindowName, pszClientMachine);
+                strcat(*ppWindowName, ")");
+
+                free(pszWindowName);
+                free(pszClientMachine);
+
+                return;
+            }
+        }
+    }
+
+    /* otherwise just return the window name */
     *ppWindowName = pszWindowName;
 }
 
