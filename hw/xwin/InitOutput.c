@@ -914,7 +914,8 @@ winUseMsg (void)
 
 #ifdef XWIN_GLX_WINDOWS
   ErrorF ("-[no]wgl\n"
-	  "\tEnable the GLX extension to use the native Windows WGL interface for accelerated OpenGL\n");
+	  "\tEnable the GLX extension to use the native Windows WGL interface\n"
+	  "\tfor hardware-accelerated OpenGL (AIGLX). Enabled by default.\n");
 #endif
 
   ErrorF ("-[no]winkill\n"
