@@ -363,8 +363,10 @@ void winEnqueueMotion(int x, int y)
 {
   int valuators[2];
   ValuatorMask mask;
+  double dx = (double)x;
+  double dy = (double)y;
 
-  miPointerSetPosition(g_pwinPointer, POINTER_RELATIVE, &x, &y);
+  miPointerSetPosition(g_pwinPointer, POINTER_RELATIVE, &dx, &dy);
   valuators[0] = x;
   valuators[1] = y;
 
