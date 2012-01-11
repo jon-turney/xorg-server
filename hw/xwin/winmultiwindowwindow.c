@@ -395,85 +395,80 @@ winReparentWindowMultiWindow (WindowPtr pWin, WindowPtr pPriorParent)
 void
 winRestackWindowMultiWindow (WindowPtr pWin, WindowPtr pOldNextSib)
 {
-#if 0
   WindowPtr		pPrevWin;
-  UINT			uFlags;
   HWND			hInsertAfter;
-  HWND                  hWnd = NULL;
-#endif
   ScreenPtr		pScreen = pWin->drawable.pScreen;
+  winWindowPriv(pWin);
   winScreenPriv(pScreen);
 
-#if CYGMULTIWINDOW_DEBUG || CYGWINDOWING_DEBUG
-  winTrace ("winRestackMultiWindow - %08x\n", pWin);
-#endif
-  
    WIN_UNWRAP(RestackWindow);
-   if (pScreen->RestackWindow) 
+   if (pScreen->RestackWindow)
      (*pScreen->RestackWindow)(pWin, pOldNextSib);
    WIN_WRAP(RestackWindow, winRestackWindowMultiWindow);
-  
-#if 1
+
   /*
-   * Calling winReorderWindowsMultiWindow here means our window manager
-   * (i.e. Windows Explorer) has initiative to determine Z order.
-   */
-  if (pWin->nextSib != pOldNextSib)
-    winReorderWindowsMultiWindow ();
-#else
+     Ignore spurious calls made if ROOTLESS is defined, as there is
+     nothing to do if the window is already in the right place
+  */
+  if (pWin->nextSib == pOldNextSib)
+    return;
+
+  winDebug ("winRestackMultiWindow: pWin %08x XID %08x\n", pWin, pWin->drawable.id);
+#if 1
+  winDebug ("winRestackMultiWindow: old next sib pWin %08x XID %08x\n", pOldNextSib, pOldNextSib ? pOldNextSib->drawable.id : 0);
+  winDebug ("winRestackMultiWindow: new next sib pWin %08x XID %08x\n", pWin->nextSib, pWin->nextSib ? pWin->nextSib->drawable.id : 0);
+#endif
+
   /* Bail out if no window privates or window handle is invalid */
   if (!pWinPriv || !pWinPriv->hWnd)
     return;
 
-  /* Get a pointer to our previous sibling window */
-  pPrevWin = pWin->prevSib;
-
   /*
-   * Look for a sibling window with
+   * Look for a previous sibling window with
    * valid privates and window handle
    */
+  pPrevWin = pWin;
+
+  do
+    {
+      pPrevWin = pPrevWin->prevSib;
+#if 0
+      if (pPrevWin)
+        {
+          winDebug ("winRestackMultiWindow: pPrevWin %08x, XID %08x\n", pPrevWin, pPrevWin->drawable.id);
+          winDebug ("winRestackMultiWindow: has winPriv %08x hwnd %08x\n", winGetWindowPriv(pPrevWin), winGetWindowPriv(pPrevWin) ? (winGetWindowPriv(pPrevWin)->hWnd) : 0);
+        }
+#endif
+    }
   while (pPrevWin
-	 && !winGetWindowPriv(pPrevWin)
-	 && !winGetWindowPriv(pPrevWin)->hWnd)
-    pPrevWin = pPrevWin->prevSib;
-      
+	 && !(winGetWindowPriv(pPrevWin) && winGetWindowPriv(pPrevWin)->hWnd));
+
+  /* Stop if pPrevWin == NULL, or winGetWindowPriv(pPrevWin) exists and is not NULL */
+
   /* Check if we found a valid sibling */
   if (pPrevWin)
     {
       /* Valid sibling - get handle to insert window after */
       hInsertAfter = winGetWindowPriv(pPrevWin)->hWnd;
-      uFlags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
-  
-      hWnd = GetNextWindow (pWinPriv->hWnd, GW_HWNDPREV);
-
-      do
-	{
-	  if (GetProp (hWnd, WIN_WINDOW_PROP))
-	    {
-	      if (hWnd == winGetWindowPriv(pPrevWin)->hWnd)
-		{
-		  uFlags |= SWP_NOZORDER;
-		}
-	      break;
-	    }
-	  hWnd = GetNextWindow (hWnd, GW_HWNDPREV);
-	}
-      while (hWnd);
+      assert(hInsertAfter != HWND_TOP);
     }
   else
     {
       /* No valid sibling - make this window the top window */
       hInsertAfter = HWND_TOP;
-      uFlags = SWP_NOMOVE | SWP_NOSIZE;
     }
-      
+
+#if CYGMULTIWINDOW_DEBUG || CYGWINDOWING_DEBUG
+  winDebug ("winRestackMultiWindow: hwnd %08x hwndInsertAfter %08x\n",
+            pWinPriv->hWnd, hInsertAfter);
+#endif
+
   /* Perform the restacking operation in Windows */
   SetWindowPos (pWinPriv->hWnd,
 		hInsertAfter,
 		0, 0,
 		0, 0,
-		uFlags);
-#endif
+		SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
 
 
@@ -611,8 +606,6 @@ winCreateWindowsWindow (WindowPtr pWin)
   (*pScreenPriv->pwinFinishCreateWindowsWindow) (pWin);
 }
 
-
-Bool winInDestroyWindowsWindow = FALSE;
 /*
  * winDestroyWindowsWindow - Destroy a Windows window associated
  * with an X window
@@ -622,7 +615,6 @@ winDestroyWindowsWindow (WindowPtr pWin)
 {
   MSG			msg;
   winWindowPriv(pWin);
-  BOOL			oldstate = winInDestroyWindowsWindow;
   HICON hIcon;
   HICON hIconSm;
 
@@ -631,8 +623,6 @@ winDestroyWindowsWindow (WindowPtr pWin)
   /* Bail out if the Windows window handle is invalid */
   if (pWinPriv->hWnd == NULL)
     return;
-
-  winInDestroyWindowsWindow = TRUE;
 
   /* Store the info we need to destroy after this window is gone */
   hIcon = (HICON)SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_BIG, 0);
@@ -663,8 +653,6 @@ winDestroyWindowsWindow (WindowPtr pWin)
 	  DispatchMessage (&msg);
 	}
     }
-
-  winInDestroyWindowsWindow = oldstate;
 
   winDebug("winDestroyWindowsWindow - done\n");
 }
@@ -755,7 +743,9 @@ winFindWindow (pointer value, XID id, pointer cdata)
 
 
 /*
- * winReorderWindowsMultiWindow - 
+ * winReorderWindowsMultiWindow -
+ *
+ * Re-order the X windows so their order follows the native Window order
  */
 
 void
@@ -798,11 +788,11 @@ winReorderWindowsMultiWindow (void)
 	{
 	  pWinSib = pWin;
 	  pWin = GetProp (hwnd, WIN_WINDOW_PROP);
-	      
+
 	  if (!pWinSib)
 	    { /* 1st window - raise to the top */
 	      vlist[0] = Above;
-		  
+
 	      ConfigureWindow (pWin, CWStackMode, vlist, wClient(pWin));
 	    }
 	  else

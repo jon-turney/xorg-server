@@ -266,23 +266,6 @@ ValidateSizing (HWND hwnd, WindowPtr pWin,
   return TRUE;
 }
 
-extern Bool winInDestroyWindowsWindow;
-static Bool winInRaiseWindow = FALSE;
-static void winRaiseWindow(WindowPtr pWin)
-{
-  if (!winInDestroyWindowsWindow && !winInRaiseWindow)
-  {
-    BOOL oldstate = winInRaiseWindow;
-    XID vlist[1] = { 0 };
-    winInRaiseWindow = TRUE;
-    /* Call configure window directly to make sure it gets processed 
-     * in time
-     */
-    ConfigureWindow(pWin, CWStackMode, vlist, serverClient); 
-    winInRaiseWindow = oldstate;
-  }
-}
-
 static
 void winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
 {
@@ -706,8 +689,15 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* Add the keyboard hook if possible */
       if (g_fKeyboardHookLL)
 	g_fKeyboardHookLL = winInstallKeyboardHookLL ();
+
+      /* Tell our Window Manager thread to XSetInputFocus the X window */
+      wmMsg.msg = WM_WM_ACTIVATE;
+      if (fWMMsgInitialized)
+        if (!pWin || !pWin->overrideRedirect) /* for OOo menus */
+          winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+
       return 0;
-      
+
     case WM_KILLFOCUS:
       /* Pop any pressed keys since we are losing keyboard focus */
       winKeybdReleaseKeys ();
@@ -803,26 +793,6 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* Pass the message to the root window */
       SendMessage (hwndScreen, message, wParam, lParam);
 
-      if (LOWORD(wParam) != WA_INACTIVE)
-	{
-	  /* Raise the window to the top in Z order */
-          /* ago: Activate does not mean putting it to front! */
-          /*
-	  wmMsg.msg = WM_WM_RAISE;
-	  if (fWMMsgInitialized)
-	    winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
-          */
-	  
-	  /* Tell our Window Manager thread to activate the window */
-	  wmMsg.msg = WM_WM_ACTIVATE;
-	  if (fWMMsgInitialized)
-	    if (!pWin || !pWin->overrideRedirect) /* for OOo menus */
-	      winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
-	}
-      /* Prevent the mouse wheel from stalling when another window is minimized */
-      if (HIWORD(wParam) == 0 && LOWORD(wParam) == WA_ACTIVE &&
-	  (HWND)lParam != NULL && (HWND)lParam != (HWND)GetParent(hwnd))
-	SetFocus(hwnd);
       return 0;
 
     case WM_ACTIVATEAPP:
@@ -963,56 +933,15 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 #if CYGWINDOWING_DEBUG
 	    winDebug ("\twindow z order was changed\n");
 #endif
-	    if (pWinPos->hwndInsertAfter == HWND_TOP
-		||pWinPos->hwndInsertAfter == HWND_TOPMOST
-		||pWinPos->hwndInsertAfter == HWND_NOTOPMOST)
-	      {
-#if CYGWINDOWING_DEBUG
-		winDebug ("\traise to top\n");
-#endif
-		/* Raise the window to the top in Z order */
-		winRaiseWindow(pWin);
-	      }
-	    else if (pWinPos->hwndInsertAfter == HWND_BOTTOM)
-	      {
-	      }
-	    else
-	      {
-		/* Check if this window is top of X windows. */
-		HWND hWndAbove = NULL;
-		DWORD dwCurrentProcessID = GetCurrentProcessId ();
-		DWORD dwWindowProcessID = 0;
+            needRestack = TRUE;
 
-		for (hWndAbove = pWinPos->hwndInsertAfter;
-		     hWndAbove != NULL;
-		     hWndAbove = GetNextWindow (hWndAbove, GW_HWNDPREV))
-		  {
-		    /* Ignore other XWin process's window */
-		    GetWindowThreadProcessId (hWndAbove, &dwWindowProcessID);
-
-		    if ((dwWindowProcessID == dwCurrentProcessID)
-			&& GetProp (hWndAbove, WIN_WINDOW_PROP)
-			&& !IsWindowVisible (hWndAbove)
-			&& !IsIconic (hWndAbove) ) /* ignore minimized windows */
-		      break;
-		  }
-		/* If this is top of X windows in Windows stack,
-		   raise it in X stack. */
-		if (hWndAbove == NULL)
-		  {
-#if CYGWINDOWING_DEBUG
-		    winDebug ("\traise to top\n");
-#endif
-		    winRaiseWindow(pWin);
-		  }
-	      }
-	  }
+          }
       }
       /*
        * Pass the message to DefWindowProc to let the function
        * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
       */
-      break; 
+      break;
 
     case WM_ENTERSIZEMOVE:
       hasEnteredSizeMove = TRUE;

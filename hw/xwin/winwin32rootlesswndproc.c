@@ -829,17 +829,10 @@ winMWExtWMWindowProc (HWND hwnd, UINT message,
 	{
 	  if (winIsInternalWMRunning(pScreenInfo))
 	    {
-#if 0
 	      /* Raise the window to the top in Z order */
 	      wmMsg.msg = WM_WM_RAISE;
 	      if (fWMMsgInitialized)
 		winSendMessageToWM (pScreenPriv->pWMInfo, &wmMsg);
-#endif
-	      /* Tell our Window Manager thread to activate the window */
-	      wmMsg.msg = WM_WM_ACTIVATE;
-	      if (fWMMsgInitialized)
-		if (!pWin || !pWin->overrideRedirect) /* for OOo menus */
-		  winSendMessageToWM (pScreenPriv->pWMInfo, &wmMsg);
 	    }
 	  winWindowsWMSendEvent(WindowsWMControllerNotify,
 				WindowsWMControllerNotifyMask,

@@ -194,11 +194,6 @@ winRedirectErrorHandler (Display *pDisplay, XErrorEvent *pErr);
 static void
 winInitMultiWindowWM (WMInfoPtr pWMInfo, WMProcArgPtr pProcArg);
 
-#if 0
-static void
-PreserveWin32Stack(WMInfoPtr pWMInfo, Window iWindow, UINT direction);
-#endif
-
 static Bool
 CheckAnotherWindowManager (Display *pDisplay, DWORD dwScreen, Bool fAllowOtherWM);
 
@@ -615,74 +610,6 @@ UpdateName (WMInfoPtr pWMInfo, Window iWindow)
 }
 
 
-#if 0
-/*
- * Fix up any differences between the X11 and Win32 window stacks
- * starting at the window passed in
- */
-static void
-PreserveWin32Stack(WMInfoPtr pWMInfo, Window iWindow, UINT direction)
-{
-  Atom                  atmType;
-  int                   fmtRet;
-  unsigned long         items, remain;
-  HWND                  hWnd, *retHwnd;
-  DWORD                 myWinProcID, winProcID;
-  Window                xWindow;
-  WINDOWPLACEMENT       wndPlace;
-  
-  hWnd = NULL;
-  /* See if we can get the cached HWND for this window... */
-  if (XGetWindowProperty (pWMInfo->pDisplay,
-			  iWindow,
-			  pWMInfo->atmPrivMap,
-			  0,
-			  1,
-			  False,
-			  XA_INTEGER,//pWMInfo->atmPrivMap,
-			  &atmType,
-			  &fmtRet,
-			  &items,
-			  &remain,
-			  (unsigned char **) &retHwnd) == Success)
-    {
-      if (retHwnd)
-	{
-	  hWnd = *retHwnd;
-	  XFree (retHwnd);
-	}
-    }
-  
-  if (!hWnd) return;
-  
-  GetWindowThreadProcessId (hWnd, &myWinProcID);
-  hWnd = GetNextWindow (hWnd, direction);
-  
-  while (hWnd) {
-    GetWindowThreadProcessId (hWnd, &winProcID);
-    if (winProcID == myWinProcID)
-      {
-	wndPlace.length = sizeof(WINDOWPLACEMENT);
-	GetWindowPlacement (hWnd, &wndPlace);
-	if ( !(wndPlace.showCmd==SW_HIDE ||
-	       wndPlace.showCmd==SW_MINIMIZE) )
-	  {
-	    xWindow = (Window)GetProp (hWnd, WIN_WID_PROP);
-	    if (xWindow)
-	      {
-		if (direction==GW_HWNDPREV)
-		  XRaiseWindow (pWMInfo->pDisplay, xWindow);
-		else
-		  XLowerWindow (pWMInfo->pDisplay, xWindow);
-	      }
-	  }
-      }
-    hWnd = GetNextWindow(hWnd, direction);
-  }
-}
-#endif /* PreserveWin32Stack */
-
-
 /*
  * winMultiWindowWMProc
  */
@@ -747,9 +674,7 @@ winMultiWindowWMProc (void *pArg)
 #endif
 	  /* Raise the window */
 	  XRaiseWindow (pWMInfo->pDisplay, pNode->msg.iWindow);
-#if 0
-	  PreserveWin32Stack (pWMInfo, pNode->msg.iWindow, GW_HWNDPREV);
-#endif
+
 	  break;
 
 	case WM_WM_LOWER:
