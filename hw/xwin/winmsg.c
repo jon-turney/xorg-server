@@ -38,46 +38,9 @@
 #endif
 #include <stdarg.h>
 
-void winVMsg (int, MessageType, int verb, const char *, va_list);
+extern pthread_mutex_t s_pmPrinting;
 
-void
-winVMsg (int scrnIndex, MessageType type, int verb, const char *format,
-	 va_list ap)
-{
-  LogVMessageVerb(type, verb, format, ap);
-}
-
-
-void
-winDrvMsg (int scrnIndex, MessageType type, const char *format, ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, 0, format, ap);
-  va_end (ap);
-}
-
-
-void
-winMsg (MessageType type, const char *format, ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, 1, format, ap);
-  va_end (ap);
-}
-
-
-void
-winDrvMsgVerb (int scrnIndex, MessageType type, int verb, const char *format,
-	       ...)
-{
-  va_list ap;
-  va_start (ap, format);
-  LogVMessageVerb(type, verb, format, ap);
-  va_end (ap);
-}
-
+#if 0
 
 void
 winMsgVerb (MessageType type, int verb, const char *format, ...)
@@ -87,6 +50,7 @@ winMsgVerb (MessageType type, int verb, const char *format, ...)
   LogVMessageVerb(type, verb, format, ap);
   va_end (ap);
 }
+#endif
 
 
 void
@@ -94,7 +58,28 @@ winErrorFVerb (int verb, const char *format, ...)
 {
   va_list ap;
   va_start (ap, format);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_lock (&s_pmPrinting);
+#endif
   LogVMessageVerb(X_NONE, verb, format, ap);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_unlock (&s_pmPrinting);
+#endif
+  va_end (ap);
+}
+
+void
+winMsg (MessageType type, const char *format, ...)
+{
+  va_list ap;
+  va_start (ap, format);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_lock (&s_pmPrinting);
+#endif
+  LogVMessageVerb(type, 1, format, ap);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_unlock (&s_pmPrinting);
+#endif
   va_end (ap);
 }
 
@@ -103,7 +88,13 @@ winDebug (const char *format, ...)
 {
   va_list ap;
   va_start (ap, format);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_lock (&s_pmPrinting);
+#endif
   LogVMessageVerb(X_NONE, 3, format, ap);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_unlock (&s_pmPrinting);
+#endif
   va_end (ap);
 }
 
@@ -112,7 +103,13 @@ winTrace (const char *format, ...)
 {
   va_list ap;
   va_start (ap, format);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_lock (&s_pmPrinting);
+#endif
   LogVMessageVerb(X_NONE, 10, format, ap);
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+  pthread_mutex_unlock (&s_pmPrinting);
+#endif
   va_end (ap);
 }
 
@@ -126,9 +123,9 @@ void
 winW32ErrorEx(int verb, const char *msg, DWORD errorcode)
 {
     LPVOID buffer;
-    if (!FormatMessage( 
-                FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                FORMAT_MESSAGE_FROM_SYSTEM | 
+    if (!FormatMessage(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                FORMAT_MESSAGE_FROM_SYSTEM |
                 FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL,
                 errorcode,
@@ -137,11 +134,11 @@ winW32ErrorEx(int verb, const char *msg, DWORD errorcode)
                 0,
                 NULL ))
     {
-        winErrorFVerb(verb, "Unknown error in FormatMessage!\n"); 
+        winErrorFVerb(verb, "Unknown error in FormatMessage!\n");
     }
     else
     {
-        winErrorFVerb(verb, "%s %s", msg, (char *)buffer); 
+        winErrorFVerb(verb, "%s %s", msg, (char *)buffer);
         LocalFree(buffer);
     }
 }

@@ -38,6 +38,15 @@
 /* Last error reported */
 static char lastError[1024] = "";
 
+/*
+ * LogVWrite() is only designed to be used by the single server thread:
+ * make sure the clipboard and multiwindow threads do not interfere the
+ * main thread
+ */
+#if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
+pthread_mutex_t s_pmPrinting = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 #ifdef DDXOSVERRORF
 /* Prototype */
 void
@@ -47,10 +56,6 @@ void
 OsVendorVErrorF (const char *pszFormat, va_list va_args)
 {
 #if defined(XWIN_CLIPBOARD) || defined (XWIN_MULTIWINDOW)
-  /* make sure the clipboard and multiwindow threads do not interfere the
-   * main thread */
-  static pthread_mutex_t	s_pmPrinting = PTHREAD_MUTEX_INITIALIZER;
-
   /* Lock the printing mutex */
   pthread_mutex_lock (&s_pmPrinting);
 #endif
