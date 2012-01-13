@@ -97,7 +97,6 @@ typedef struct
 
 #ifdef XWIN_MULTIWINDOW
 typedef struct _winWMMessageRec{
-  DWORD			dwID;
   DWORD			msg;
   int			iWindow;
   HWND			hwndWindow;
