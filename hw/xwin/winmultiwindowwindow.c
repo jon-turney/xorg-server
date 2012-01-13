@@ -131,18 +131,18 @@ winDestroyWindowMultiWindow (WindowPtr pWin)
   winScreenPriv(pScreen);
 
 #if CYGMULTIWINDOW_DEBUG
-  ErrorF ("winDestroyWindowMultiWindow - pWin: %p\n", pWin);
+  winTrace ("winDestroyWindowMultiWindow - pWin: %p\n", pWin);
 #endif
-  
-  WIN_UNWRAP(DestroyWindow); 
+
+  WIN_UNWRAP(DestroyWindow);
   fResult = (*pScreen->DestroyWindow)(pWin);
   WIN_WRAP(DestroyWindow, winDestroyWindowMultiWindow);
-  
+
   /* Flag that the window has been destroyed */
   pWinPriv->fXKilled = TRUE;
-  
+
   /* Kill the MS Windows window associated with this window */
-  winDestroyWindowsWindow (pWin); 
+  winDestroyWindowsWindow (pWin);
 
   return fResult;
 }
@@ -178,21 +178,20 @@ winPositionWindowMultiWindow (WindowPtr pWin, int x, int y)
 #if CYGMULTIWINDOW_DEBUG
   winTrace ("winPositionWindowMultiWindow - pWin: %p\n", pWin);
 #endif
-  
+
   WIN_UNWRAP(PositionWindow);
   fResult = (*pScreen->PositionWindow)(pWin, x, y);
   WIN_WRAP(PositionWindow, winPositionWindowMultiWindow);
-  
+
 #if CYGWINDOWING_DEBUG
-  ErrorF ("winPositionWindowMultiWindow: (x, y) = (%d, %d)\n",
-	  x, y);
+  winTrace ("winPositionWindowMultiWindow: (x, y) = (%d, %d)\n", x, y);
 #endif
 
   /* Bail out if the Windows window handle is bad */
   if (!hWnd)
     {
 #if CYGWINDOWING_DEBUG
-      ErrorF ("\timmediately return since hWnd is NULL\n");
+      winTrace ("\timmediately return since hWnd is NULL\n");
 #endif
       return fResult;
     }
@@ -234,11 +233,11 @@ winPositionWindowMultiWindow (WindowPtr pWin, int x, int y)
   lpRc = &rcNew;
   ErrorF ("winPositionWindowMultiWindow - (%d ms)rcNew (%d, %d)-(%d, %d)\n",
 	  GetTickCount (), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
-      
+
   lpRc = &rcOld;
   ErrorF ("winPositionWindowMultiWindow - (%d ms)rcOld (%d, %d)-(%d, %d)\n",
 	  GetTickCount (), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
-      
+
   lpRc = &rcClient;
   ErrorF ("(%d ms)rcClient (%d, %d)-(%d, %d)\n",
 	  GetTickCount (), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
@@ -911,9 +910,9 @@ winResizeWindowMultiWindow (WindowPtr pWin, int x, int y, unsigned int w,
   winScreenPriv(pScreen);
 
 #if CYGWINDOWING_DEBUG
-  ErrorF ("ResizeWindowMultiWindow to (%d, %d) - %dx%d\n", x, y, w, h);
+  winTrace ("ResizeWindowMultiWindow to (%d, %d) - %dx%d\n", x, y, w, h);
 #endif
-  WIN_UNWRAP(ResizeWindow); 
+  WIN_UNWRAP(ResizeWindow);
   (*pScreen->ResizeWindow)(pWin, x, y, w, h, pSib);
   WIN_WRAP(ResizeWindow, winResizeWindowMultiWindow);
 }

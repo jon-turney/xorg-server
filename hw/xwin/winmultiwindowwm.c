@@ -221,6 +221,50 @@ static HMODULE      g_hmodOle32Dll = NULL;
 static SHGETPROPERTYSTOREFORWINDOWPROC g_pSHGetPropertyStoreForWindow = NULL;
 static PROPVARIANTCLEARPROC g_pPropVariantClear = NULL;
 
+const char *
+msgTypeAsText(int msg)
+{
+  const char *text = "";
+
+  switch (msg)
+    {
+    case WM_WM_MOVE:
+      text = "WM_WM_MOVE";
+      break;
+    case WM_WM_SIZE:
+      text = "WM_WM_SIZE";
+      break;
+    case WM_WM_RAISE:
+      text = "WM_WM_RAISE";
+      break;
+    case WM_WM_LOWER:
+      text = "WM_WM_LOWER";
+      break;
+    case WM_WM_MAP:
+      text = "WM_WM_MAP";
+      break;
+    case WM_WM_MAP2:
+      text = "WM_WM_MAP2";
+      break;
+    case WM_WM_MAP3:
+      text = "WM_WM_MAP3";
+      break;
+    case WM_WM_UNMAP:
+      text = "WM_WM_UNMAP";
+      break;
+    case WM_WM_KILL:
+      text = "WM_WM_KILL";
+      break;
+    case WM_WM_ACTIVATE:
+      text = "WM_WM_ACTIVATE";
+      break;
+    default:
+      text = "Unknown Message";
+    }
+
+  return text;
+}
+
 /*
  * PushMessage - Push a message onto the queue
  */
@@ -228,62 +272,25 @@ static PROPVARIANTCLEARPROC g_pPropVariantClear = NULL;
 static void
 PushMessage (WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
 {
+#if CYGMULTIWINDOW_DEBUG
+  ErrorF("PushMessage() %s\n", msgTypeAsText(pNode->msg.msg));
+#endif
 
   /* Lock the queue mutex */
   pthread_mutex_lock (&pQueue->pmMutex);
 
   pNode->pNext = NULL;
-  
+
   if (pQueue->pTail != NULL)
     {
       pQueue->pTail->pNext = pNode;
     }
   pQueue->pTail = pNode;
-  
+
   if (pQueue->pHead == NULL)
     {
       pQueue->pHead = pNode;
     }
-
-
-#if 0
-  switch (pNode->msg.msg)
-    {
-    case WM_WM_MOVE:
-      ErrorF ("\tWM_WM_MOVE\n");
-      break;
-    case WM_WM_SIZE:
-      ErrorF ("\tWM_WM_SIZE\n");
-      break;
-    case WM_WM_RAISE:
-      ErrorF ("\tWM_WM_RAISE\n");
-      break;
-    case WM_WM_LOWER:
-      ErrorF ("\tWM_WM_LOWER\n");
-      break;
-    case WM_WM_MAP:
-      ErrorF ("\tWM_WM_MAP\n");
-      break;
-    case WM_WM_MAP2:
-      ErrorF ("\tWM_WM_MAP2\n");
-      break;
-    case WM_WM_MAP3:
-      ErrorF ("\tWM_WM_MAP3\n");
-      break;
-    case WM_WM_UNMAP:
-      ErrorF ("\tWM_WM_UNMAP\n");
-      break;
-    case WM_WM_KILL:
-      ErrorF ("\tWM_WM_KILL\n");
-      break;
-    case WM_WM_ACTIVATE:
-      ErrorF ("\tWM_WM_ACTIVATE\n");
-      break;
-    default:
-      ErrorF ("\tUnknown Message.\n");
-      break;
-    }
-#endif
 
   /* Increase the count of elements in the queue by one */
   ++(pQueue->nQueueSize);
@@ -349,9 +356,9 @@ PopMessage (WMMsgQueuePtr pQueue, WMInfoPtr pWMInfo)
   --(pQueue->nQueueSize);
 
 #if CYGMULTIWINDOW_DEBUG
-  ErrorF ("Queue Size %d %d\n", pQueue->nQueueSize, QueueSize(pQueue));
+  winTrace("Queue Size %d %d\n", pQueue->nQueueSize, QueueSize(pQueue));
 #endif
-  
+
   /* Release the queue mutex */
   pthread_mutex_unlock (&pQueue->pmMutex);
 
@@ -1375,11 +1382,7 @@ void
 winSendMessageToWM (void *pWMInfo, winWMMessagePtr pMsg)
 {
   WMMsgNodePtr pNode;
-  
-#if CYGMULTIWINDOW_DEBUG
-  ErrorF ("winSendMessageToWM ()\n");
-#endif
-  
+
   pNode = (WMMsgNodePtr)malloc(sizeof(WMMsgNodeRec));
   if (pNode != NULL)
     {
