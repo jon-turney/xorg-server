@@ -690,12 +690,6 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       if (g_fKeyboardHookLL)
 	g_fKeyboardHookLL = winInstallKeyboardHookLL ();
 
-      /* Tell our Window Manager thread to XSetInputFocus the X window */
-      wmMsg.msg = WM_WM_ACTIVATE;
-      if (fWMMsgInitialized)
-        if (!pWin || !pWin->overrideRedirect) /* for OOo menus */
-          winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
-
       return 0;
 
     case WM_KILLFOCUS:
@@ -789,6 +783,12 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       return 0;
 
     case WM_ACTIVATE:
+
+      /* Tell our Window Manager thread to XSetInputFocus the X window */
+      wmMsg.msg = WM_WM_ACTIVATE;
+      if (fWMMsgInitialized)
+        if (!pWin)
+          winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
 
       /* Pass the message to the root window */
       SendMessage (hwndScreen, message, wParam, lParam);
