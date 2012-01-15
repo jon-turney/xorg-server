@@ -477,7 +477,7 @@ winIsFakeCtrl_L (UINT message, WPARAM wParam, LPARAM lParam)
 
 
 /*
- * Lift any modifier keys that are pressed
+ * Lift any keys that are pressed
  */
 
 void
@@ -528,6 +528,9 @@ winSendKeyEvent (DWORD dwKey, Bool fDown)
            dwKey, fDown);
 }
 
+/*
+ * Check if this is a keypress for a key which is already down
+ */
 BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
 {
   switch (wParam)
@@ -550,8 +553,8 @@ BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
   return FALSE;
 }
 
-/* Only on shift release message is sent even if both are pressed.
- * Fix this here 
+/* Only one shift release message is sent even if both are pressed.
+ * Fix this here
  */
 void winFixShiftKeys (int iScanCode)
 {
