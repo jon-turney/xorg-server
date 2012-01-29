@@ -182,6 +182,10 @@ winWindowProc (HWND hwnd, UINT message,
 	      "new height: %d new bpp: %d\n",
 	      LOWORD (lParam), HIWORD (lParam), wParam);
 
+      /* 0 bpp has no defined meaning, ignore this message */
+      if (wParam == 0)
+        break;
+
       /*
        * Check for a disruptive change in depth.
        * We can only display a message for a disruptive depth change,
@@ -433,6 +437,12 @@ winWindowProc (HWND hwnd, UINT message,
 	s_pScreenInfo->dwYOffset = -si.nPos;
       }
       return 0;
+
+    case WM_SYSCOMMAND:
+      if (s_pScreenInfo->iResizeMode == resizeWithRandr &&
+          ((wParam & 0xfff0) == SC_MAXIMIZE || (wParam & 0xfff0) == SC_RESTORE))
+          PostMessage(hwnd, WM_EXITSIZEMOVE, 0, 0);
+      break;
 
     case WM_ENTERSIZEMOVE:
       ErrorF("winWindowProc - WM_ENTERSIZEMOVE\n");

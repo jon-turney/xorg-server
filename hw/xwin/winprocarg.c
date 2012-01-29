@@ -140,7 +140,7 @@ winInitializeScreenDefaults(void)
 #endif
   defaultScreenInfo.fMultipleMonitors = FALSE;
   defaultScreenInfo.fLessPointer = FALSE;
-  defaultScreenInfo.iResizeMode = notAllowed;
+  defaultScreenInfo.iResizeMode = resizeWithRandr;
   defaultScreenInfo.fNoTrayIcon = FALSE;
   defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
   defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -1260,7 +1260,11 @@ winOS(void)
         prodName = "Windows NT";
       else if (osvi.dwMajorVersion == 6)
       {
-	if (osvi.dwMinorVersion == 1)
+	if (osvi.dwMinorVersion == 2)
+        {
+          prodName = "Windows 8";
+        }
+	else if (osvi.dwMinorVersion == 1)
 	{
 	  if (osvi.wProductType == VER_NT_WORKSTATION)
 	    prodName = "Windows 7";

@@ -897,7 +897,7 @@ winUseMsg (void)
   ErrorF ("-resize=none|scrollbars|randr"
 	  "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
 	  "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
-	  "\textension to resize the X screen.\n");
+	  "\textension to resize the X screen.  'randr' is the default.\n");
 
   ErrorF ("-rootless\n"
 	  "\tRun the server in rootless mode.\n");
@@ -931,7 +931,8 @@ winUseMsg (void)
 
 #ifdef XWIN_GLX_WINDOWS
   ErrorF ("-[no]wgl\n"
-	  "\tEnable the GLX extension to use the native Windows WGL interface for accelerated OpenGL\n");
+	  "\tEnable the GLX extension to use the native Windows WGL interface\n"
+	  "\tfor hardware-accelerated OpenGL (AIGLX). Enabled by default.\n");
 #endif
 
   ErrorF ("-[no]winkill\n"
