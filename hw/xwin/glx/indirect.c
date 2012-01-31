@@ -469,7 +469,7 @@ static void
 glxLogExtensions(const char *prefix, const char *extensions)
 {
   int length = 0;
-  char *strl;
+  const char *strl;
   char *str = strdup(extensions);
 
   if (str == NULL)
