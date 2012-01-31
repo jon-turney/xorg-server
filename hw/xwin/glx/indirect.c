@@ -479,6 +479,7 @@ glxLogExtensions(const char *prefix, const char *extensions)
     }
 
   strl = strtok(str, " ");
+  if (strl == NULL) strl = "";
   ErrorF("%s%s", prefix, strl);
   length = strlen(prefix) + strlen(strl);
 
