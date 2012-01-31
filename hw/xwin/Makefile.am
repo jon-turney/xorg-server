@@ -107,6 +107,7 @@ SRCS =	InitInput.c \
 	winvalargs.c \
 	winwakeup.c \
 	winwindow.c \
+	winwindowedwindow.c \
 	winwndproc.c \
 	ddraw.h \
 	winclipboard.h \

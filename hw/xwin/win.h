@@ -1309,6 +1309,21 @@ int
 winAdjustXWindow (WindowPtr pWin, HWND hwnd);
 #endif
 
+/*
+ * winwindowedwindow.c
+ */
+Bool
+winMapWindowWindowed (WindowPtr pWin);
+
+Bool
+winUnmapWindowWindowed (WindowPtr pWin);
+
+Bool
+winPositionWindowWindowed (WindowPtr pWin, int x, int y);
+
+Bool
+winDestroyWindowWindowed (WindowPtr pWin);
+
 
 #ifdef XWIN_MULTIWINDOW
 /*

@@ -459,10 +459,7 @@ winFinishScreenInitFB (int index,
     }
 #endif
 
-  /* Handle rootless mode */
-  if (pScreenInfo->fRootless)
-    {
-      /* Define the WRAP macro temporarily for local use */
+  /* Define the WRAP macro temporarily for local use */
 #define WRAP(a) \
     if (pScreen->a) { \
         pScreenPriv->a = pScreen->a; \
@@ -471,6 +468,9 @@ winFinishScreenInitFB (int index,
         pScreenPriv->a = NULL; \
     }
 
+  /* Handle rootless mode */
+  if (pScreenInfo->fRootless)
+    {
       /* Save a pointer to each lower-level window procedure */
       WRAP(CreateWindow);
       WRAP(DestroyWindow);
@@ -488,25 +488,11 @@ winFinishScreenInitFB (int index,
       pScreen->RealizeWindow = winMapWindowRootless;
       pScreen->UnrealizeWindow = winUnmapWindowRootless;
       pScreen->SetShape = winSetShapeRootless;
-
-      /* Undefine the WRAP macro, as it is not needed elsewhere */
-#undef WRAP
     }
-
-
 #ifdef XWIN_MULTIWINDOW
   /* Handle multi window mode */
   else if (pScreenInfo->fMultiWindow)
     {
-      /* Define the WRAP macro temporarily for local use */
-#define WRAP(a) \
-    if (pScreen->a) { \
-        pScreenPriv->a = pScreen->a; \
-    } else { \
-        winDebug("null screen fn " #a "\n"); \
-        pScreenPriv->a = NULL; \
-    }
-
       /* Save a pointer to each lower-level window procedure */
       WRAP(CreateWindow);
       WRAP(DestroyWindow);
@@ -534,11 +520,36 @@ winFinishScreenInitFB (int index,
       pScreen->MoveWindow = winMoveWindowMultiWindow;
       pScreen->CopyWindow = winCopyWindowMultiWindow;
       pScreen->SetShape = winSetShapeMultiWindow;
-
-      /* Undefine the WRAP macro, as it is not needed elsewhere */
-#undef WRAP
     }
 #endif
+#ifdef XWIN_MULTIWINDOWEXTWM
+  else if (pScreenInfo->fMWExtWM)
+    {
+      /* Doesn't need any screen window procedures, uses rootless frame procedures */
+    }
+#endif
+  else
+    /* Handle windowed mode */
+    {
+      /* At the moment, only need to do something special to help WGL mdoe */
+      if (g_fNativeGl)
+        {
+          /* WRAP(CreateWindow); */
+          WRAP(DestroyWindow);
+          WRAP(RealizeWindow);
+          WRAP(UnrealizeWindow);
+          WRAP(PositionWindow);
+
+          /* pScreen->CreateWindow = winCreateWindowWindowed; */
+          pScreen->DestroyWindow = winDestroyWindowWindowed;
+          pScreen->PositionWindow = winPositionWindowWindowed;
+          pScreen->RealizeWindow = winMapWindowWindowed;
+          pScreen->UnrealizeWindow = winUnmapWindowWindowed;
+        }
+    }
+
+  /* Undefine the WRAP macro, as it is not needed elsewhere */
+#undef WRAP
 
   /* Wrap either fb's or shadow's CloseScreen with our CloseScreen */
   pScreenPriv->CloseScreen = pScreen->CloseScreen;

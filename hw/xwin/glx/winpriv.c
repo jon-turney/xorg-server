@@ -47,6 +47,54 @@ winCreateWindowsWindowHierarchy(WindowPtr pWin)
     }
 }
 
+static
+void
+winCreateWindowedWindow(WindowPtr pWin, winPrivScreenPtr pWinScreen)
+{
+  winWindowPriv(pWin);
+
+  // create window class if needed
+#define WIN_GL_WINDOW_CLASS "cygwin/x X child GL window"
+  {
+    static wATOM glChildWndClass = 0;
+    if (glChildWndClass == 0)
+      {
+        WNDCLASSEX wc;
+        wc.cbSize = sizeof(WNDCLASSEX);
+        wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+        wc.lpfnWndProc = DefWindowProc;
+        wc.cbClsExtra = 0;
+        wc.cbWndExtra = 0;
+        wc.hInstance = GetModuleHandle(NULL);
+        wc.hIcon = 0;
+        wc.hCursor = 0;
+        wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+        wc.lpszMenuName = NULL;
+        wc.lpszClassName = WIN_GL_WINDOW_CLASS;
+        wc.hIconSm = 0;
+        RegisterClassEx (&wc);
+      }
+  }
+
+  // ensure this window exists */
+  if (pWinPriv->hWnd == NULL)
+    {
+      int ExtraClass = (pWin->realized) ? WS_VISIBLE : 0;
+      pWinPriv->hWnd = CreateWindowExA(WS_EX_TRANSPARENT,
+                                       WIN_GL_WINDOW_CLASS,
+                                       "",
+                                       WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN  | WS_DISABLED | ExtraClass,
+                                       pWin->drawable.x,
+                                       pWin->drawable.y,
+                                       pWin->drawable.width,
+                                       pWin->drawable.height,
+                                       pWinScreen->hwndScreen,
+                                       (HMENU) NULL,
+                                       g_hInstance,
+                                       NULL);
+    }
+}
+
 /**
  * Return size and handles of a window.
  * If pWin is NULL, then the information for the root window is requested.
@@ -62,7 +110,6 @@ HWND winGetWindowInfo(WindowPtr pWin)
         ScreenPtr pScreen = pWin->drawable.pScreen;
         winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
         winScreenInfoPtr pScreenInfo = NULL;
-        HWND hwnd = NULL;
 
         if (pWinScreen == NULL)
         {
@@ -70,21 +117,18 @@ HWND winGetWindowInfo(WindowPtr pWin)
             return NULL;
         }
 
-        hwnd = pWinScreen->hwndScreen;
+        winWindowPriv(pWin);
+        if (pWinPriv == NULL)
+          {
+            ErrorF("winGetWindowInfo: window has no privates\n");
+            return pWinScreen->hwndScreen;
+          }
 
         pScreenInfo = pWinScreen->pScreenInfo;
 #ifdef XWIN_MULTIWINDOW
         /* check for multiwindow mode */
         if (pScreenInfo->fMultiWindow)
         {
-            winWindowPriv(pWin);
-
-            if (pWinPriv == NULL)
-            {
-                ErrorF("winGetWindowInfo: window has no privates\n");
-                return hwnd;
-            }
-
             if (pWinPriv->hWnd == NULL)
             {
               ErrorF("winGetWindowInfo: forcing window to exist\n");
@@ -93,15 +137,13 @@ HWND winGetWindowInfo(WindowPtr pWin)
 
             if (pWinPriv->hWnd != NULL)
               {
-                /* copy window handle */
-                hwnd = pWinPriv->hWnd;
-
                 /* mark GLX active on that hwnd */
                 pWinPriv->fWglUsed = TRUE;
               }
 
-            return hwnd;
+            return pWinPriv->hWnd;
         }
+        else
 #endif
 #ifdef XWIN_MULTIWINDOWEXTWM
         /* check for multiwindow external wm mode */
@@ -110,19 +152,39 @@ HWND winGetWindowInfo(WindowPtr pWin)
             win32RootlessWindowPtr pRLWinPriv
                 = (win32RootlessWindowPtr) RootlessFrameForWindow (pWin, FALSE);
 
-            if (pRLWinPriv == NULL) {
+            if (pRLWinPriv == NULL)
+            {
                 ErrorF("winGetWindowInfo: window has no privates\n");
-                return hwnd;
+                return pWinScreen->hwndScreen;
             }
 
-            if (pRLWinPriv->hWnd != NULL)
-            {
-                /* copy window handle */
-                hwnd = pRLWinPriv->hWnd;
-            }
-            return hwnd;
+            return pRLWinPriv->hWnd;
         }
+        else
 #endif
+        /* check for windowed mode */
+        if (TRUE
+#ifdef XWIN_MULTIWINDOW
+	      && !pScreenInfo->fMultiWindow
+#endif
+#ifdef XWIN_MULTIWINDOWEXTWM
+	      && !pScreenInfo->fMWExtWM
+#endif
+	      && !pScreenInfo->fRootless)
+        {
+          if (pWinPriv->hWnd == NULL)
+            {
+              winCreateWindowedWindow(pWin, pWinScreen);
+            }
+
+          if (pWinPriv->hWnd != NULL)
+            {
+              /* mark GLX active on that hwnd */
+              pWinPriv->fWglUsed = TRUE;
+            }
+
+          return pWinPriv->hWnd;
+        }
     }
     else
     {
@@ -159,5 +221,16 @@ winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
     return TRUE;
 #endif
 
+  if (TRUE
+#ifdef XWIN_MULTIWINDOW
+      && !pScreenInfo->fMultiWindow
+#endif
+#ifdef XWIN_MULTIWINDOWEXTWM
+      && !pScreenInfo->fMWExtWM
+#endif
+      && !pScreenInfo->fRootless)
+    return TRUE;
+
   return FALSE;
+  /* I think that adds up to return !pScreenInfo->fRootless :-)  */
 }
