@@ -1651,17 +1651,22 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
   }
 
   if (XGetWindowProperty(pDisplay, iWindow, windowState, 0L,
-			 1L, False, XA_ATOM, &type, &format,
+			 MAXINT, False, XA_ATOM, &type, &format,
 			 &nitems, &left, (unsigned char **)&pAtom) == Success)
   {
-    if (pAtom && nitems == 1)
+    if (pAtom)
     {
-      if (*pAtom == hiddenState) maxmin |= HINT_MIN;
-      else if (*pAtom == fullscreenState) maxmin |= HINT_MAX;
-      if (*pAtom == belowState) *zstyle = HWND_BOTTOM;
-      else if (*pAtom == aboveState) *zstyle = HWND_TOPMOST;
+      unsigned long i;
+      for (i = 0; i < nitems; i++)
+	{
+	  if (*pAtom == hiddenState) maxmin |= HINT_MIN;
+	  else if (*pAtom == fullscreenState) maxmin |= HINT_MAX;
+	  if (*pAtom == belowState) *zstyle = HWND_BOTTOM;
+	  else if (*pAtom == aboveState) *zstyle = HWND_TOPMOST;
+	}
+
+      XFree(pAtom);
     }
-    if (pAtom) XFree(pAtom);
   }
 
   nitems = left = 0;
