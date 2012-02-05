@@ -26,7 +26,7 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwm.c \
 	winmultiwindowwndproc.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_LIBS = -lshlwapi
+MULTIWINDOW_LIBS = -lshlwapi -lole32
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -103,6 +103,7 @@ SRCS =	InitInput.c \
 	winshaddd.c \
 	winshadddnl.c \
 	winshadgdi.c \
+	wintaskbar.c \
 	wintrayicon.c \
 	winvalargs.c \
 	winwakeup.c \
