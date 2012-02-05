@@ -859,7 +859,7 @@ winMultiWindowWMProc (void *pArg)
 	  UpdateName (pWMInfo, pNode->msg.iWindow);
 	  break;
 
-	case WM_WM_HINTS_EVENT:
+	case WM_WM_ICON_EVENT:
 	  winUpdateIcon (pNode->msg.iWindow);
 	  break;
 
@@ -913,7 +913,6 @@ winMultiWindowXMsgProc (void *pArg)
   int                   iRetries;
   XEvent		event;
   Atom                  atmWmName;
-  Atom                  atmWmHints;
   Atom			atmWmChange;
   int			iReturn;
   XIconSize		*xis;
@@ -1040,9 +1039,6 @@ winMultiWindowXMsgProc (void *pArg)
   atmWmName   = XInternAtom (pProcArg->pDisplay,
 			     "WM_NAME",
 			     False);
-  atmWmHints   = XInternAtom (pProcArg->pDisplay,
-			      "WM_HINTS",
-			      False);
   atmWmChange  = XInternAtom (pProcArg->pDisplay,
 			      "WM_CHANGE_STATE",
 			      False);
@@ -1185,8 +1181,13 @@ winMultiWindowXMsgProc (void *pArg)
                          &event_send);
             }
         }
-      else if (event.type == PropertyNotify
-	       && event.xproperty.atom == atmWmName)
+      else if (event.type == PropertyNotify)
+	{
+	  char *atomName = XGetAtomName(pProcArg->pDisplay, event.xproperty.atom);
+	  winDebug("winMultiWindowXMsgProc: PropertyNotify %s\n", atomName);
+	  XFree(atomName);
+
+      if (event.xproperty.atom == atmWmName)
 	{
 	  memset (&msg, 0, sizeof (msg));
 
@@ -1196,16 +1197,23 @@ winMultiWindowXMsgProc (void *pArg)
 	  /* Other fields ignored */
 	  winSendMessageToWM (pProcArg->pWMInfo, &msg);
 	}
-      else if (event.type == PropertyNotify
-	       && event.xproperty.atom == atmWmHints)
+      else
 	{
-	  memset (&msg, 0, sizeof (msg));
+          static Atom atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints, atmWmHints, atmNetWmIcon;
+          if (atmWmHints == None) atmWmHints = XInternAtom (pProcArg->pDisplay, "WM_HINTS", False);
+          if (atmNetWmIcon == None) atmNetWmIcon = XInternAtom(pProcArg->pDisplay, "_NET_WM_ICON", False);
 
-	  msg.msg = WM_WM_HINTS_EVENT;
-	  msg.iWindow = event.xproperty.window;
+          if ((event.xproperty.atom == atmWmHints) ||
+              (event.xproperty.atom == atmNetWmIcon))
+            {
+              memset (&msg, 0, sizeof (msg));
+              msg.msg = WM_WM_ICON_EVENT;
+              msg.iWindow = event.xproperty.window;
 
-	  /* Other fields ignored */
-	  winSendMessageToWM (pProcArg->pWMInfo, &msg);
+              /* Other fields ignored */
+              winSendMessageToWM (pProcArg->pWMInfo, &msg);
+            }
+	}
 	}
       else if (event.type == ClientMessage
 	       && event.xclient.message_type == atmWmChange
