@@ -861,6 +861,24 @@ winMultiWindowWMProc (void *pArg)
 
 	case WM_WM_ICON_EVENT:
 	  winUpdateIcon (pNode->msg.iWindow);
+          break;
+
+	case WM_WM_HINTS_EVENT:
+          {
+            HWND zstyle = HWND_NOTOPMOST;
+            UINT flags;
+
+            pNode->msg.hwndWindow = getHwnd(pWMInfo, pNode->msg.iWindow);
+
+            /* Determine the Window style, which determines borders and clipping region... */
+            winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
+            winUpdateWindowPosition (pNode->msg.hwndWindow, FALSE, &zstyle);
+
+            /* Apply the updated window style, without changing it's show or activation state */
+            flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
+            if (zstyle == HWND_NOTOPMOST) flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
+            SetWindowPos(pNode->msg.hwndWindow, NULL, 0, 0, 0, 0, flags);
+          }
 	  break;
 
 	case WM_WM_CHANGE_STATE:
@@ -1201,8 +1219,31 @@ winMultiWindowXMsgProc (void *pArg)
 	{
           static Atom atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints, atmWmHints, atmNetWmIcon;
           if (atmWmHints == None) atmWmHints = XInternAtom (pProcArg->pDisplay, "WM_HINTS", False);
+          if (atmWindowState == None) atmWindowState = XInternAtom(pProcArg->pDisplay, "_NET_WM_STATE", False);
+          if (atmMotifWmHints == None) atmMotifWmHints = XInternAtom(pProcArg->pDisplay, "_MOTIF_WM_HINTS", False);
+          if (atmWindowType == None) atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
+          if (atmNormalHints == None) atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
           if (atmNetWmIcon == None) atmNetWmIcon = XInternAtom(pProcArg->pDisplay, "_NET_WM_ICON", False);
 
+	  /*
+            Several properties are considered for WM hints, check if this property change affects any of them...
+            (this list needs to be kept in sync with winApplyHints())
+	  */
+          if ((event.xproperty.atom == atmWmHints) ||
+              (event.xproperty.atom == atmWindowState) ||
+              (event.xproperty.atom == atmMotifWmHints) ||
+              (event.xproperty.atom == atmWindowType) ||
+              (event.xproperty.atom == atmNormalHints))
+            {
+              memset (&msg, 0, sizeof (msg));
+              msg.msg = WM_WM_HINTS_EVENT;
+              msg.iWindow = event.xproperty.window;
+
+              /* Other fields ignored */
+              winSendMessageToWM (pProcArg->pWMInfo, &msg);
+            }
+
+          /* Not an else as WM_HINTS affects both style and icon */
           if ((event.xproperty.atom == atmWmHints) ||
               (event.xproperty.atom == atmNetWmIcon))
             {
