@@ -1316,6 +1316,15 @@ winMultiWindowXMsgProc(void *pArg)
         else if (type ==  XCB_PROPERTY_NOTIFY) {
             xcb_property_notify_event_t *notify = (xcb_property_notify_event_t *)event;
 
+            xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(pProcArg->conn, notify->atom);
+            xcb_get_atom_name_reply_t *reply = xcb_get_atom_name_reply(pProcArg->conn, cookie, NULL);
+            if (reply) {
+                winDebug("winMultiWindowXMsgProc: PropertyNotify %.*s\n",
+                         xcb_get_atom_name_name_length(reply),
+                         xcb_get_atom_name_name(reply));
+                free(reply);
+            }
+
             if (notify->atom == atmWmName) {
                 memset(&msg, 0, sizeof(msg));
 
