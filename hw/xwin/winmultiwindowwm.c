@@ -1209,6 +1209,10 @@ winMultiWindowXMsgProc(void *pArg)
             }
         }
         else if (event.type == PropertyNotify) {
+            char *atomName =
+                XGetAtomName(pProcArg->pDisplay, event.xproperty.atom);
+            winDebug("winMultiWindowXMsgProc: PropertyNotify %s\n", atomName);
+            XFree(atomName);
             if (event.xproperty.atom == atmWmName) {
                 memset(&msg, 0, sizeof(msg));
 
