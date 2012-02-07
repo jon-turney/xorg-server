@@ -964,6 +964,26 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* for applications like xterm */
       return ValidateSizing (hwnd, pWin, wParam, lParam);
 
+    case WM_WINDOWPOSCHANGING:
+      {
+        /*
+          When window is moved or resized, force it to be redrawn, so that
+          any OpenGL content is re-drawn correctly, rather than copying bits
+          (which seem to be wrong, either because we are copying the wrong
+          window in the window heirarchy, or because we don't have the bits
+          drawn by OpenGL at all)
+
+          XXX: really this should check if any child has fWglUsed set, but
+          that might be expensive to check....
+         */
+        if (g_fNativeGl)
+          {
+            LPWINDOWPOS pWinPos = (LPWINDOWPOS)lParam;
+            pWinPos->flags |= SWP_NOCOPYBITS;
+          }
+      }
+      break;
+
     case WM_WINDOWPOSCHANGED:
       {
 	LPWINDOWPOS pWinPos = (LPWINDOWPOS) lParam;
