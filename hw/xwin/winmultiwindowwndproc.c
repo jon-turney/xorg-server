@@ -466,6 +466,10 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
       /* BeginPaint gives us an hdc that clips to the invalidated region */
       hdcUpdate = BeginPaint (hwnd, &ps);
+
+      winDebug("winTopLevelWindowProc - WM_PAINT rcPaint (%d,%d) (%d,%d)\n",
+               ps.rcPaint.right, ps.rcPaint.bottom, ps.rcPaint.left, ps.rcPaint.top);
+
       /* Avoid the BitBlt's if the PAINTSTRUCT is bogus */
       if (ps.rcPaint.right==0 && ps.rcPaint.bottom==0 && ps.rcPaint.left==0 && ps.rcPaint.top==0)
       {
@@ -479,11 +483,14 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
           /*
              For regions which are being drawn by GL, the shadow framebuffer doesn't have the
              correct bits, so don't bitblt from the shadow framebuffer
-
-             XXX: For now, just leave it alone, but ideally we want to send an expose event to
-             the window so it really redraws the affected region...
           */
           ValidateRect(hwnd, &(ps.rcPaint));
+
+          /*
+             Send an expose event for the invalidated region to cause the OpenGL client to redraw
+             it
+          */
+          winExposeWindow(s_pScreen, pWin, hwnd, &(ps.rcPaint));
         }
       else
 #endif
@@ -1163,12 +1170,30 @@ LRESULT CALLBACK
 winChildWindowProc (HWND hwnd, UINT message,
                     WPARAM wParam, LPARAM lParam)
 {
+  WindowPtr pWin;
+  ScreenPtr pScreen = NULL;
+
 #if CYGDEBUG
   winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
 #endif
 
+  /* If our X window pointer is valid */
+  if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL)
+    {
+      /* Get pointers to the drawable and the screen */
+      pScreen = pWin->drawable.pScreen;
+    }
+
   switch (message)
     {
+    case WM_CREATE:
+      {
+        pWin = ((LPCREATESTRUCT) lParam)->lpCreateParams;
+        SetProp(hwnd, WIN_WINDOW_PROP, (HANDLE)(pWin));
+        SetProp(hwnd, WIN_WID_PROP, (HANDLE)winGetWindowID(pWin));
+      }
+      break;
+
     case WM_ERASEBKGND:
       return TRUE;
 
@@ -1176,9 +1201,6 @@ winChildWindowProc (HWND hwnd, UINT message,
       /*
         We don't have the bits to draw into the window, they went straight into the OpenGL
         surface
-
-        XXX: For now, just leave it alone, but ideally we want to send an expose event to
-        the window so it really redraws the affected region...
       */
       {
         PAINTSTRUCT ps;
@@ -1186,9 +1208,11 @@ winChildWindowProc (HWND hwnd, UINT message,
         hdcUpdate = BeginPaint(hwnd, &ps);
         ValidateRect(hwnd, &(ps.rcPaint));
         EndPaint(hwnd, &ps);
+
+        winExposeWindow(pScreen, pWin, hwnd, &(ps.rcPaint));
+
         return 0;
       }
-      /* XXX: this is exactly what DefWindowProc does? */
     }
 
   return DefWindowProc (hwnd, message, wParam, lParam);
