@@ -1,12 +1,13 @@
 noinst_LTLIBRARIES = libXwinGLX.la
 
 libXwinGLX_la_SOURCES = \
-	winpriv.c \
-	winpriv.h \
+	expose.c \
 	glwindows.h \
 	glwrap.c \
 	indirect.c \
-	wgl_ext_api.c
+	wgl_ext_api.c \
+	winpriv.c \
+	winpriv.h
 
 if XWIN_MULTIWINDOW
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW

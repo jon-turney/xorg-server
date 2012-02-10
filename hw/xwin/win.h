@@ -1515,6 +1515,12 @@ Bool
 winCreateMsgWindowThread(void);
 
 /*
+ * expose.c
+ */
+void
+winExposeWindow(ScreenPtr pScreen, WindowPtr pWin, HWND hwnd, RECT *rcPaint);
+
+/*
  * END DDX and DIX Function Prototypes
  */
 
