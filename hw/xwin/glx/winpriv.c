@@ -79,6 +79,16 @@ winGlChildWindowProc (HWND hwnd, UINT message,
     case WM_ERASEBKGND:
       return TRUE;
 
+    case WM_WINDOWPOSCHANGING:
+      {
+        /*
+          When window is moved or resized, force it to be redrawn, so that
+          any OpenGL content is re-drawn correctly, rather than copying bits
+        */
+        LPWINDOWPOS pWinPos = (LPWINDOWPOS)lParam;
+        pWinPos->flags |= SWP_NOCOPYBITS;
+      }
+      break;
 
     case WM_PAINT:
       /*
