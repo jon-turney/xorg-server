@@ -48,6 +48,42 @@ winCreateWindowsWindowHierarchy(WindowPtr pWin)
 }
 
 static
+LRESULT CALLBACK
+winGlChildWindowProc (HWND hwnd, UINT message,
+                      WPARAM wParam, LPARAM lParam)
+{
+  WindowPtr pWin;
+  ScreenPtr pScreen = NULL;
+
+#if CYGDEBUG
+  winDebugWin32Message("winGlChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+  /* If our X window pointer is valid */
+  if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL)
+    {
+      /* Get pointers to the drawable and the screen */
+      pScreen = pWin->drawable.pScreen;
+    }
+
+  switch (message)
+    {
+    case WM_CREATE:
+      {
+        pWin = ((LPCREATESTRUCT) lParam)->lpCreateParams;
+        SetProp(hwnd, WIN_WINDOW_PROP, (HANDLE)(pWin));
+        SetProp(hwnd, WIN_WID_PROP, (HANDLE)winGetWindowID(pWin));
+      }
+      break;
+
+    case WM_ERASEBKGND:
+      return TRUE;
+
+
+  return DefWindowProc (hwnd, message, wParam, lParam);
+}
+
+static
 void
 winCreateWindowedWindow(WindowPtr pWin, winPrivScreenPtr pWinScreen)
 {
@@ -62,7 +98,7 @@ winCreateWindowedWindow(WindowPtr pWin, winPrivScreenPtr pWinScreen)
         WNDCLASSEX wc;
         wc.cbSize = sizeof(WNDCLASSEX);
         wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-        wc.lpfnWndProc = DefWindowProc;
+        wc.lpfnWndProc = winGlChildWindowProc;
         wc.cbClsExtra = 0;
         wc.cbWndExtra = 0;
         wc.hInstance = GetModuleHandle(NULL);
@@ -91,7 +127,7 @@ winCreateWindowedWindow(WindowPtr pWin, winPrivScreenPtr pWinScreen)
                                        pWinScreen->hwndScreen,
                                        (HMENU) NULL,
                                        g_hInstance,
-                                       NULL);
+                                       pWin);
     }
 }
 
