@@ -569,15 +569,9 @@ winShadowUpdateDD(ScreenPtr pScreen, shadowBufPtr pBuf)
         BoxPtr pBoxExtents = RegionExtents(damage);
 
         /* Compute a GDI region from the damaged region */
-        hrgnCombined = CreateRectRgn(pBox->x1, pBox->y1, pBox->x2, pBox->y2);
-        dwBox--;
-        pBox++;
-        while (dwBox--) {
-            hrgnTemp = CreateRectRgn(pBox->x1, pBox->y1, pBox->x2, pBox->y2);
-            CombineRgn(hrgnCombined, hrgnCombined, hrgnTemp, RGN_OR);
-            DeleteObject(hrgnTemp);
-            pBox++;
-        }
+        hrgnCombined =
+            CreateRectRgn(pBoxExtents->x1, pBoxExtents->y1, pBoxExtents->x2,
+                          pBoxExtents->y2);
 
         /* Install the GDI region as a clipping region */
         SelectClipRgn(pScreenPriv->hdcScreen, hrgnCombined);
