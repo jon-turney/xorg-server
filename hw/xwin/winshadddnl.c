@@ -668,9 +668,19 @@ winShadowUpdateDDNL (ScreenPtr pScreen,
   if (pScreenInfo->dwClipUpdatesNBoxes == 0
       || dwBox < pScreenInfo->dwClipUpdatesNBoxes)
     {
+#if CYGDEBUG
+      winDebug ("winShadowUpdateDDNL - %d box(es)\n", dwBox);
+#endif
+
       /* Loop through all boxes in the damaged region */
       while (dwBox--)
 	{
+#if CYGDEBUG
+          winDebug ("winShadowUpdateDDNL - box x1 %d y1 %d x2 %d y2 %d\n",
+                    pBox->x1, pBox->y1,
+                    pBox->x2, pBox->y2);
+#endif
+
 	  /* Assign damage box to source rectangle */
 	  rcSrc.left = pBox->x1;
 	  rcSrc.top = pBox->y1;
@@ -729,7 +739,7 @@ winShadowUpdateDDNL (ScreenPtr pScreen,
       hrgnCombined = NULL;
 
 #if CYGDEBUG
-      winDebug ("winShadowUpdateDDNL - be x1 %d y1 %d x2 %d y2 %d\n",
+      winDebug ("winShadowUpdateDDNL - combined box x1 %d y1 %d x2 %d y2 %d\n",
 	      pBoxExtents->x1, pBoxExtents->y1,
 	      pBoxExtents->x2, pBoxExtents->y2);
 #endif
