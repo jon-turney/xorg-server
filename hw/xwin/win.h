@@ -1520,6 +1520,9 @@ winCreateMsgWindowThread(void);
 void
 winExposeWindow(ScreenPtr pScreen, WindowPtr pWin, HWND hwnd, RECT *rcPaint);
 
+void
+winRedrawIntersectingChildGlWindows(HWND hWnd, BoxPtr pBox);
+
 /*
  * END DDX and DIX Function Prototypes
  */

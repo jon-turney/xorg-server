@@ -78,6 +78,7 @@
 #include <xwin-config.h>
 #endif
 
+#include "win.h"
 #include "glwindows.h"
 #include <glx/glxserver.h>
 #include <glx/glxutil.h>
@@ -149,6 +150,9 @@ struct __GLXWinScreen
   RealizeWindowProcPtr RealizeWindow;
   UnrealizeWindowProcPtr UnrealizeWindow;
   CopyWindowProcPtr CopyWindow;
+
+  /* Wrapped engine functions */
+  winShadowUpdateProcPtr ShadowUpdate;
 };
 
 struct __GLXWinConfig
@@ -463,6 +467,26 @@ glxWinScreenSwapInterval(__GLXdrawable *drawable, int interval)
 }
 
 /*
+ * Engine functions
+ */
+
+void
+winShadowUpdateGl(ScreenPtr pScreen, shadowBufPtr pBuf)
+{
+  winScreenPriv(pScreen);
+  RegionPtr damage = shadowDamage(pBuf);
+
+  /* Call the engine function */
+  __GLXscreen *pGlxScreen = glxGetScreen(pScreen);
+  glxWinScreen *pGlxWinScreen = (glxWinScreen *)pGlxScreen;
+  (*pGlxWinScreen->ShadowUpdate)(pScreen, pBuf);
+
+  /* Make any child GL windows we have just drawn on top of
+     redraw themselves by sending them an Expose event */
+  winRedrawIntersectingChildGlWindows(pScreenPriv->hwndScreen, RegionExtents(damage));
+}
+
+/*
   Report the extensions split and formatted to avoid overflowing a line
  */
 static void
@@ -770,6 +794,11 @@ glxWinScreenProbe(ScreenPtr pScreen)
     pScreen->UnrealizeWindow = glxWinUnrealizeWindow;
     screen->CopyWindow = pScreen->CopyWindow;
     pScreen->CopyWindow = glxWinCopyWindow;
+
+    /* Wrap ShadowUpdate screen engine function */
+    winScreenPriv(pScreen);
+    screen->ShadowUpdate = pScreenPriv->pwinShadowUpdate;
+    pScreenPriv->pwinShadowUpdate = winShadowUpdateGl;
 
     return &screen->base;
 }

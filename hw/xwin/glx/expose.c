@@ -62,3 +62,50 @@ winExposeWindow(ScreenPtr pScreen, WindowPtr pWin, HWND hwnd, RECT *rcPaint)
   (pScreen->WindowExposures)(pWin, NullRegion, r);
   RegionDestroy(r);
 }
+
+/* Check a child for intersection with the redrawn area, and invalidate intersecting area */
+static BOOL
+winRedrawIntersectingChildGlWindowsCallback(HWND hwnd, LPARAM lParam)
+{
+  RECT *rcRedrawn = (RECT *)lParam;
+  RECT rcWindow;
+  RECT rcIntersect;
+
+  GetClientRect(hwnd, &rcWindow);
+  MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT)&rcWindow, 2);
+
+  if (IntersectRect(&rcIntersect, &rcWindow, rcRedrawn))
+    {
+      MapWindowPoints(HWND_DESKTOP, hwnd, (LPPOINT)&rcIntersect, 2);
+      RedrawWindow(hwnd, &rcIntersect, NULL, RDW_NOERASE | RDW_NOFRAME | RDW_INVALIDATE | RDW_UPDATENOW);
+    }
+
+  return TRUE;
+}
+
+/*
+  We have just redrawn areas of the screen window.
+  Now invalidate the same area in any child GL windows which intersect it
+  and send WM_PAINT, so those child windows send Expose events, so those
+  areas are redrawn using GL on top of the bits we have just drawn
+*/
+void
+winRedrawIntersectingChildGlWindows(HWND hWnd, BoxPtr pBox)
+{
+  RECT rcRedrawn;
+
+  /* Drawn area in screen coordinates */
+  rcRedrawn.left = pBox->x1;
+  rcRedrawn.top = pBox->y1;
+  rcRedrawn.right = pBox->x2;
+  rcRedrawn.bottom = pBox->y2;
+  MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&rcRedrawn, 2);
+
+  /*
+    We can't just use RedrawWindow, as that will redraw the root window
+    as well, due to our use of WS_EX_TRANSPARENT, leading to terrible flickering, so
+    we need to iterate over child windows our-self, checking for intersection with the
+    area which needs redrawing
+  */
+  EnumChildWindows(hWnd, winRedrawIntersectingChildGlWindowsCallback, (LPARAM)&rcRedrawn);
+}

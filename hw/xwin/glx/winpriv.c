@@ -80,6 +80,24 @@ winGlChildWindowProc (HWND hwnd, UINT message,
       return TRUE;
 
 
+    case WM_PAINT:
+      /*
+        We don't have the bits to draw into the window, they went straight into the OpenGL
+        surface
+      */
+      {
+        PAINTSTRUCT ps;
+        HDC hdcUpdate;
+        hdcUpdate = BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+
+        winExposeWindow(pScreen, pWin, hwnd, &(ps.rcPaint));
+
+        return 0;
+      }
+    }
+
   return DefWindowProc (hwnd, message, wParam, lParam);
 }
 
