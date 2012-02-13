@@ -33,8 +33,74 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
 #include "winclipboard.h"
 #include "misc.h"
+#include <X11/extensions/Xfixes.h>
+
+/*
+ * Constants
+ */
+
+#define CLIP_NUM_SELECTIONS		2
+#define CLIP_OWN_NONE     		-1
+#define CLIP_OWN_PRIMARY		0
+#define CLIP_OWN_CLIPBOARD		1
+
+/*
+ * Global variables
+ */
+
+extern int xfixes_event_base;
+
+/*
+ * Local variables
+ */
+
+static Window s_iOwners[CLIP_NUM_SELECTIONS] = {None, None};
+static const char *szSelectionNames[CLIP_NUM_SELECTIONS] = { "PRIMARY", "CLIPBOARD"};
+
+static unsigned int lastOwnedSelectionIndex = CLIP_OWN_NONE;
+static Atom atomClipboard = None;
+
+static void
+MonitorSelection(XFixesSelectionNotifyEvent *e, unsigned int i)
+{
+  /* Look for owned -> not owned transition */
+  if (None == e->owner && None != s_iOwners[i])
+    {
+      unsigned int other_index;
+      winDebug("MonitorSelection - %s - Going from owned to not owned.\n", szSelectionNames[i]);
+
+      /* If this selection is not owned, the other monitored selection must be the most
+         recently owned, if it is owned at all */
+      if (i == CLIP_OWN_PRIMARY) other_index = CLIP_OWN_CLIPBOARD;
+      if (i == CLIP_OWN_CLIPBOARD) other_index = CLIP_OWN_PRIMARY;
+      if (None != s_iOwners[other_index])
+        lastOwnedSelectionIndex = other_index;
+      else
+        lastOwnedSelectionIndex = CLIP_OWN_NONE;
+    }
+
+  /* Save new selection owner or None */
+  s_iOwners[i] = e->owner;
+  winDebug("MonitorSelection - %s - Now owned by XID %x\n", szSelectionNames[i], e->owner);
+}
+
+Atom
+GetLastOwnedSelectionAtom(void)
+{
+  if (lastOwnedSelectionIndex == CLIP_OWN_NONE)
+    return None;
+
+  if (lastOwnedSelectionIndex == CLIP_OWN_PRIMARY)
+    return XA_PRIMARY;
+
+  if (lastOwnedSelectionIndex == CLIP_OWN_CLIPBOARD)
+    return atomClipboard;
+
+  return None;
+}
 
 /*
  * Process any pending X events
@@ -52,10 +118,15 @@ winClipboardFlushXEvents(HWND hwnd,
 
     if (generation != serverGeneration) {
         generation = serverGeneration;
+        atomClipboard = XInternAtom (pDisplay, "CLIPBOARD", False);
         atomLocalProperty = XInternAtom(pDisplay, WIN_LOCAL_PROPERTY, False);
         atomUTF8String = XInternAtom(pDisplay, "UTF8_STRING", False);
         atomCompoundText = XInternAtom(pDisplay, "COMPOUND_TEXT", False);
         atomTargets = XInternAtom(pDisplay, "TARGETS", False);
+
+        /* Initialize static variables */
+        for (int i = 0; i < CLIP_NUM_SELECTIONS; ++i)
+          s_iOwners[i] = None;
     }
 
     /* Process all pending events */
@@ -706,10 +777,28 @@ winClipboardFlushXEvents(HWND hwnd,
             break;
 
         default:
-            ErrorF("winClipboardFlushXEvents - unexpected event type %d\n",
-                   event.type);
-            break;
-        }
+          if (event.type == XFixesSetSelectionOwnerNotify + xfixes_event_base)
+            {
+              XFixesSelectionNotifyEvent *e = (XFixesSelectionNotifyEvent *)&event;
+
+              /* Save selection owners for monitored selections, ignore other selections */
+              if (e->selection == XA_PRIMARY)
+                {
+                  MonitorSelection(e, CLIP_OWN_PRIMARY);
+                }
+              else if (e->selection == atomClipboard)
+                {
+                  MonitorSelection(e, CLIP_OWN_CLIPBOARD);
+                }
+            }
+          /* XFixesSelectionWindowDestroyNotify */
+          /* XFixesSelectionClientCloseNotify */
+          else
+            {
+              ErrorF ("winClipboardFlushXEvents - unexpected event type %d\n", event.type);
+            }
+	  break;
+	}
     }
 
     return WIN_XEVENTS_SUCCESS;

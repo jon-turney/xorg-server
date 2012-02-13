@@ -71,7 +71,6 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
 extern winDispatchProcPtr winProcQueryTreeOrig;
-extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 #endif
 
 /* The global X default icons */

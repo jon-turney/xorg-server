@@ -56,7 +56,6 @@ extern void winFixClipboardChain(void);
 extern Bool g_fUseUnicode;
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
-extern Atom g_atomLastOwnedSelection;
 
 /* 
  * Local function prototypes
@@ -471,7 +470,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Request the selection contents */
         iReturn = XConvertSelection(pDisplay,
-                                    g_atomLastOwnedSelection,
+                                    GetLastOwnedSelectionAtom(),
                                     XInternAtom(pDisplay,
                                                 "COMPOUND_TEXT", False),
                                     XInternAtom(pDisplay,

@@ -42,6 +42,7 @@
 #include <errno.h>
 #endif
 #include "misc.h"
+#include <X11/extensions/Xfixes.h>
 
 extern winSetAuthorization(void);
 extern void winGetDisplayName(char *szDisplay, unsigned int screen);
@@ -68,6 +69,8 @@ static XIOErrorHandler g_winClipboardOldIOErrorHandler;
 static pthread_t g_winClipboardProcThread;
 
 Bool g_fUseUnicode = FALSE;
+int xfixes_event_base;
+int xfixes_error_base;
 
 /*
  * Local function prototypes
@@ -204,6 +207,9 @@ winClipboardProc(void *pvNotUsed)
     iMaxDescriptor = iConnectionNumber + 1;
 #endif
 
+  if (!XFixesQueryExtension(pDisplay, &xfixes_event_base, &xfixes_error_base))
+    ErrorF ("winClipboardProc - XFixes extension not present\n");
+
     /* Create atoms */
     atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
     atomClipboardManager = XInternAtom(pDisplay, "CLIPBOARD_MANAGER", False);
@@ -227,6 +233,20 @@ winClipboardProc(void *pvNotUsed)
     if (XSelectInput(pDisplay, iWindow, PropertyChangeMask) == BadWindow)
         ErrorF("winClipboardProc - XSelectInput generated BadWindow "
                "on messaging window\n");
+
+  XFixesSelectSelectionInput (pDisplay,
+                              iWindow,
+                              XA_PRIMARY,
+                              XFixesSetSelectionOwnerNotifyMask |
+                              XFixesSelectionClientCloseNotifyMask |
+                              XFixesDisplayCursorNotifyMask);
+
+  XFixesSelectSelectionInput (pDisplay,
+                              iWindow,
+                              XInternAtom (pDisplay, "CLIPBOARD", False),
+                              XFixesSetSelectionOwnerNotifyMask |
+                              XFixesSelectionClientCloseNotifyMask |
+                              XFixesDisplayCursorNotifyMask);
 
     /* Save the window in the screen privates */
     g_iClipboardWindow = iWindow;
