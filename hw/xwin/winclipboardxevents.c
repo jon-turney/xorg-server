@@ -38,13 +38,6 @@
 
 
 /*
- * References to external symbols
- */
-
-extern Bool		g_fUnicodeSupport;
-
-
-/*
  * Process any pending X events
  */
 
@@ -244,10 +237,6 @@ winClipboardFlushXEvents (HWND hwnd,
 	  else
 	    xiccesStyle = XStringStyle;
 
-	  /*
-	   * FIXME: Can't pass CF_UNICODETEXT on Windows 95/98/Me
-	   */
-	  
 	  /* Get a pointer to the clipboard text, in desired format */
 	  if (fUseUnicode)
 	    {
@@ -779,10 +768,11 @@ winClipboardFlushXEvents (HWND hwnd,
 	  free(pwszUnicodeStr);
 	  if (hGlobal && pszGlobalData)
 	    GlobalUnlock (hGlobal);
-	  if (fSetClipboardData && g_fUnicodeSupport)
-	    SetClipboardData (CF_UNICODETEXT, NULL);
 	  if (fSetClipboardData)
-	    SetClipboardData (CF_TEXT, NULL);
+            {
+              SetClipboardData (CF_UNICODETEXT, NULL);
+              SetClipboardData (CF_TEXT, NULL);
+            }
 	  return WIN_XEVENTS_NOTIFY;
 
         case SelectionClear:
