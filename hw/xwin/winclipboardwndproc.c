@@ -52,7 +52,6 @@
 extern Bool		g_fUseUnicode;
 extern void		*g_pClipboardDisplay;
 extern Window		g_iClipboardWindow;
-extern Atom		g_atomLastOwnedSelection;
 
 
 /* 
@@ -459,7 +458,7 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 
 	/* Request the selection contents */
 	iReturn = XConvertSelection (pDisplay,
-				     g_atomLastOwnedSelection,
+                                     LastOwnedSelection(),
 				     XInternAtom (pDisplay,
 						  "COMPOUND_TEXT", False),
 				     XInternAtom (pDisplay,

@@ -41,15 +41,12 @@
 
 typedef int (*winDispatchProcPtr) (ClientPtr);
 
-int winProcSetSelectionOwner(ClientPtr /* client */);
-
 
 /*
  * References to external symbols
  */
 
 extern pthread_t		g_ptClipboardProc;
-extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
 extern Bool			g_fClipboard;
 extern HWND			g_hwndClipboard;
 
@@ -63,13 +60,6 @@ winInitClipboard (void)
 {
   winDebug ("winInitClipboard ()\n");
 
-  /* Wrap some internal server functions */
-  if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner)
-    {
-      winProcSetSelectionOwnerOrig = ProcVector[X_SetSelectionOwner];
-      ProcVector[X_SetSelectionOwner] = winProcSetSelectionOwner;
-    }
-  
   /* Spawn a thread for the Clipboard module */
   if (pthread_create (&g_ptClipboardProc,
 		      NULL,
