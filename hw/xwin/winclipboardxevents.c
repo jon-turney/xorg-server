@@ -790,6 +790,12 @@ winClipboardFlushXEvents (HWND hwnd,
           break;
 
 	case PropertyNotify:
+          {
+            char *pszAtomName;
+	    pszAtomName = XGetAtomName (pDisplay, event.xproperty.atom);
+	    winDebug("winClipboardFlushXEvents - SelectionNotify - ATOM: %s\n", pszAtomName);
+	    XFree (pszAtomName);
+          }
 	  break;
 
 	case MappingNotify:
