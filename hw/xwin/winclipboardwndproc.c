@@ -55,7 +55,6 @@ extern void winFixClipboardChain(void);
 
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
-extern Atom g_atomLastOwnedSelection;
 
 /*
  * Process X events up to specified timeout
@@ -460,7 +459,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Request the selection contents */
         iReturn = XConvertSelection(pDisplay,
-                                    g_atomLastOwnedSelection,
+                                    winClipboardGetLastOwnedSelectionAtom(),
                                     XInternAtom(pDisplay,
                                                 "COMPOUND_TEXT", False),
                                     XInternAtom(pDisplay,
