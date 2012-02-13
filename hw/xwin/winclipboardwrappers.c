@@ -62,7 +62,6 @@ DISPATCH_PROC(winProcSetSelectionOwner);
  * References to external symbols
  */
 
-extern Bool		g_fUnicodeSupport;
 extern int		g_iNumScreens;
 extern unsigned int	g_uiAuthDataLen;
 extern char		*g_pAuthData;
@@ -388,11 +387,8 @@ winProcSetSelectionOwner (ClientPtr client)
       goto winProcSetSelectionOwner_Done;
     }
 
-  /* Advertise Unicode if we support it */
-  if (g_fUnicodeSupport)
-    SetClipboardData (CF_UNICODETEXT, NULL);
-
-  /* Always advertise regular text */
+  /* Advertise regular text and unicode */
+  SetClipboardData (CF_UNICODETEXT, NULL);
   SetClipboardData (CF_TEXT, NULL);
 
   /* Save handle to last owned selection */
