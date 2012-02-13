@@ -263,8 +263,8 @@ winProcSetSelectionOwner (ClientPtr client)
       /* Save new selection owner or None */
       s_iOwners[CLIP_OWN_PRIMARY] = stuff->window;
 
-      winDebug("winProcSetSelectionOwner - PRIMARY - Now owned by: %d\n",
-	      stuff->window);
+      winDebug("winProcSetSelectionOwner - PRIMARY - Now owned by XID 0x%08x\n",
+               stuff->window);
     }
   else if (MakeAtom ("CLIPBOARD", 9, TRUE) == stuff->selection)
     {
@@ -287,7 +287,7 @@ winProcSetSelectionOwner (ClientPtr client)
       /* Save new selection owner or None */
       s_iOwners[CLIP_OWN_CLIPBOARD] = stuff->window;
 
-      winDebug("winProcSetSelectionOwner - CLIPBOARD - Now owned by: %d\n",
+      winDebug("winProcSetSelectionOwner - CLIPBOARD - Now owned by XID 0x%08x\n",
                stuff->window);
 
     }
