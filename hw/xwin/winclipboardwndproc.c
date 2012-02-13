@@ -146,6 +146,10 @@ winClipboardWindowProc (HWND hwnd, UINT message,
   static HWND		s_hwndNextViewer;
   static Bool		s_fCBCInitialized;
 
+#if CYGDEBUG
+  winDebugWin32Message("winClipboardWindowProc", hwnd, message, wParam, lParam);
+#endif
+
   /* Branch on message type */
   switch (message)
     {
