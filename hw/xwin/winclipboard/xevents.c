@@ -778,6 +778,15 @@ winClipboardFlushXEvents(HWND hwnd,
             break;
 
         case PropertyNotify:
+        {
+            char *pszAtomName;
+
+            pszAtomName = XGetAtomName(pDisplay, event.xproperty.atom);
+            winDebug("winClipboardFlushXEvents - PropertyNotify - ATOM: %s %s\n",
+                     pszAtomName,
+                     event.xproperty.state == PropertyNewValue ? "PropertyNewValue" : "PropertyDelete");
+            XFree(pszAtomName);
+        }
             break;
 
         case MappingNotify:
