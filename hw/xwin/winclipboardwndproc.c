@@ -443,7 +443,10 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	Window	iWindow = g_iClipboardWindow;
 	Bool	fConvertToUnicode;
 
-	winDebug ("winClipboardWindowProc - WM_RENDER*FORMAT - Hello.\n");
+	if (message == WM_RENDERALLFORMATS)
+          winDebug ("winClipboardWindowProc - WM_RENDERALLFORMATS - Hello.\n");
+        else
+          winDebug ("winClipboardWindowProc - WM_RENDERFORMAT %d - Hello.\n", wParam);
 
 	/* Flag whether to convert to Unicode or not */
 	if (message == WM_RENDERALLFORMATS)
