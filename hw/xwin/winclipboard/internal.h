@@ -1,4 +1,3 @@
-
 /*
  *Copyright (C) 2003-2004 Harold L Hunt II All Rights Reserved.
  *
@@ -52,6 +51,8 @@
 
 extern void winDebug(const char *format, ...);
 extern void ErrorF(const char *format, ...);
+extern void winDebugWin32Message(const char *function, HWND hwnd, UINT message,
+                                 WPARAM wParam, LPARAM lParam);
 
 /*
  * winclipboardtextconv.c

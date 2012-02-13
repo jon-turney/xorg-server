@@ -145,6 +145,11 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static ClipboardAtoms *atoms;
     static Bool fRunning;
 
+#if CYGDEBUG
+    winDebugWin32Message("winClipboardWindowProc", hwnd, message, wParam,
+                         lParam);
+#endif
+
     /* Branch on message type */
     switch (message) {
     case WM_DESTROY:
