@@ -518,6 +518,21 @@ winClipboardFlushXEvents (HWND hwnd,
 		}
 	    }
 
+        case SelectionClear:
+          winDebug("SelectionClear - doing nothing\n");
+          break;
+
+	case PropertyNotify:
+          {
+            char *pszAtomName;
+	    pszAtomName = XGetAtomName (pDisplay, event.xproperty.atom);
+	    winDebug("winClipboardFlushXEvents - SelectionNotify - ATOM: %s\n", pszAtomName);
+	    XFree (pszAtomName);
+          }
+
+          if (event.xproperty.atom != atomLocalProperty)
+            break;
+
 	  /* Retrieve the size of the stored data */
 	  iReturn = XGetWindowProperty (pDisplay,
 					iWindow,
@@ -774,19 +789,6 @@ winClipboardFlushXEvents (HWND hwnd,
               SetClipboardData (CF_TEXT, NULL);
             }
 	  return WIN_XEVENTS_NOTIFY;
-
-        case SelectionClear:
-          winDebug("SelectionClear - doing nothing\n");
-          break;
-
-	case PropertyNotify:
-          {
-            char *pszAtomName;
-	    pszAtomName = XGetAtomName (pDisplay, event.xproperty.atom);
-	    winDebug("winClipboardFlushXEvents - SelectionNotify - ATOM: %s\n", pszAtomName);
-	    XFree (pszAtomName);
-          }
-	  break;
 
 	case MappingNotify:
 	  break;
