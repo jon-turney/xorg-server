@@ -74,6 +74,7 @@
 #define WIN_CLIPBOARD_DELAY			1
 
 #define WM_WM_REINIT                           (WM_USER + 1)
+#define WM_WM_DEINIT                           (WM_USER + 2)
 
 /*
  * References to external symbols
