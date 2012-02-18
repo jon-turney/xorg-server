@@ -432,7 +432,11 @@ winClipboardProc(void *pvNotUsed)
     else {
         ErrorF("winClipboardProc - Clipboard disabled  - Exit from server \n");
         /* clipboard thread has exited, stop server as well */
+#ifdef __CYGWIN__
         kill(getpid(), SIGTERM);
+#else
+        winThreadExit(NULL);
+#endif
     }
 
     return NULL;
@@ -472,4 +476,43 @@ winClipboardIOErrorHandler(Display * pDisplay)
         g_winClipboardOldIOErrorHandler(pDisplay);
 
     return 0;
+}
+
+/*
+ * winTerminateAppEnum - Post WM_CLOSE to windows whose PID matches the process
+ */
+
+static BOOL CALLBACK
+winTerminateAppEnum(HWND hwnd, LPARAM lParam)
+{
+  DWORD dwID;
+
+  GetWindowThreadProcessId(hwnd, &dwID);
+
+  if(dwID == (DWORD)lParam) PostMessage(hwnd, WM_CLOSE, 0, 0);
+
+  return TRUE;
+}
+
+/*
+ * winThreadExit - Thread exit handler
+ */
+
+void
+winThreadExit(void *arg)
+{
+  /* Thread has exited, stop server as well */
+  DWORD dwTimeout = 500; /* If process has not signalled in 500msec just kill it anyway */
+  DWORD dwProcessId = GetCurrentProcessId();
+  HANDLE hProcess = NULL;
+
+  if (dwProcessId > 0) hProcess = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, FALSE, dwProcessId);
+
+  if (hProcess == NULL) return;
+
+  EnumWindows((WNDENUMPROC)winTerminateAppEnum, (LPARAM)dwProcessId);
+
+  if (WaitForSingleObject(hProcess, dwTimeout) != WAIT_OBJECT_0) TerminateProcess(hProcess, 1);
+
+  CloseHandle(hProcess);
 }
