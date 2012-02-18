@@ -648,6 +648,7 @@ winPrefsLoadPreferences(char *path)
 
     if (path)
         prefFile = fopen(path, "r");
+#ifdef __CYGWIN__
     else {
         char defaultPrefs[] =
             "MENU rmenu {\n"
@@ -659,6 +660,7 @@ winPrefsLoadPreferences(char *path)
         path = "built-in default";
         prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
     }
+#endif
 
     if (!prefFile) {
         ErrorF("LoadPreferences: %s not found\n", path);
