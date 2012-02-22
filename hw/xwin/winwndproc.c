@@ -1217,6 +1217,12 @@ winWindowProc (HWND hwnd, UINT message,
 #ifdef XWIN_CLIPBOARD
       /* Make sure the clipboard chain is ok. */
       winFixClipboardChain ();
+
+      if (!wParam)
+        {
+          /* Make sure clipboard is updated if needed */
+          winUpdateClipboard ();
+        }
 #endif
 
       /* Call engine specific screen activation/deactivation function */

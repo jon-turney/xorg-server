@@ -246,6 +246,32 @@ winClipboardWindowProc (HWND hwnd, UINT message,
       winDebug ("winClipboardWindowProc - WM_WM_REINIT: Exit\n");
       return 0;
 
+    case WM_WM_DEINIT:
+      {
+        /*
+            Assume the user has changed the selection since we gained
+            focus, so empty the Windows clipboard, to tell Windows that
+            it needs to ask us to render the contents again if anyone asks
+            for it
+        */
+
+	/* Set up for another delayed rendering callback */
+	OpenClipboard (hwnd);
+
+	/* Take ownership of the Windows clipboard */
+	EmptyClipboard ();
+
+	/* Advertise Unicode if we support it */
+	if (g_fUnicodeSupport)
+	  SetClipboardData (CF_UNICODETEXT, NULL);
+
+	/* Always advertise regular text */
+	SetClipboardData (CF_TEXT, NULL);
+
+	/* Release the clipboard */
+	CloseClipboard ();
+      }
+      return 0;
 
     case WM_DRAWCLIPBOARD:
       {
