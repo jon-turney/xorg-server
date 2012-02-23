@@ -33,13 +33,7 @@
 #endif
 #include "dixstruct.h"
 #include "winclipboard.h"
-
-
-/*
- * Local typedefs
- */
-
-typedef int (*winDispatchProcPtr) (ClientPtr);
+#include "winglobals.h"
 
 
 /*
@@ -50,6 +44,13 @@ extern pthread_t		g_ptClipboardProc;
 extern Bool			g_fClipboard;
 extern HWND			g_hwndClipboard;
 
+/*
+ * Globals
+ */
+
+Bool g_fHasModernClipboardApi = FALSE;
+ADDCLIPBOARDFORMATLISTENERPROC g_fpAddClipboardFormatListener;
+REMOVECLIPBOARDFORMATLISTENERPROC g_fpRemoveClipboardFormatListener;
 
 /*
  * Intialize the Clipboard module
@@ -59,6 +60,11 @@ Bool
 winInitClipboard (void)
 {
   winDebug ("winInitClipboard ()\n");
+
+  g_fpAddClipboardFormatListener = (ADDCLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"AddClipboardFormatListener");
+  g_fpRemoveClipboardFormatListener = (REMOVECLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"RemoveClipboardFormatListener");
+  g_fHasModernClipboardApi = g_fpAddClipboardFormatListener && g_fpRemoveClipboardFormatListener;
+  ErrorF("OS maintains clipboard viewer chain: %s\n", g_fHasModernClipboardApi ? "yes" : "no");
 
   /* Spawn a thread for the Clipboard module */
   if (pthread_create (&g_ptClipboardProc,

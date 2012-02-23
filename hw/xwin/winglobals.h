@@ -66,6 +66,16 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  */
 extern winDispatchProcPtr	winProcEstablishConnectionOrig;
 extern winDispatchProcPtr	winProcQueryTreeOrig;
+
+/* Typedefs for modern clipboard API functions */
+typedef BOOL WINAPI (*ADDCLIPBOARDFORMATLISTENERPROC)(HWND hwnd);
+typedef BOOL WINAPI (*REMOVECLIPBOARDFORMATLISTENERPROC)(HWND hwnd);
+
+/* */
+extern Bool g_fHasModernClipboardApi;
+extern ADDCLIPBOARDFORMATLISTENERPROC g_fpAddClipboardFormatListener;
+extern REMOVECLIPBOARDFORMATLISTENERPROC g_fpRemoveClipboardFormatListener;
+
 #endif
 
 /* The global X default icons */
