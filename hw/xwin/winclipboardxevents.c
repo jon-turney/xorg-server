@@ -136,6 +136,8 @@ winClipboardFlushXEvents (HWND hwnd,
 				      atomUTF8String,
 				      XA_STRING};
 
+              winDebug("SelectionRequest - populating targets\n");
+
 	      /* Try to change the property */
 	      iReturn = XChangeProperty (pDisplay,
 					 event.xselectionrequest.requestor,
@@ -421,6 +423,7 @@ winClipboardFlushXEvents (HWND hwnd,
 	   */
 	  if (fAbort)
 	    {
+              winDebug("SelectionRequest - aborting\n");
 	      /* Setup selection notify event */
 	      eventSelection.type = SelectionNotify;
 	      eventSelection.send_event = True;
@@ -580,7 +583,7 @@ winClipboardFlushXEvents (HWND hwnd,
 	      winDebug("SelectionNotify - returned data %d left %d\n",
                        xtpText.nitems, ulReturnBytesLeft);
 	      pszAtomName = XGetAtomName(pDisplay, xtpText.encoding);
-	      winDebug("Notify atom name %s\n", pszAtomName);
+	      winDebug("SelectionNotify -  encoding atom name %s\n", pszAtomName);
 	      XFree (pszAtomName);
 	      pszAtomName = NULL;
 	    }

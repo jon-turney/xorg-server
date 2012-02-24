@@ -332,6 +332,26 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 		    "Clipboard does not contain CF_TEXT nor "
 		    "CF_UNICODETEXT.\n");
 
+            winDebug ("winClipboardWindowProc: %d formats\n", CountClipboardFormats());
+            {
+              unsigned int format = 0;
+              do {
+                format = EnumClipboardFormats(format);
+                if (GetLastError() != ERROR_SUCCESS)
+                  {
+                    winDebug ("winClipboardWindowProc: EnumClipboardFormats failed %x\n", GetLastError());
+                  }
+                if (format > 0xc000)
+                  {
+                    char buff[256];
+                    GetClipboardFormatName(format, buff, 256);
+                    winDebug ("winClipboardWindowProc: %d %s\n", format, buff);
+                  }
+                else if (format > 0)
+                  winDebug ("winClipboardWindowProc: %d\n", format);
+              } while (format != 0);
+            }
+
 	    /*
 	     * We need to make sure that the X Server has processed
 	     * previous XSetSelectionOwner messages.
@@ -345,7 +365,7 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	    if (iReturn == g_iClipboardWindow)
 	      {
 		winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-			"PRIMARY selection is owned by us.\n");
+			"PRIMARY selection is owned by us, releasing\n");
 		XSetSelectionOwner (pDisplay,
 				    XA_PRIMARY,
 				    None,
@@ -353,7 +373,7 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	      }
 	    else if (BadWindow == iReturn || BadAtom == iReturn)
 	      winErrorFVerb (1, "winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-		      "XGetSelection failed for PRIMARY: %d\n", iReturn);
+		      "XGetSelectionOwner failed for PRIMARY: %d\n", iReturn);
 
 	    /* Release CLIPBOARD selection if owned */
 	    iReturn = XGetSelectionOwner (pDisplay,
@@ -361,7 +381,7 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	    if (iReturn == g_iClipboardWindow)
 	      {
 		winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-			"CLIPBOARD selection is owned by us.\n");
+			"CLIPBOARD selection is owned by us, releasing\n");
 		XSetSelectionOwner (pDisplay,
 				    atomClipboard,
 				    None,
@@ -369,7 +389,7 @@ winClipboardWindowProc (HWND hwnd, UINT message,
 	      }
 	    else if (BadWindow == iReturn || BadAtom == iReturn)
 	      winErrorFVerb (1, "winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-		      "XGetSelection failed for CLIPBOARD: %d\n", iReturn);
+		      "XGetSelectionOwner failed for CLIPBOARD: %d\n", iReturn);
 
 	    winDebug ("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
 	    s_fProcessingDrawClipboard = FALSE;

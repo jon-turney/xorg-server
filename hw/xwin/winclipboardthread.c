@@ -313,6 +313,8 @@ winClipboardProc (void *pvNotUsed)
       tvTimeout.tv_usec = 100;
 #endif
 
+      winDebug ("winClipboardProc - Waiting in select\n");
+
       /* Wait for a Windows event or an X event */
       iReturn = select (iMaxDescriptor,	/* Highest fds number */
 			&fdsRead,	/* Read mask */
@@ -345,9 +347,13 @@ winClipboardProc (void *pvNotUsed)
 	  break;
 	}
 
+      winDebug ("winClipboardProc - select returned %d\n", iReturn);
+
       /* Branch on which descriptor became active */
       if (FD_ISSET (iConnectionNumber, &fdsRead))
 	{
+          winDebug ("winClipboardProc - X connection ready, pumping X event queue\n");
+
 	  /* Process X events */
 	  /* Exit when we see that server is shutting down */
 	  iReturn = winClipboardFlushXEvents (hwnd,
@@ -369,6 +375,8 @@ winClipboardProc (void *pvNotUsed)
       if (1)
 #endif
 	{
+          winDebug ("winClipboardProc - /dev/windows ready, pumping Windows message queue\n");
+
 	  /* Process Windows messages */
 	  if (!winClipboardFlushWindowsMessageQueue (hwnd))
 	    {
@@ -378,6 +386,11 @@ winClipboardProc (void *pvNotUsed)
 	      break;
 	    }
 	}
+
+      if (!(FD_ISSET(iConnectionNumber, &fdsRead)) && !(FD_ISSET(fdMessageQueue, &fdsRead)))
+        {
+          winDebug ("winClipboardProc - Spurious wake\n");
+        }
     }
 
 winClipboardProc_Exit:
