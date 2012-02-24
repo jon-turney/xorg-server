@@ -190,7 +190,9 @@ winProcSetSelectionOwner(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSetSelectionOwnerReq);
 
-    winDebug("winProcSetSelectionOwner - Hello.\n");
+    winDebug
+        ("winProcSetSelectionOwner - Hello. atom 0x%08x window XID 0x%08x \n",
+         stuff->selection, stuff->window);
 
     /* Watch for server reset */
     if (s_ulServerGeneration != serverGeneration) {
