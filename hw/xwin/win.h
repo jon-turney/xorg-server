@@ -825,9 +825,6 @@ winInitClipboard (void);
 
 void
 winFixClipboardChain (void);
-
-void
-winUpdateClipboard (void);
 #endif
 
 
