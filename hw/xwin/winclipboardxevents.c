@@ -186,6 +186,27 @@ winClipboardFlushXEvents (HWND hwnd,
 	      break;
 	    }
 
+	  /* Close clipboard if we have it open already */
+	  if (GetOpenClipboardWindow () == hwnd)
+	    {
+	      CloseClipboard ();
+	    }
+
+	  /* Access the clipboard */
+	  if (!OpenClipboard (hwnd))
+	    {
+	      ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
+		      "OpenClipboard () failed: %08lx\n",
+		      GetLastError ());
+
+	      /* Abort */
+	      fAbort = TRUE;
+	      goto winClipboardFlushXEvents_SelectionRequest_Done;
+	    }
+
+	  /* Indicate that clipboard was opened */
+	  fCloseClipboard = TRUE;
+
 	  /* Check that clipboard format is available */
 	  if (fUseUnicode
 	      && !IsClipboardFormatAvailable (CF_UNICODETEXT))
@@ -212,27 +233,6 @@ winClipboardFlushXEvents (HWND hwnd,
 	      fAbort = TRUE;
 	      goto winClipboardFlushXEvents_SelectionRequest_Done;
 	    }
-
-	  /* Close clipboard if we have it open already */
-	  if (GetOpenClipboardWindow () == hwnd)
-	    {
-	      CloseClipboard ();
-	    }
-
-	  /* Access the clipboard */
-	  if (!OpenClipboard (hwnd))
-	    {
-	      ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
-		      "OpenClipboard () failed: %08lx\n",
-		      GetLastError ());
-
-	      /* Abort */
-	      fAbort = TRUE;
-	      goto winClipboardFlushXEvents_SelectionRequest_Done;
-	    }
-	  
-	  /* Indicate that clipboard was opened */
-	  fCloseClipboard = TRUE;
 
 	  /* Setup the string style */
 	  if (event.xselectionrequest.target == XA_STRING)
