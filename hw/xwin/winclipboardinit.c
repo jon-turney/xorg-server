@@ -143,10 +143,3 @@ winFixClipboardChain (void)
        PostMessage (g_hwndClipboard, WM_WM_REINIT, 0, 0);
      }
 }
-
-void
-winUpdateClipboard (void)
-{
-   if (g_fClipboard && g_hwndClipboard)
-     PostMessage (g_hwndClipboard, WM_WM_DEINIT, 0, 0);
-}
