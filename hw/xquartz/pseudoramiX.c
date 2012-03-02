@@ -37,13 +37,15 @@ Equipment Corporation.
 #include <dix-config.h>
 #endif
 
-#include "darwin.h"
 #include "pseudoramiX.h"
 #include "extnsionst.h"
 #include "dixstruct.h"
 #include "window.h"
 #include <X11/extensions/panoramiXproto.h>
 #include "globals.h"
+
+#define TRACE PseudoramiXTrace("TRACE " __FILE__ ":%s",__FUNCTION__)
+#define DEBUG_LOG PseudoramiXDebug
 
 Bool noPseudoramiXExtension = FALSE;
 
@@ -80,6 +82,23 @@ static int pseudoramiXScreensAllocated = 0;
 static int pseudoramiXNumScreens = 0;
 static unsigned long pseudoramiXGeneration = 0;
 
+static void
+PseudoramiXTrace(const char *format, ...)
+{
+  va_list ap;
+  va_start (ap, format);
+  LogVMessageVerb(X_NONE, 10, format, ap);
+  va_end (ap);
+}
+
+static void
+PseudoramiXDebug(const char *format, ...)
+{
+  va_list ap;
+  va_start (ap, format);
+  LogVMessageVerb(X_NONE, 3, format, ap);
+  va_end (ap);
+}
 
 // Add a PseudoramiX screen.
 // The rest of the X server will know nothing about this screen.
@@ -118,7 +137,7 @@ void PseudoramiXExtensionInit(int argc, char *argv[])
 
     if (noPseudoramiXExtension) return;
 
-    TRACE();
+    TRACE;
 
     /* Even with only one screen we need to enable PseudoramiX to allow
        dynamic screen configuration changes. */
@@ -154,7 +173,7 @@ void PseudoramiXExtensionInit(int argc, char *argv[])
 
 void PseudoramiXResetScreens(void)
 {
-    TRACE();
+    TRACE;
 
     pseudoramiXNumScreens = 0;
 }
@@ -162,7 +181,7 @@ void PseudoramiXResetScreens(void)
 
 static void PseudoramiXResetProc(ExtensionEntry *extEntry)
 {
-    TRACE();
+    TRACE;
 
     PseudoramiXResetScreens();
 }
@@ -171,7 +190,7 @@ static void PseudoramiXResetProc(ExtensionEntry *extEntry)
 // was PanoramiX
 static int ProcPseudoramiXQueryVersion(ClientPtr client)
 {
-    TRACE();
+    TRACE;
 
     return ProcPanoramiXQueryVersion(client);
 }
@@ -185,7 +204,7 @@ static int ProcPseudoramiXGetState(ClientPtr client)
     xPanoramiXGetStateReply rep;
     register int rc;
 
-    TRACE();
+    TRACE;
     
     REQUEST_SIZE_MATCH(xPanoramiXGetStateReq);
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
@@ -215,7 +234,7 @@ static int ProcPseudoramiXGetScreenCount(ClientPtr client)
     xPanoramiXGetScreenCountReply rep;
     register int rc;
 
-    TRACE();
+    TRACE;
     
     REQUEST_SIZE_MATCH(xPanoramiXGetScreenCountReq);
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
@@ -245,7 +264,7 @@ static int ProcPseudoramiXGetScreenSize(ClientPtr client)
     xPanoramiXGetScreenSizeReply	rep;
     register int			n, rc;
 
-    TRACE();
+    TRACE;
     
     if (stuff->screen >= PanoramiXNumScreens)
       return BadMatch;
@@ -284,7 +303,7 @@ static int ProcPseudoramiXIsActive(ClientPtr client)
     /* REQUEST(xXineramaIsActiveReq); */
     xXineramaIsActiveReply	rep;
 
-    TRACE();
+    TRACE;
     
     REQUEST_SIZE_MATCH(xXineramaIsActiveReq);
 
@@ -350,7 +369,7 @@ static int ProcPseudoramiXQueryScreens(ClientPtr client)
 // was PanoramiX
 static int ProcPseudoramiXDispatch (ClientPtr client)
 {   REQUEST(xReq);
-    TRACE();
+    TRACE;
     switch (stuff->data)
     {
 	case X_PanoramiXQueryVersion:
@@ -376,7 +395,7 @@ SProcPseudoramiXQueryVersion (ClientPtr client)
 {
 	REQUEST(xPanoramiXQueryVersionReq);
 
-    TRACE();
+    TRACE;
 
 	swaps(&stuff->length);
 	REQUEST_SIZE_MATCH (xPanoramiXQueryVersionReq);
@@ -388,7 +407,7 @@ SProcPseudoramiXGetState(ClientPtr client)
 {
 	REQUEST(xPanoramiXGetStateReq);
 
-    TRACE();
+    TRACE;
 
 	swaps(&stuff->length);
 	REQUEST_SIZE_MATCH(xPanoramiXGetStateReq);
@@ -400,7 +419,7 @@ SProcPseudoramiXGetScreenCount(ClientPtr client)
 {
 	REQUEST(xPanoramiXGetScreenCountReq);
 
-    TRACE();
+    TRACE;
 
 	swaps(&stuff->length);
 	REQUEST_SIZE_MATCH(xPanoramiXGetScreenCountReq);
@@ -412,7 +431,7 @@ SProcPseudoramiXGetScreenSize(ClientPtr client)
 {
 	REQUEST(xPanoramiXGetScreenSizeReq);
 
-    TRACE();
+    TRACE;
 
 	swaps(&stuff->length);
 	REQUEST_SIZE_MATCH(xPanoramiXGetScreenSizeReq);
@@ -425,7 +444,7 @@ SProcPseudoramiXIsActive(ClientPtr client)
 {
 	REQUEST(xXineramaIsActiveReq);
 
-    TRACE();
+    TRACE;
 
 	swaps(&stuff->length);
 	REQUEST_SIZE_MATCH(xXineramaIsActiveReq);
@@ -438,7 +457,7 @@ SProcPseudoramiXQueryScreens(ClientPtr client)
 {
 	REQUEST(xXineramaQueryScreensReq);
 
-    TRACE();
+    TRACE;
 
 	swaps(&stuff->length);
 	REQUEST_SIZE_MATCH(xXineramaQueryScreensReq);
@@ -450,7 +469,7 @@ static int
 SProcPseudoramiXDispatch (ClientPtr client)
 {   REQUEST(xReq);
 
-    TRACE();
+    TRACE;
 
     switch (stuff->data)
     {
