@@ -44,6 +44,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 #include <X11/extensions/XI.h>
 #include "xkb.h"
+#include "os.h"
 
 #define	PRE_ERROR_MSG "\"The XKEYBOARD keymap compiler (xkbcomp) reports:\""
 #define	ERROR_PREFIX	"\"> \""
@@ -101,7 +102,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
     const char *xkbbindir = emptystring;
     const char *xkbbindirsep = emptystring;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     /* WIN32 has no popen. The input must be stored in a file which is
        used as input for xkbcomp. xkbcomp does not read from stdin. */
     char tmpname[PATH_MAX];
@@ -114,9 +115,9 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 
     OutputDirectory(xkm_output_dir, sizeof(xkm_output_dir));
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     strcpy(tmpname, Win32TempDir());
-    strcat(tmpname, "\\xkb_XXXXXX");
+    strcat(tmpname, PATHSEPARATOR "xkb_XXXXXX");
     (void) mktemp(tmpname);
 #endif
 
@@ -155,7 +156,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
         return NULL;
     }
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
     out = Popen(buf, "w");
 #else
     out = fopen(tmpname, "w");
@@ -165,7 +166,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
         /* Now write to xkbcomp */
         (*callback)(out, userdata);
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
         if (Pclose(out) == 0)
 #else
         if (fclose(out) == 0 && System(buf) >= 0)
@@ -174,7 +175,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
             if (xkbDebugFlags)
                 DebugF("[xkb] xkb executes: %s\n", buf);
             free(buf);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
             unlink(tmpname);
 #endif
             return xnfstrdup(keymap);
@@ -182,14 +183,15 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
         else {
             LogMessage(X_ERROR, "Error compiling keymap (%s) executing '%s'\n",
                        keymap, buf);
+
         }
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
         /* remove the temporary file */
         unlink(tmpname);
 #endif
     }
     else {
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
         LogMessage(X_ERROR, "XKB: Could not invoke xkbcomp\n");
 #else
         LogMessage(X_ERROR, "Could not open file %s\n", tmpname);
