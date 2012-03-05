@@ -44,6 +44,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 #include <X11/extensions/XI.h>
 #include "xkb.h"
+#include "os.h"
 
         /*
          * If XKM_OUTPUT_DIR specifies a path without a leading slash, it is
@@ -113,7 +114,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
     const char *xkbbindir = emptystring;
     const char *xkbbindirsep = emptystring;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     /* WIN32 has no popen. The input must be stored in a file which is
        used as input for xkbcomp. xkbcomp does not read from stdin. */
     char tmpname[PATH_MAX];
@@ -126,9 +127,9 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 
     OutputDirectory(xkm_output_dir, sizeof(xkm_output_dir));
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     strcpy(tmpname, Win32TempDir());
-    strcat(tmpname, "\\xkb_XXXXXX");
+    strcat(tmpname, PATHSEPARATOR "xkb_XXXXXX");
     (void) mktemp(tmpname);
 #endif
 
@@ -167,7 +168,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
         return NULL;
     }
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
     out = Popen(buf, "w");
 #else
     out = fopen(tmpname, "w");
@@ -177,7 +178,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
         /* Now write to xkbcomp */
         (*callback)(out, userdata);
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
         if (Pclose(out) == 0)
 #else
         if (fclose(out) == 0 && System(buf) >= 0)
@@ -186,14 +187,14 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
             if (xkbDebugFlags)
                 DebugF("[xkb] xkb executes: %s\n", buf);
             free(buf);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
             unlink(tmpname);
 #endif
             return xnfstrdup(keymap);
         }
         else
             LogMessage(X_ERROR, "Error compiling keymap (%s)\n", keymap);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
         /* remove the temporary file */
         unlink(tmpname);
 #endif
