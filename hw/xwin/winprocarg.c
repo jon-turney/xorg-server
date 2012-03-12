@@ -111,6 +111,7 @@ winInitializeScreenDefaults(void)
     }
 
   defaultScreenInfo.iMonitor = 1;
+  defaultScreenInfo.hMonitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
   defaultScreenInfo.dwWidth  = dwWidth;
   defaultScreenInfo.dwHeight = dwHeight;
   defaultScreenInfo.dwUserWidth  = dwWidth;
@@ -139,7 +140,7 @@ winInitializeScreenDefaults(void)
 #endif
   defaultScreenInfo.fMultipleMonitors = FALSE;
   defaultScreenInfo.fLessPointer = FALSE;
-  defaultScreenInfo.iResizeMode = notAllowed;
+  defaultScreenInfo.iResizeMode = resizeWithRandr;
   defaultScreenInfo.fNoTrayIcon = FALSE;
   defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
   defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -154,7 +155,7 @@ winInitializeScreenDefaults(void)
 static void
 winInitializeScreen(int i)
 {
-  winErrorFVerb (2, "winInitializeScreen - %d\n",i);
+  winErrorFVerb (3, "winInitializeScreen - %d\n",i);
 
   /* Initialize default screen values, if needed */
   winInitializeScreenDefaults();
@@ -170,7 +171,7 @@ void
 winInitializeScreens(int maxscreens)
 {
   int i;
-  winErrorFVerb (2, "winInitializeScreens - %i\n", maxscreens);
+  winErrorFVerb (3, "winInitializeScreens - %i\n", maxscreens);
 
   if (maxscreens > g_iNumScreens)
     {
@@ -334,6 +335,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
 		  g_ScreenInfo[nScreenNum].fUserGaveHeightAndWidth = FALSE;
 		  g_ScreenInfo[nScreenNum].fUserGavePosition = TRUE;
 		  g_ScreenInfo[nScreenNum].iMonitor = iMonitor;
+		  g_ScreenInfo[nScreenNum].hMonitor = data.monitorHandle;
 		  g_ScreenInfo[nScreenNum].dwWidth = data.monitorWidth;
 		  g_ScreenInfo[nScreenNum].dwHeight = data.monitorHeight;
 		  g_ScreenInfo[nScreenNum].dwUserWidth = data.monitorWidth;
@@ -386,6 +388,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
           } else if (data.bMonitorSpecifiedExists == TRUE) 
           {
 			g_ScreenInfo[nScreenNum].iMonitor = iMonitor;
+                        g_ScreenInfo[nScreenNum].hMonitor = data.monitorHandle;
 			g_ScreenInfo[nScreenNum].dwInitialX += data.monitorOffsetX;
 			g_ScreenInfo[nScreenNum].dwInitialY += data.monitorOffsetY;
 		  }
@@ -415,6 +418,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
 		  winErrorFVerb (2, "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n", iMonitor);
 		  g_ScreenInfo[nScreenNum].fUserGavePosition = TRUE;
 		  g_ScreenInfo[nScreenNum].iMonitor = iMonitor;
+		  g_ScreenInfo[nScreenNum].hMonitor = data.monitorHandle;
 		  g_ScreenInfo[nScreenNum].dwInitialX = data.monitorOffsetX;
 		  g_ScreenInfo[nScreenNum].dwInitialY = data.monitorOffsetY;
 		}
@@ -1143,6 +1147,12 @@ ddxProcessArgument (int argc, char *argv[], int i)
       return 1;
     }
 
+  if (IS_OPTION("-hostintitle"))
+    {
+      g_fHostInTitle = TRUE;
+      return 1;
+    }
+
   return 0;
 }
 
@@ -1218,6 +1228,107 @@ winLogCommandLine (int argc, char *argv[])
 	  "%s\n\n", g_pszCommandLine);
 }
 
+/*
+ * Detect the OS
+ */
+
+typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
+
+static void
+winOS(void)
+{
+  OSVERSIONINFOEX osvi = {0};
+  char *windowstype = "Unknown";
+  char *prodName = "Unknown";
+  char *isWow = "Unknown";
+  LPFN_ISWOW64PROCESS fnIsWow64Process;
+
+  /* Get operating system version information */
+  osvi.dwOSVersionInfoSize = sizeof(osvi);
+  GetVersionEx((LPOSVERSIONINFO)&osvi);
+
+  /* Branch on platform ID */
+  switch (osvi.dwPlatformId)
+    {
+    case VER_PLATFORM_WIN32_NT:
+      windowstype = "Windows NT";
+
+      if (osvi.dwMajorVersion <= 4)
+        prodName = "Windows NT";
+      else if (osvi.dwMajorVersion == 6)
+      {
+	if (osvi.dwMinorVersion == 2)
+        {
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows 8";
+	  else
+	    prodName = "Windows Server 2012";
+        }
+	else if (osvi.dwMinorVersion == 1)
+	{
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows 7";
+	  else
+	    prodName = "Windows Server 2008 R2";
+	}
+	else if (osvi.dwMinorVersion == 0)
+	{
+	  if (osvi.wProductType == VER_NT_WORKSTATION)
+	    prodName = "Windows Vista";
+	  else
+	    prodName = "Windows Server 2008";
+	}
+      } else if (osvi.dwMajorVersion == 5)
+      {
+	if (osvi.dwMinorVersion == 2)
+          {
+            if (GetSystemMetrics(SM_SERVERR2))
+              prodName = "Windows Server 2003 R2";
+            else
+              prodName = "Windows Server 2003";
+          }
+	else if (osvi.dwMinorVersion == 1)
+	  prodName = "Windows XP";
+	else if (osvi.dwMinorVersion == 0)
+	{
+	  prodName = "Windows 2000";
+	  break;
+	}
+      }
+
+      break;
+
+    case VER_PLATFORM_WIN32_WINDOWS:
+      windowstype = "Windows";
+      break;
+    }
+
+  /* Check if we are running under WoW64 */
+  fnIsWow64Process = (LPFN_ISWOW64PROCESS)GetProcAddress(GetModuleHandle("kernel32"),"IsWow64Process");
+  if (NULL != fnIsWow64Process)
+    {
+      wBOOL bIsWow64 = FALSE;
+      if (fnIsWow64Process(GetCurrentProcess(),&bIsWow64))
+        {
+          isWow = bIsWow64 ? " (WoW64)" : " (Win32)";
+        }
+      else
+        {
+          /* IsWow64Process() failed */
+          isWow = " (WoWUnknown)";
+        }
+    }
+  else
+    {
+      /* OS doesn't support IsWow64Process() */
+      isWow = "";
+    }
+
+  ErrorF("OS: %s %s [%s %ld.%ld build %ld]%s\n",
+         prodName, osvi.szCSDVersion,
+         windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber,
+         isWow);
+}
 
 /*
  * winLogVersionInfo - Log version information
@@ -1234,7 +1345,8 @@ winLogVersionInfo (void)
 
   ErrorF ("Welcome to the XWin X Server\n");
   ErrorF ("Vendor: %s\n", XVENDORNAME);
-  ErrorF ("Release: %d.%d.%d.%d (%d)\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP, XORG_VERSION_CURRENT);
-  ErrorF ("%s\n\n", BUILDERSTRING);
-  ErrorF ("Contact: %s\n", BUILDERADDR);
+  ErrorF ("Release: %d.%d.%d.%d\n", XORG_VERSION_MAJOR, XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
+  winOS();
+  if (strlen(BUILDERSTRING)) ErrorF ("%s\n", BUILDERSTRING);
+  ErrorF("\n");
 }

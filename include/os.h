@@ -84,9 +84,7 @@ typedef struct _NewClientRec *NewClientPtr;
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifdef DDXBEFORERESET
-extern void ddxBeforeReset (void);
-#endif
+extern void ddxMain(void);
 
 #ifdef DDXOSVERRORF
 extern _X_EXPORT void (*OsVendorVErrorFProc)(const char *, va_list args);
@@ -114,6 +112,8 @@ extern _X_EXPORT void SetCriticalOutputPending(void);
 extern _X_EXPORT int WriteToClient(ClientPtr /*who*/, int /*count*/, const void* /*buf*/);
 
 extern _X_EXPORT void ResetOsBuffers(void);
+
+extern _X_EXPORT int TransIsListening(char *protocol);
 
 extern _X_EXPORT void InitConnectionLimits(void);
 

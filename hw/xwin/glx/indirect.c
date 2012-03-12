@@ -469,7 +469,7 @@ static void
 glxLogExtensions(const char *prefix, const char *extensions)
 {
   int length = 0;
-  char *strl;
+  const char *strl;
   char *str = strdup(extensions);
 
   if (str == NULL)
@@ -479,6 +479,7 @@ glxLogExtensions(const char *prefix, const char *extensions)
     }
 
   strl = strtok(str, " ");
+  if (strl == NULL) strl = "";
   ErrorF("%s%s", prefix, strl);
   length = strlen(prefix) + strlen(strl);
 
@@ -514,6 +515,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
 {
     glxWinScreen *screen;
     const char *gl_extensions;
+    const char *gl_renderer;
     const char *wgl_extensions;
     HWND hwnd;
     HDC hdc;
@@ -536,14 +538,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
     if (NULL == screen)
 	return NULL;
-
-    /* Wrap RealizeWindow, UnrealizeWindow and CopyWindow on this screen */
-    screen->RealizeWindow = pScreen->RealizeWindow;
-    pScreen->RealizeWindow = glxWinRealizeWindow;
-    screen->UnrealizeWindow = pScreen->UnrealizeWindow;
-    pScreen->UnrealizeWindow = glxWinUnrealizeWindow;
-    screen->CopyWindow = pScreen->CopyWindow;
-    pScreen->CopyWindow = glxWinCopyWindow;
 
     /* Dump out some useful information about the native renderer */
 
@@ -591,12 +585,20 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
     ErrorF("GL_VERSION:     %s\n", glGetStringWrapperNonstatic(GL_VERSION));
     ErrorF("GL_VENDOR:      %s\n", glGetStringWrapperNonstatic(GL_VENDOR));
-    ErrorF("GL_RENDERER:    %s\n", glGetStringWrapperNonstatic(GL_RENDERER));
+    gl_renderer = (const char *)glGetStringWrapperNonstatic(GL_RENDERER);
+    ErrorF("GL_RENDERER:    %s\n", gl_renderer);
     gl_extensions = (const char *)glGetStringWrapperNonstatic(GL_EXTENSIONS);
     glxLogExtensions("GL_EXTENSIONS:  ", gl_extensions);
     wgl_extensions = wglGetExtensionsStringARBWrapper(hdc);
     if (!wgl_extensions) wgl_extensions = "";
     glxLogExtensions("WGL_EXTENSIONS: ", wgl_extensions);
+
+    if (strcasecmp(gl_renderer, "GDI Generic") == 0)
+       {
+          free(screen);
+          LogMessage(X_ERROR,"AIGLX: Won't use generic native renderer as it is not accelerated\n");
+          return NULL;
+       }
 
     // Can you see the problem here?  The extensions string is DC specific
     // Different DCs for windows on a multimonitor system driven by multiple cards
@@ -715,9 +717,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
       __glXScreenInit(&screen->base, pScreen);
 
-      // dump out fbConfigs now fbConfigIds and visualIDs have been assigned
-      fbConfigsDump(screen->base.numFBConfigs, screen->base.fbconfigs);
-
       // Override the GL extensions string set by __glXScreenInit()
       screen->base.GLextensions = strdup(gl_extensions);
 
@@ -760,6 +759,17 @@ glxWinScreenProbe(ScreenPtr pScreen)
     wglDeleteContext(hglrc);
     ReleaseDC(hwnd, hdc);
     DestroyWindow(hwnd);
+
+    // dump out fbConfigs now fbConfigIds and visualIDs have been assigned
+    fbConfigsDump(screen->base.numFBConfigs, screen->base.fbconfigs);
+
+    /* Wrap RealizeWindow, UnrealizeWindow and CopyWindow on this screen */
+    screen->RealizeWindow = pScreen->RealizeWindow;
+    pScreen->RealizeWindow = glxWinRealizeWindow;
+    screen->UnrealizeWindow = pScreen->UnrealizeWindow;
+    pScreen->UnrealizeWindow = glxWinUnrealizeWindow;
+    screen->CopyWindow = pScreen->CopyWindow;
+    pScreen->CopyWindow = glxWinCopyWindow;
 
     return &screen->base;
 }

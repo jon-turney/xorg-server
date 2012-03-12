@@ -26,6 +26,7 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwm.c \
 	winmultiwindowwndproc.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
+MULTIWINDOW_LIBS = -lshlwapi
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -90,6 +91,7 @@ SRCS =	InitInput.c \
 	winmonitors.c \
 	winmouse.c \
 	winmsg.c \
+	winmsgwindow.c \
 	winmultiwindowclass.c \
 	winmultiwindowicons.c \
 	winprefs.c \
@@ -120,6 +122,7 @@ SRCS =	InitInput.c \
 	winprefs.h \
 	winresource.h \
 	winwindow.h \
+	windisplay.c \
 	XWin.rc \
 	$(top_srcdir)/Xext/dpmsstubs.c \
 	$(top_srcdir)/Xi/stubs.c \
@@ -147,7 +150,7 @@ XWin_SOURCES = $(SRCS)
 INCLUDES = -I$(top_srcdir)/miext/rootless
 
 XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS)
-XWin_LDADD = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_LDADD = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
 XWin_LDFLAGS = -mwindows -static
 
 .rc.o:

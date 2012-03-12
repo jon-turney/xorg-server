@@ -144,6 +144,17 @@ Win32System(const char *cmdline)
 }
 #undef System
 #define System(x) Win32System(x)
+#elif defined(__CYGWIN__)
+const char*
+Win32TempDir(void)
+{
+    if (getenv("TEMP") != NULL)
+        return getenv("TEMP");
+    else if (getenv("TMP") != NULL)
+        return getenv("TEMP");
+    else
+        return "/tmp";
+}
 #endif
 
 static void
@@ -186,7 +197,7 @@ XkbDDXCompileKeymapByNames(	XkbDescPtr		xkb,
     const char	*xkbbindir = emptystring;
     const char	*xkbbindirsep = emptystring;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     /* WIN32 has no popen. The input must be stored in a file which is
        used as input for xkbcomp. xkbcomp does not read from stdin. */
     char tmpname[PATH_MAX];
@@ -199,9 +210,9 @@ XkbDDXCompileKeymapByNames(	XkbDescPtr		xkb,
 
     OutputDirectory(xkm_output_dir, sizeof(xkm_output_dir));
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     strcpy(tmpname, Win32TempDir());
-    strcat(tmpname, "\\xkb_XXXXXX");
+    strcat(tmpname, PATHSEPARATOR "xkb_XXXXXX");
     (void) mktemp(tmpname);
 #endif
 
@@ -240,7 +251,7 @@ XkbDDXCompileKeymapByNames(	XkbDescPtr		xkb,
         return FALSE;
     }
     
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
     out= Popen(buf,"w");
 #else
     out= fopen(tmpname, "w");
@@ -254,7 +265,7 @@ XkbDDXCompileKeymapByNames(	XkbDescPtr		xkb,
     }
 #endif
 	XkbWriteXKBKeymapForNames(out,names,xkb,want,need);
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
 	if (Pclose(out)==0)
 #else
 	if (fclose(out)==0 && System(buf) >= 0)
@@ -266,14 +277,14 @@ XkbDDXCompileKeymapByNames(	XkbDescPtr		xkb,
 		strlcpy(nameRtrn,keymap,nameRtrnLen);
 	    }
             free(buf);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
 	    unlink(tmpname);
 #endif
 	    return TRUE;
 	}
 	else
 	    LogMessage(X_ERROR, "Error compiling keymap (%s)\n", keymap);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
         /* remove the temporary file */
         unlink(tmpname);
 #endif

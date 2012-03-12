@@ -49,6 +49,8 @@
 #define WINDOW_TITLE_XDMCP	"%s:%s.%d"
 #define WIN_SCR_PROP		"cyg_screen_prop rl"
 #define WINDOW_CLASS_X		"cygwin/x X rl"
+#define WINDOW_CLASS_X_CHILD    "cygwin/x X child"
+#define WINDOW_CLASS_X_MSG      "cygwin/x X msg"
 #define WINDOW_TITLE_X		PROJECT_NAME " X"
 #define WIN_WINDOW_PROP		"cyg_window_prop_rl"
 #ifdef HAS_DEVWINDOWS
@@ -160,6 +162,14 @@ winDeinitMultiWindowWM (void);
 void
 winMinimizeWindow (Window id);
 
+void
+winTaskbarInit (void);
+
+void
+winTaskbarDestroy (void);
+
+void
+winSetAppID (HWND hWnd, const char* AppID);
 
 /*
  * winmultiwindowicons.c

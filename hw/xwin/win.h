@@ -400,6 +400,8 @@ typedef struct
   DWORD			dwScreen;
 
   int			iMonitor;
+  HMONITOR              hMonitor;
+
   DWORD			dwUserWidth;
   DWORD			dwUserHeight;
   DWORD			dwWidth;
@@ -1317,6 +1319,9 @@ winAdjustXWindow (WindowPtr pWin, HWND hwnd);
 LRESULT CALLBACK
 winTopLevelWindowProc (HWND hwnd, UINT message, 
 		       WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc (HWND hwnd, UINT message,
+                    WPARAM wParam, LPARAM lParam);
 #endif
 
 
@@ -1482,6 +1487,18 @@ winDoRandRScreenSetSize (ScreenPtr  pScreen,
                          CARD16	    height,
                          CARD32	    mmWidth,
                          CARD32	    mmHeight);
+/*
+ * windisplay.c
+ */
+
+void
+winGetDisplayName(char *szDisplay, unsigned int screen);
+
+/*
+ * winmsgwindow.c
+ */
+Bool
+winCreateMsgWindowThread(void);
 
 /*
  * END DDX and DIX Function Prototypes

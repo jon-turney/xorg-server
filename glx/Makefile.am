@@ -40,11 +40,8 @@ glapi_sources =					\
 	indirect_table.c			\
 	dispatch.h				\
 	glapitable.h				\
-	glapi.c					\
 	glapi.h					\
 	glapi_gentable.c			\
-	glprocs.h				\
-	glthread.c				\
 	glthread.h
 
 libglxdri_la_SOURCES =

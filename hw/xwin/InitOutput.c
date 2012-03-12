@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -57,6 +55,7 @@ typedef WINAPI HRESULT (*SHGETFOLDERPATHPROC)(
     LPTSTR pszPath
 );
 #endif
+#include "ddxhooks.h"
 
 /*
  * References to external symbols
@@ -84,8 +83,6 @@ void
 OsVendorVErrorF (const char *pszFormat, va_list va_args);
 #endif
 
-static Bool
-winCheckDisplayNumber (void);
 
 void
 winLogCommandLine (int argc, char *argv[]);
@@ -100,6 +97,8 @@ winValidateArgs (void);
 const char *
 winGetBaseDir(void);
 #endif
+
+static void winCheckMount(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -165,13 +164,12 @@ ddxPushProviders(void)
 #endif
 }
 
-#if defined(DDXBEFORERESET)
 /*
  * Called right before KillAllClients when the server is going to reset,
  * allows us to shutdown our seperate threads cleanly.
  */
 
-void
+static void
 ddxBeforeReset (void)
 {
   winDebug ("ddxBeforeReset - Hello\n");
@@ -180,8 +178,31 @@ ddxBeforeReset (void)
   winClipboardShutdown ();
 #endif
 }
-#endif
 
+void
+ddxMain(void)
+{
+  int iReturn;
+
+  /* Initialize DDX-specific hooks */
+  ddxHooks.ddxBeforeReset = ddxBeforeReset;
+  ddxHooks.ddxPushProviders = ddxPushProviders;
+
+  /* Create & acquire the termination mutex */
+  iReturn = pthread_mutex_init (&g_pmTerminating, NULL);
+  if (iReturn != 0)
+    {
+      ErrorF ("ddxMain - pthread_mutex_init () failed: %d\n", iReturn);
+    }
+
+  iReturn = pthread_mutex_lock (&g_pmTerminating);
+  if (iReturn != 0)
+    {
+      ErrorF ("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
+    }
+
+  winCheckMount();
+}
 
 /* See Porting Layer Definition - p. 57 */
 void
@@ -202,6 +223,9 @@ ddxGiveUp (enum ExitCode error)
     }
 
 #ifdef XWIN_MULTIWINDOW
+  /* Unload libraries for taskbar grouping */
+  winTaskbarDestroy ();
+
   /* Notify the worker threads we're exiting */
   winDeinitMultiWindowWM ();
 #endif
@@ -239,8 +263,19 @@ ddxGiveUp (enum ExitCode error)
 
   /* Tell Windows that we want to end the app */
   PostQuitMessage (0);
-}
 
+  {
+    winDebug ("ddxGiveUp - Releasing termination mutex\n");
+
+    int iReturn = pthread_mutex_unlock (&g_pmTerminating);
+    if (iReturn != 0)
+      {
+        ErrorF ("winMsgWindowProc - pthread_mutex_unlock () failed: %d\n", iReturn);
+      }
+  }
+
+  winDebug ("ddxGiveUp - End\n");
+}
 
 /* See Porting Layer Definition - p. 57 */
 void
@@ -253,6 +288,8 @@ AbortDDX (enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
 {
@@ -274,6 +311,9 @@ static const char *winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -283,6 +323,7 @@ winCheckMount(void)
   enum { none = 0, sys_root, user_root, sys_tmp, user_tmp } 
     level = none, curlevel;
   BOOL binary = TRUE;
+  BOOL fat = TRUE;
 
   mnt = setmntent("/etc/mtab", "r");
   if (mnt == NULL)
@@ -325,20 +366,31 @@ winCheckMount(void)
       binary = FALSE;
     else
       binary = TRUE;
+
+    if (strcmp(ent->mnt_type, "vfat") == 0)
+      fat = TRUE;
+    else
+      fat = FALSE;
   }
-    
+
   if (endmntent(mnt) != 1)
   {
     ErrorF("endmntent failed");
     return;
   }
-  
- if (!binary) 
+
+ if (!binary)
    winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+ if (fat)
+   {
+     winMsg(X_WARNING, "/tmp mounted on FAT filesystem, activating -nolock\n");
+     nolock = TRUE;
+   }
 }
 #else
 static void
-winCheckMount(void) 
+winCheckMount(void)
 {
 }
 #endif
@@ -762,6 +814,9 @@ winUseMsg (void)
   ErrorF ("-fullscreen\n"
 	  "\tRun the server in fullscreen mode.\n");
 
+  ErrorF ("-hostintitle\n"
+	  "\tIn multiwindow mode, add remote host names to window titles.\n");
+
   ErrorF ("-ignoreinput\n"
 	  "\tIgnore keyboard and mouse input.\n");
 
@@ -825,7 +880,7 @@ winUseMsg (void)
   ErrorF ("-resize=none|scrollbars|randr"
 	  "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
 	  "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
-	  "\textension to resize the X screen.\n");
+	  "\textension to resize the X screen.  'randr' is the default.\n");
 
   ErrorF ("-rootless\n"
 	  "\tRun the server in rootless mode.\n");
@@ -859,7 +914,8 @@ winUseMsg (void)
 
 #ifdef XWIN_GLX_WINDOWS
   ErrorF ("-[no]wgl\n"
-	  "\tEnable the GLX extension to use the native Windows WGL interface for accelerated OpenGL\n");
+	  "\tEnable the GLX extension to use the native Windows WGL interface\n"
+	  "\tfor hardware-accelerated OpenGL (AIGLX). Enabled by default.\n");
 #endif
 
   ErrorF ("-[no]winkill\n"
@@ -933,15 +989,6 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 		  "Exiting.\n");
     }
 
-  /* Check for duplicate invocation on same display number.*/
-  if (serverGeneration == 1 && !winCheckDisplayNumber ())
-    {
-      if (g_fSilentDupError)
-        g_fSilentFatalError = TRUE;  
-      FatalError ("InitOutput - Duplicate invocation on display "
-		  "number: %s.  Exiting.\n", display);
-    }
-
 #ifdef XWIN_XF86CONFIG
   /* Try to read the xorg.conf-style configuration file */
   if (!winReadConfigfile ())
@@ -975,8 +1022,17 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   /* Detect supported engines */
   winDetectSupportedEngines ();
 
+#ifdef XWIN_MULTIWINDOW
+  /* Load libraries for taskbar grouping */
+  winTaskbarInit ();
+#endif
+
   /* Store the instance handle */
   g_hInstance = GetModuleHandle (NULL);
+
+  /* Create the messaging window */
+  if (serverGeneration == 1)
+    winCreateMsgWindowThread();
 
   /* Initialize each screen */
   for (i = 0; i < g_iNumScreens; ++i)
@@ -997,90 +1053,31 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
   /* Perform some one time initialization */
   if (1 == serverGeneration)
     {
+      /* Allow multiple threads to access Xlib */
+      if (XInitThreads () == 0)
+        {
+          ErrorF ("XInitThreads failed.\n");
+        }
+
       /*
        * setlocale applies to all threads in the current process.
        * Apply locale specified in LANG environment variable.
        */
-      setlocale (LC_ALL, "");
+      if (!setlocale (LC_ALL, ""))
+        {
+          ErrorF ("setlocale failed.\n");
+        }
+
+      /* See if X supports the current locale */
+      if (XSupportsLocale () == FALSE)
+        {
+          ErrorF ("Warning: Locale not supported by X, falling back to 'C' locale.\n");
+          setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
 #if CYGDEBUG || YES
   winDebug ("InitOutput - Returning.\n");
 #endif
-}
-
-
-/*
- * winCheckDisplayNumber - Check if another instance of Cygwin/X is
- * already running on the same display number.  If no one exists,
- * make a mutex to prevent new instances from running on the same display.
- *
- * return FALSE if the display number is already used.
- */
-
-static Bool
-winCheckDisplayNumber (void)
-{
-  int			nDisp;
-  HANDLE		mutex;
-  char			name[MAX_PATH];
-  char *		pszPrefix = '\0';
-  OSVERSIONINFO		osvi = {0};
-
-  /* Check display range */
-  nDisp = atoi (display);
-  if (nDisp < 0 || nDisp > 65535)
-    {
-      ErrorF ("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-      return FALSE;
-    }
-
-  /* Set first character of mutex name to null */
-  name[0] = '\0';
-
-  /* Get operating system version information */
-  osvi.dwOSVersionInfoSize = sizeof (osvi);
-  GetVersionEx (&osvi);
-
-  /* Want a mutex shared among all terminals on NT > 4.0 */
-  if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT
-      && osvi.dwMajorVersion >= 5)
-    {
-      pszPrefix = "Global\\";
-    }
-
-  /* Setup Cygwin/X specific part of name */
-  snprintf (name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
-
-  /* Windows automatically releases the mutex when this process exits */
-  mutex = CreateMutex (NULL, FALSE, name);
-  if (!mutex)
-    {
-      LPVOID lpMsgBuf;
-
-      /* Display a fancy error message */
-      FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		     FORMAT_MESSAGE_FROM_SYSTEM | 
-		     FORMAT_MESSAGE_IGNORE_INSERTS,
-		     NULL,
-		     GetLastError (),
-		     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		     (LPTSTR) &lpMsgBuf,
-		     0, NULL);
-      ErrorF ("winCheckDisplayNumber - CreateMutex failed: %s\n",
-	      (LPSTR)lpMsgBuf);
-      LocalFree (lpMsgBuf);
-
-      return FALSE;
-    }
-  if (GetLastError () == ERROR_ALREADY_EXISTS)
-    {
-      ErrorF ("winCheckDisplayNumber - "
-	      PROJECT_NAME " is already running on display %d\n",
-	      nDisp);
-      return FALSE;
-    }
-
-  return TRUE;
 }

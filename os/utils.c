@@ -235,7 +235,7 @@ OsSignal(int sig, OsSigHandlerPtr handler)
 
 static Bool StillLocking = FALSE;
 static char LockFile[PATH_MAX];
-static Bool nolock = FALSE;
+Bool nolock = FALSE;
 
 /*
  * LockServer --
@@ -661,6 +661,17 @@ ProcessCommandLine(int argc, char *argv[])
 	    else
 		UseMsg();
 	}
+	else if (strcmp(argv[i], "-displayfd") == 0)
+	{
+	    if (++i < argc)
+	    {
+		displayfd = atoi(argv[i]);
+		display = NULL;
+		nolock = TRUE;
+	    }
+	    else
+		UseMsg();
+	}
 #ifdef DPMSExtension
 	else if ( strcmp( argv[i], "dpms") == 0)
 	    /* ignored for compatibility */ ;
@@ -900,6 +911,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleInterval = atoi(argv[i]);
 		SmartScheduleSlice = SmartScheduleInterval;
 	    }
@@ -910,6 +922,7 @@ ProcessCommandLine(int argc, char *argv[])
 	{
 	    if (++i < argc)
 	    {
+		SmartScheduleDisable = FALSE;
 		SmartScheduleMaxSlice = atoi(argv[i]);
 	    }
 	    else
@@ -1249,6 +1262,25 @@ OsAbort (void)
  * as well.  As it is now, xkbcomp messages don't end up in the log file.
  */
 
+#ifdef __CYGWIN__
+#include <process.h>
+int
+System(const char *command)
+{
+    int status;
+    if (!command)
+	return 1;
+
+    DebugF("System: `%s'\n", command);
+
+    /*
+      Use spawnl() rather than execl() to implement System() on cygwin to
+      avoid fork emulation overhead and brittleness
+    */
+    status = spawnl(_P_WAIT, "/bin/sh", "sh", "-c", command, (char *)NULL);
+    return status;
+}
+#else
 int
 System(const char *command)
 {
@@ -1290,6 +1322,7 @@ System(const char *command)
 
     return p == -1 ? -1 : status;
 }
+#endif
 
 static struct pid {
     struct pid *next;
@@ -1299,6 +1332,7 @@ static struct pid {
 
 OsSigHandlerPtr old_alarm = NULL; /* XXX horrible awful hack */
 
+#if !defined(__CYGWIN__)
 pointer
 Popen(const char *command, const char *type)
 {
@@ -1383,6 +1417,7 @@ Popen(const char *command, const char *type)
 
     return iop;
 }
+#endif
 
 /* fopen that drops privileges */
 pointer

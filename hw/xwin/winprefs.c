@@ -58,10 +58,6 @@ extern int parse_file (FILE *fp);
 /* Currently in use command ID, incremented each new menu item created */
 static int g_cmdid = STARTMENUID;
 
-
-/* Defined in DIX */
-extern char *display;
-
 /* Local function to handle comma-ified icon names */
 static HICON
 LoadImageComma (char *fname, int sx, int sy, int flags);
@@ -726,6 +722,10 @@ winPrefsLoadPreferences (char *path)
         "MENU rmenu {\n"
         "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
         "  \"Launch xterm\" EXEC xterm\n"
+        "  SEPARATOR\n"
+        "  FAQ EXEC \"cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html\"\n"
+        "  \"User's Guide\" EXEC \"cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html\"\n"
+        "  SEPARATOR\n"
         "  \"Load .XWinrc\" RELOAD\n"
         "  SEPARATOR\n"
         "}\n"
@@ -809,16 +809,18 @@ LoadPreferences (void)
 
   /* Setup a DISPLAY environment variable, need to allocate on heap */
   /* because putenv doesn't copy the argument... */
-  snprintf (szDisplay, 512, "DISPLAY=127.0.0.1:%s.0", display);
-  szEnvDisplay = (char *)(malloc (strlen(szDisplay)+1));
+  winGetDisplayName(szDisplay, 0);
+  szEnvDisplay = (char *)(malloc(strlen(szDisplay)+strlen("DISPLAY=")+1));
   if (szEnvDisplay)
     {
-      strcpy (szEnvDisplay, szDisplay);
+      snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
       putenv (szEnvDisplay);
     }
 
+  /* Setup XWINLOGFILE environment variable */
+  setenv("XWINLOGFILE", g_pszLogFile, TRUE);
+
   /* Replace any "%display%" in menu commands with display string */
-  snprintf (szDisplay, 512, "127.0.0.1:%s.0", display);
   for (i=0; i<pref.menuItems; i++)
     {
       for (j=0; j<pref.menu[i].menuItems; j++)

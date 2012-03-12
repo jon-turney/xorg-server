@@ -80,6 +80,9 @@ winClipboardErrorHandler (Display *pDisplay, XErrorEvent *pErr);
 static int
 winClipboardIOErrorHandler (Display *pDisplay);
 
+static void
+winClipboardThreadExit(void *arg);
+
 /*
  * Main thread function
  */
@@ -105,7 +108,9 @@ winClipboardProc (void *pvNotUsed)
   char			szDisplay[512];
   int			iSelectError;
 
-  ErrorF ("winClipboardProc - Hello\n");
+  pthread_cleanup_push(&winClipboardThreadExit, NULL);
+
+  winDebug ("winClipboardProc - Hello\n");
   ++clipboardRestarts;
 
   /* Do we have Unicode support? */
@@ -116,19 +121,6 @@ winClipboardProc (void *pvNotUsed)
 
   /* Save the Unicode support flag in a global */
   g_fUseUnicode = fUseUnicode;
-
-  /* Allow multiple threads to access Xlib */
-  if (XInitThreads () == 0)
-    {
-      ErrorF ("winClipboardProc - XInitThreads failed.\n");
-      goto winClipboardProc_Exit;
-    }
-
-  /* See if X supports the current locale */
-  if (XSupportsLocale () == False)
-    {
-      ErrorF ("winClipboardProc - Warning: Locale not supported by X.\n");
-    }
 
   /* Set error handler */
   XSetErrorHandler (winClipboardErrorHandler);
@@ -149,9 +141,9 @@ winClipboardProc (void *pvNotUsed)
     }
   else if (iReturn == WIN_JMP_ERROR_IO)
     {
-      /* TODO: Cleanup the Win32 window and free any allocated memory */
-      ErrorF ("winClipboardProc - setjmp returned for IO Error Handler.\n");
-      pthread_exit (NULL);
+      /* TODO: cleanup and free any allocated memory */
+      ErrorF("winClipboardProc - setjmp returned for IO Error Handler\n");
+      goto winClipboardProc_Done;
     }
 
   /* Use our generated cookie for authentication */
@@ -168,10 +160,7 @@ winClipboardProc (void *pvNotUsed)
    * for all screens on the display.  That is why there is only
    * one clipboard client thread.
    */
-  snprintf (szDisplay,
-	    512,
-	    "127.0.0.1:%s.0",
-	    display);
+  winGetDisplayName(szDisplay, 0);
 
   /* Print the display connection string */
   ErrorF ("winClipboardProc - DISPLAY=%s\n", szDisplay);
@@ -201,7 +190,7 @@ winClipboardProc (void *pvNotUsed)
       goto winClipboardProc_Done;
     }
 
-  /* Save the display in the screen privates */
+  /* Save the display in a global used by the wndproc */
   g_pClipboardDisplay = pDisplay;
 
   ErrorF ("winClipboardProc - XOpenDisplay () returned and "
@@ -298,7 +287,10 @@ winClipboardProc (void *pvNotUsed)
 
   /* Pre-flush Windows messages */
   if (!winClipboardFlushWindowsMessageQueue (hwnd))
-    return 0;
+    {
+      ErrorF ("winClipboardProc - winClipboardFlushWindowsMessageQueue failed\n");
+      pthread_exit (NULL);
+    }
 
   /* Signal that the clipboard client has started */
   g_fClipboardStarted = TRUE;
@@ -478,6 +470,8 @@ winClipboardProc_Done:
       kill(getpid(), SIGTERM);
     }
 
+  pthread_cleanup_pop(0);
+
   return NULL;
 }
 
@@ -524,4 +518,15 @@ winClipboardIOErrorHandler (Display *pDisplay)
     g_winClipboardOldIOErrorHandler(pDisplay);
 
   return 0;
+}
+
+/*
+ * winClipboardThreadExit - Thread exit handler
+ */
+
+static void
+winClipboardThreadExit(void *arg)
+{
+  /* clipboard thread has exited, stop server as well */
+  kill(getpid(), SIGTERM);
 }

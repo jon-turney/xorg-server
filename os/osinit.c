@@ -72,10 +72,6 @@ SOFTWARE.
 #include <sys/resource.h>
 #endif
 
-#ifndef ADMPATH
-#define ADMPATH "/usr/adm/X%smsgs"
-#endif
-
 extern char *display;
 #ifdef RLIMIT_DATA
 int limitDataSpace = -1;
@@ -203,39 +199,6 @@ OsInit(void)
 	fclose(stdin);
 	fclose(stdout);
 #endif
-	/* 
-	 * If a write of zero bytes to stderr returns non-zero, i.e. -1, 
-	 * then writing to stderr failed, and we'll write somewhere else 
-	 * instead. (Apparently this never happens in the Real World.)
-	 */
-	if (write (2, fname, 0) == -1) 
-	{
-	    FILE *err;
-
-	    if (strlen (display) + strlen (ADMPATH) + 1 < sizeof fname)
-		snprintf (fname, sizeof(fname), ADMPATH, display);
-	    else
-		strcpy (fname, devnull);
-	    /*
-	     * uses stdio to avoid os dependencies here,
-	     * a real os would use
- 	     *  open (fname, O_WRONLY|O_APPEND|O_CREAT, 0666)
-	     */
-	    if (!(err = fopen (fname, "a+")))
-		err = fopen (devnull, "w");
-	    if (err && (fileno(err) != 2)) {
-		dup2 (fileno (err), 2);
-		fclose (err);
-	    }
-#if defined(SYSV) || defined(SVR4) || defined(WIN32) || defined(__CYGWIN__)
-	    {
-	    static char buf[BUFSIZ];
-	    setvbuf (stderr, buf, _IOLBF, BUFSIZ);
-	    }
-#else
-	    setlinebuf(stderr);
-#endif
-	}
 
 	if (getpgrp () == 0)
 	    setpgid (0, 0);

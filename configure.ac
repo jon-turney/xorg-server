@@ -1040,7 +1040,7 @@ if test "x$GLX" = xyes; then
 	AC_SUBST(XLIB_CFLAGS)
 	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
 	GLX_LIBS='$(top_builddir)/glx/libglx.la'
-	GLX_SYS_LIBS="$GLX_SYS_LIBS"
+	GLX_SYS_LIBS="$GLX_SYS_LIBS -lglapi"
 else
         GLX=no
 fi
@@ -1835,8 +1835,9 @@ if test "x$XWIN" = xyes; then
 			XWIN_SYS_LIBS=-lwinsock2
 			;;
 	esac
+
 	XWIN_LIBS="$FB_LIB $MI_LIB $FIXES_LIB $XEXT_LIB $RANDR_LIB $RENDER_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $XKB_LIB $XKB_STUB_LIB $COMPOSITE_LIB $DAMAGE_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $OS_LIB"
-	XWIN_SYS_LIBS="$XWIN_SYS_LIBS $XWINMODULES_LIBS"
+	XWIN_SYS_LIBS="$XWIN_SYS_LIBS $XWINMODULES_LIBS $GLX_SYS_LIBS"
 	AC_SUBST(XWIN_LIBS)
 	AC_SUBST(XWIN_SERVER_NAME)
 	AC_SUBST(XWIN_SYS_LIBS)
@@ -1848,7 +1849,7 @@ if test "x$XWIN" = xyes; then
 	fi
 
 	AC_DEFINE(DDXOSVERRORF, 1, [Use OsVendorVErrorF])
-	AC_DEFINE(DDXBEFORERESET, 1, [Use ddxBeforeReset ])
+	AC_DEFINE(DDXMAIN, 1, [Use ddxMain])
 
 dnl XWin with AIGLX requires OpenGL spec files in order to generate wrapper code for native GL functions
 	if [test "x$XWIN" = xyes && test "x$AIGLX" = xyes] ; then

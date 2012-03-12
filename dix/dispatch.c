@@ -131,6 +131,7 @@ int ProcInitialConnection();
 #include "xkbsrv.h"
 #include "site.h"
 #include "client.h"
+#include "ddxhooks.h"
 
 #ifdef XSERVER_DTRACE
 #include "registry.h"
@@ -225,7 +226,11 @@ UpdateCurrentTimeIf(void)
 #define SMART_SCHEDULE_DEFAULT_INTERVAL	20	    /* ms */
 #define SMART_SCHEDULE_MAX_SLICE	200	    /* ms */
 
+#ifdef __CYGWIN__
+Bool SmartScheduleDisable = TRUE;
+#else
 Bool SmartScheduleDisable = FALSE;
+#endif
 long SmartScheduleSlice = SMART_SCHEDULE_DEFAULT_INTERVAL;
 long SmartScheduleInterval = SMART_SCHEDULE_DEFAULT_INTERVAL;
 long SmartScheduleMaxSlice = SMART_SCHEDULE_MAX_SLICE;
@@ -466,9 +471,10 @@ Dispatch(void)
 	}
 	dispatchException &= ~DE_PRIORITYCHANGE;
     }
-#if defined(DDXBEFORERESET)
-    ddxBeforeReset ();
-#endif
+
+    if (ddxHooks.ddxBeforeReset)
+      ddxHooks.ddxBeforeReset();
+
     KillAllClients();
     free(clientReady);
     dispatchException &= ~DE_RESET;
