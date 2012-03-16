@@ -518,7 +518,7 @@ winChangeDepthDlgProc (HWND hwndDialog, UINT message,
 	{
 	case IDOK:
 	case IDCANCEL:
-	  ErrorF ("winChangeDepthDlgProc - WM_COMMAND - IDOK or IDCANCEL\n");
+	  winDebug ("winChangeDepthDlgProc - WM_COMMAND - IDOK or IDCANCEL\n");
 
 	  /* 
 	   * User dismissed the dialog, hide it until the
@@ -530,7 +530,7 @@ winChangeDepthDlgProc (HWND hwndDialog, UINT message,
       break;
 
     case WM_CLOSE:
-      ErrorF ("winChangeDepthDlgProc - WM_CLOSE\n");
+      winDebug ("winChangeDepthDlgProc - WM_CLOSE\n");
 
       DestroyWindow (g_hDlgAbout);
       g_hDlgAbout = NULL;
@@ -643,7 +643,7 @@ winAboutDlgProc (HWND hwndDialog, UINT message,
 	{
 	case IDOK:
 	case IDCANCEL:
-	  ErrorF ("winAboutDlgProc - WM_COMMAND - IDOK or IDCANCEL\n");
+	  winDebug ("winAboutDlgProc - WM_COMMAND - IDOK or IDCANCEL\n");
 
 	  DestroyWindow (g_hDlgAbout);
 	  g_hDlgAbout = NULL;
@@ -752,7 +752,7 @@ winAboutDlgProc (HWND hwndDialog, UINT message,
       break;
 
     case WM_CLOSE:
-      ErrorF ("winAboutDlgProc - WM_CLOSE\n");
+      winDebug ("winAboutDlgProc - WM_CLOSE\n");
 
       DestroyWindow (g_hDlgAbout);
       g_hDlgAbout = NULL;
