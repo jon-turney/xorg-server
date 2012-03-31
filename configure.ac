@@ -2153,6 +2153,7 @@ miext/shadow/Makefile
 miext/cw/Makefile
 miext/rootless/Makefile
 os/Makefile
+pseudoramiX/Makefile
 randr/Makefile
 render/Makefile
 xkb/Makefile
