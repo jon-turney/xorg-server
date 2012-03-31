@@ -633,10 +633,14 @@ UpdateIcon (WMInfoPtr pWMInfo, Window iWindow)
 {
   HWND hWnd;
   HICON hIconNew = NULL;
+  XWindowAttributes attr;
 
   hWnd = getHwnd (pWMInfo, iWindow);
   if (!hWnd) return;
 
+  /* If window isn't override-redirect */
+  XGetWindowAttributes (pWMInfo->pDisplay, iWindow, &attr);
+  if (!attr.override_redirect)
   {
     XClassHint class_hint = {0,0};
     char *window_name = 0;
@@ -897,8 +901,12 @@ winMultiWindowWMProc (void *pArg)
             HWND zstyle = HWND_NOTOPMOST;
             UINT flags;
             Bool onTaskbar;
+            XWindowAttributes attr;
 
-            /* XXX: probably should check for override-redirect and not do anything */
+            /* Don't do anything if this is an override-redirect window */
+            XGetWindowAttributes (pWMInfo->pDisplay, pNode->msg.iWindow, &attr);
+            if (attr.override_redirect)
+              break;
 
             pNode->msg.hwndWindow = getHwnd(pWMInfo, pNode->msg.iWindow);
 
