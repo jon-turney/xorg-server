@@ -30,6 +30,10 @@
  *              Colin Harrison
  */
 
+#ifndef WINVER
+#define WINVER 0x0500
+#endif
+
 /* X headers */
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
@@ -182,6 +186,9 @@ CheckAnotherWindowManager(xcb_connection_t *conn, DWORD dwScreen);
 
 static void
  winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle);
+
+static void
+ winApplyUrgency(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd);
 
 /*
  * Local globals
@@ -708,6 +715,9 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
     winShowWindowOnTaskbar(hWnd,
                            (GetWindowLongPtr(hWnd, GWL_EXSTYLE) &
                             WS_EX_APPWINDOW) ? TRUE : FALSE);
+
+    /* Check urgency hint */
+    winApplyUrgency(pWMInfo, iWindow, hWnd);
 }
 
 /*
@@ -1691,6 +1701,40 @@ winDeinitMultiWindowWM(void)
 {
     ErrorF("winDeinitMultiWindowWM - Noting shutdown in progress\n");
     g_shutdown = TRUE;
+}
+
+static void
+winApplyUrgency(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd)
+{
+    xcb_get_property_cookie_t cookie;
+    xcb_icccm_wm_hints_t hints;
+
+    cookie = xcb_icccm_get_wm_hints(pWMInfo->conn, iWindow);
+    if (xcb_icccm_get_wm_hints_reply(pWMInfo->conn, cookie, &hints, NULL)) {
+        FLASHWINFO fwi;
+
+        fwi.cbSize = sizeof(FLASHWINFO);
+        fwi.hwnd = hWnd;
+
+        winDebug("winApplyUrgency: window 0x%08x has urgency hint %s\n", iWindow,
+                 (hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) ? "on" : "off");
+
+        if (hints.flags & XCB_ICCCM_WM_HINT_X_URGENCY) {
+            DWORD count = 3;
+
+            SystemParametersInfo(SPI_GETFOREGROUNDFLASHCOUNT, 0, &count, 0);
+            fwi.dwFlags = FLASHW_TRAY;
+            fwi.uCount = count;
+            fwi.dwTimeout = 0;
+        }
+        else {
+            fwi.dwFlags = FLASHW_STOP;
+            fwi.uCount = 0;
+            fwi.dwTimeout = 0;
+        }
+
+        FlashWindowEx(&fwi);
+    }
 }
 
 /* Windows window styles */
