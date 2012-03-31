@@ -30,6 +30,10 @@
  *              Colin Harrison
  */
 
+#ifndef WINVER
+#define WINVER 0x0500
+#endif
+
 /* X headers */
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
@@ -199,6 +203,9 @@ static Bool
 
 CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
                           Bool fAllowOtherWM);
+
+static void
+ winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd);
 
 static void
  winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
@@ -686,6 +693,9 @@ UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
      */
     onTaskbar = GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_APPWINDOW;
     wintaskbar(hWnd, onTaskbar);
+
+    /* Check urgency hint */
+    winApplyUrgency(pWMInfo->pDisplay, iWindow, hWnd);
 }
 
 #if 0
@@ -1632,6 +1642,40 @@ winDeinitMultiWindowWM(void)
 {
     ErrorF("winDeinitMultiWindowWM - Noting shutdown in progress\n");
     g_shutdown = TRUE;
+}
+
+static void
+winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd)
+{
+    XWMHints *hints = XGetWMHints(pDisplay, iWindow);
+
+    if (hints) {
+        FLASHWINFO fwi;
+
+        fwi.cbSize = sizeof(FLASHWINFO);
+        fwi.hwnd = hWnd;
+
+        winDebug("winApplyUrgency: window 0x%08x has urgency hint %s\n",
+                 iWindow, (hints->flags & XUrgencyHint) ? "on" : "off");
+
+        if (hints->flags & XUrgencyHint) {
+            DWORD count = 3;
+
+            SystemParametersInfo(SPI_GETFOREGROUNDFLASHCOUNT, 0, &count, 0);
+            fwi.dwFlags = FLASHW_TRAY;
+            fwi.uCount = count;
+            fwi.dwTimeout = 0;
+        }
+        else {
+            fwi.dwFlags = FLASHW_STOP;
+            fwi.uCount = 0;
+            fwi.dwTimeout = 0;
+        }
+
+        FlashWindowEx(&fwi);
+
+        XFree(hints);
+    }
 }
 
 /* Windows window styles */
