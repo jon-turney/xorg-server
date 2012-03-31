@@ -2237,6 +2237,7 @@ miext/damage/Makefile
 miext/shadow/Makefile
 miext/rootless/Makefile
 os/Makefile
+pseudoramiX/Makefile
 randr/Makefile
 render/Makefile
 xkb/Makefile
