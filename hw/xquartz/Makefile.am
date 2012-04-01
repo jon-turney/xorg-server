@@ -28,7 +28,6 @@ libXquartz_la_SOURCES = \
 	darwinEvents.c \
 	darwinXinput.c \
 	keysym2ucs.c \
-	pseudoramiX.c \
 	quartz.c \
 	quartzCocoa.m \
 	quartzKeyboard.c \
