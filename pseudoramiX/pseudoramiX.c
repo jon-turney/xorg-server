@@ -266,7 +266,7 @@ static int ProcPseudoramiXGetScreenSize(ClientPtr client)
 
     TRACE;
     
-    if (stuff->screen >= PanoramiXNumScreens)
+    if (stuff->screen >= pseudoramiXNumScreens)
       return BadMatch;
 
     REQUEST_SIZE_MATCH(xPanoramiXGetScreenSizeReq);
