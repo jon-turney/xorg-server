@@ -1589,9 +1589,9 @@ xf86GetBppFromDepth(ScrnInfoPtr pScrn, int depth)
 	return 0;
 }
 
-#ifdef DDXBEFORERESET
+#ifdef DDXMAIN
 void
-ddxBeforeReset(void)
+ddxMain(void)
 {
 }
 #endif
