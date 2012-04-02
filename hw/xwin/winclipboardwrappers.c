@@ -62,7 +62,6 @@ DISPATCH_PROC(winProcSetSelectionOwner);
  * References to external symbols
  */
 
-extern Bool		g_fUnicodeSupport;
 extern int		g_iNumScreens;
 extern unsigned int	g_uiAuthDataLen;
 extern char		*g_pAuthData;
@@ -208,7 +207,8 @@ winProcSetSelectionOwner (ClientPtr client)
   
   REQUEST_SIZE_MATCH(xSetSelectionOwnerReq);
 
-  winDebug("winProcSetSelectionOwner - Hello.\n");
+  winDebug("winProcSetSelectionOwner - Hello. atom 0x%08x window XID 0x%08x \n",
+           stuff->selection, stuff->window);
 
   /* Watch for server reset */
   if (s_ulServerGeneration != serverGeneration)
@@ -264,8 +264,8 @@ winProcSetSelectionOwner (ClientPtr client)
       /* Save new selection owner or None */
       s_iOwners[CLIP_OWN_PRIMARY] = stuff->window;
 
-      winDebug("winProcSetSelectionOwner - PRIMARY - Now owned by: %d\n",
-	      stuff->window);
+      winDebug("winProcSetSelectionOwner - PRIMARY - Now owned by XID 0x%08x\n",
+               stuff->window);
     }
   else if (MakeAtom ("CLIPBOARD", 9, TRUE) == stuff->selection)
     {
@@ -288,7 +288,7 @@ winProcSetSelectionOwner (ClientPtr client)
       /* Save new selection owner or None */
       s_iOwners[CLIP_OWN_CLIPBOARD] = stuff->window;
 
-      winDebug("winProcSetSelectionOwner - CLIPBOARD - Now owned by: %d\n",
+      winDebug("winProcSetSelectionOwner - CLIPBOARD - Now owned by XID 0x%08x\n",
                stuff->window);
 
     }
@@ -387,11 +387,8 @@ winProcSetSelectionOwner (ClientPtr client)
       goto winProcSetSelectionOwner_Done;
     }
 
-  /* Advertise Unicode if we support it */
-  if (g_fUnicodeSupport)
-    SetClipboardData (CF_UNICODETEXT, NULL);
-
-  /* Always advertise regular text */
+  /* Advertise regular text and unicode */
+  SetClipboardData (CF_UNICODETEXT, NULL);
   SetClipboardData (CF_TEXT, NULL);
 
   /* Save handle to last owned selection */

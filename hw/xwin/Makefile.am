@@ -5,7 +5,6 @@ SRCS_CLIPBOARD = \
 	winclipboardinit.c \
 	winclipboardtextconv.c \
 	winclipboardthread.c \
-	winclipboardunicode.c \
 	winclipboardwndproc.c \
 	winclipboardwrappers.c \
 	winclipboardxevents.c
@@ -26,7 +25,7 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwm.c \
 	winmultiwindowwndproc.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_LIBS = -lshlwapi
+MULTIWINDOW_LIBS = -lshlwapi -lole32
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -103,6 +102,7 @@ SRCS =	InitInput.c \
 	winshaddd.c \
 	winshadddnl.c \
 	winshadgdi.c \
+	wintaskbar.c \
 	wintrayicon.c \
 	winvalargs.c \
 	winwakeup.c \
@@ -148,6 +148,8 @@ SRCS =	InitInput.c \
 XWin_SOURCES = $(SRCS)
 
 INCLUDES = -I$(top_srcdir)/miext/rootless
+
+XWIN_LIBS += 	$(top_builddir)/pseudoramix/libPseudoramiX.la
 
 XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS)
 XWin_LDADD = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)

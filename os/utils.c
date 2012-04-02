@@ -1332,7 +1332,6 @@ static struct pid {
 
 OsSigHandlerPtr old_alarm = NULL; /* XXX horrible awful hack */
 
-#if !defined(__CYGWIN__)
 pointer
 Popen(const char *command, const char *type)
 {
@@ -1417,7 +1416,6 @@ Popen(const char *command, const char *type)
 
     return iop;
 }
-#endif
 
 /* fopen that drops privileges */
 pointer

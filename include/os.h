@@ -84,7 +84,9 @@ typedef struct _NewClientRec *NewClientPtr;
 #include <stdio.h>
 #include <stdarg.h>
 
-extern void ddxMain(void);
+#ifdef DDXMAIN
+extern _X_HIDDEN void ddxMain(void);
+#endif
 
 #ifdef DDXOSVERRORF
 extern _X_EXPORT void (*OsVendorVErrorFProc)(const char *, va_list args);

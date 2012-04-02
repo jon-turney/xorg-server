@@ -66,7 +66,6 @@ static int clipboardRestarts = 0;
 static XIOErrorHandler g_winClipboardOldIOErrorHandler;
 static pthread_t g_winClipboardProcThread;
 
-Bool				g_fUnicodeSupport = FALSE;
 Bool				g_fUseUnicode = FALSE;
 
 
@@ -113,11 +112,8 @@ winClipboardProc (void *pvNotUsed)
   winDebug ("winClipboardProc - Hello\n");
   ++clipboardRestarts;
 
-  /* Do we have Unicode support? */
-  g_fUnicodeSupport = winClipboardDetectUnicodeSupport ();
-
   /* Do we use Unicode clipboard? */
-  fUseUnicode = g_fUnicodeClipboard && g_fUnicodeSupport;
+  fUseUnicode = g_fUnicodeClipboard;
 
   /* Save the Unicode support flag in a global */
   g_fUseUnicode = fUseUnicode;
@@ -313,6 +309,8 @@ winClipboardProc (void *pvNotUsed)
       tvTimeout.tv_usec = 100;
 #endif
 
+      winDebug ("winClipboardProc - Waiting in select\n");
+
       /* Wait for a Windows event or an X event */
       iReturn = select (iMaxDescriptor,	/* Highest fds number */
 			&fdsRead,	/* Read mask */
@@ -345,9 +343,13 @@ winClipboardProc (void *pvNotUsed)
 	  break;
 	}
 
+      winDebug ("winClipboardProc - select returned %d\n", iReturn);
+
       /* Branch on which descriptor became active */
       if (FD_ISSET (iConnectionNumber, &fdsRead))
 	{
+          winDebug ("winClipboardProc - X connection ready, pumping X event queue\n");
+
 	  /* Process X events */
 	  /* Exit when we see that server is shutting down */
 	  iReturn = winClipboardFlushXEvents (hwnd,
@@ -369,6 +371,8 @@ winClipboardProc (void *pvNotUsed)
       if (1)
 #endif
 	{
+          winDebug ("winClipboardProc - /dev/windows ready, pumping Windows message queue\n");
+
 	  /* Process Windows messages */
 	  if (!winClipboardFlushWindowsMessageQueue (hwnd))
 	    {
@@ -378,6 +382,11 @@ winClipboardProc (void *pvNotUsed)
 	      break;
 	    }
 	}
+
+      if (!(FD_ISSET(iConnectionNumber, &fdsRead)) && !(FD_ISSET(fdMessageQueue, &fdsRead)))
+        {
+          winDebug ("winClipboardProc - Spurious wake\n");
+        }
     }
 
 winClipboardProc_Exit:
