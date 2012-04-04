@@ -2,6 +2,6 @@
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
-noinst_LTLIBRARIES = libPseudoramix.la
+noinst_LTLIBRARIES = libPseudoramiX.la
 
-libPseudoramix_la_SOURCES = pseudoramiX.c pseudoramiX.h
+libPseudoramiX_la_SOURCES = pseudoramiX.c pseudoramiX.h
