@@ -58,13 +58,14 @@ extern HINSTANCE g_hInstance;
 static void
 winScaleXImageToWindowsIcon(int iconSize,
                             int effBPP,
+                            int stride,
                             XImage *pixmap,
                             unsigned char *image)
 {
   int			row, column, effXBPP, effXDepth;
   unsigned char		*outPtr;
   unsigned char		*iconData = 0;
-  int			stride, xStride;
+  int			xStride;
   float			factX, factY;
   int			posX, posY;
   unsigned char		*ptr;
@@ -79,21 +80,10 @@ winScaleXImageToWindowsIcon(int iconSize,
   if (pixmap->depth == 15)
     effXDepth = 16;
 
-  /* Need 16-bit aligned rows for DDBitmaps */
-  stride = ((iconSize * effBPP + 15) & (~15)) / 8;
   xStride = pixmap->bytes_per_line;
   if (stride == 0 || xStride == 0)
     {
       ErrorF ("winScaleXBitmapToWindows - stride or xStride is zero.  "
-	      "Bailing.\n");
-      return;
-    }
-
-  /* Allocate memory for icon data */
-  iconData = malloc (xStride * pixmap->height);
-  if (!iconData)
-    {
-      ErrorF ("winScaleXBitmapToWindows - malloc failed for iconData.  "
 	      "Bailing.\n");
       return;
     }
@@ -386,7 +376,7 @@ winXIconToHICON (Display *pDisplay, Window id, int iconSize)
 {
   unsigned char		*mask, *image = NULL, *imageMask;
   unsigned char		*dst, *src;
-  int			planes, bpp, effBPP, stride, maskStride, i;
+  int			planes, bpp, i;
   int			biggest_size = 0;
   HDC			hDC;
   ICONINFO		ii;
@@ -413,9 +403,10 @@ winXIconToHICON (Display *pDisplay, Window id, int iconSize)
      _XA_NET_WM_ICON = XInternAtom(pDisplay, "_NET_WM_ICON", FALSE);
   }
 
-  if (XGetWindowProperty(pDisplay, id, _XA_NET_WM_ICON,
-                         0, MAXINT, FALSE,
-                         AnyPropertyType, &type, &format, &size, &left, (unsigned char **)&icon_data) == Success)
+  if ((XGetWindowProperty(pDisplay, id, _XA_NET_WM_ICON,
+                          0, MAXINT, FALSE,
+                          AnyPropertyType, &type, &format, &size, &left, (unsigned char **)&icon_data) == Success) &&
+      (icon_data != NULL))
     {
       for(icon = icon_data;
 	  icon < &icon_data[size] && *icon;
@@ -462,28 +453,46 @@ winXIconToHICON (Display *pDisplay, Window id, int iconSize)
               int x, y;
               unsigned int width, height, border_width, depth;
               XImage *xImageIcon;
-              XImage *xImageMask;
+              XImage *xImageMask = NULL;
 
               XGetGeometry(pDisplay, hints->icon_pixmap, &root, &x, &y, &width, &height, &border_width, &depth);
 
               xImageIcon = XGetImage(pDisplay, hints->icon_pixmap, 0, 0, width, height, 0xFFFFFFFF, ZPixmap);
               winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%x\n", id, xImageIcon);
 
-              xImageMask = XGetImage(pDisplay, hints->icon_mask, 0, 0, width, height, 0xFFFFFFFF, ZPixmap);
+              if (hints->icon_mask)
+                xImageMask = XGetImage(pDisplay, hints->icon_mask, 0, 0, width, height, 0xFFFFFFFF, ZPixmap);
 
               if (xImageIcon)
                 {
+                  int effBPP, stride, maskStride;
+
+                  /* 15 BPP is really 16BPP as far as we care */
+                  if (bpp == 15)
+                    effBPP = 16;
+                  else
+                    effBPP = bpp;
+
+                  /* Need 16-bit aligned rows for DDBitmaps */
+                  stride = ((iconSize * effBPP + 15) & (~15)) / 8;
+
+                  /* Mask is 1-bit deep */
+                  maskStride = ((iconSize * 1 + 15) & (~15)) / 8;
+
                   image = malloc (stride * iconSize);
                   imageMask = malloc (stride * iconSize);
-                  /* Default to a completely black mask */
-                  mask = calloc (maskStride, iconSize);
+                  mask = malloc (maskStride * iconSize);
 
-                  winScaleXImageToWindowsIcon(iconSize, effBPP, xImageIcon, image);
+                  /* Default to a completely black mask */
+                  memset(imageMask, 0, stride * iconSize);
+                  memset(mask, 0, maskStride * iconSize);
+
+                  winScaleXImageToWindowsIcon(iconSize, effBPP, stride, xImageIcon, image);
 
                   if (xImageMask)
                     {
-                      winScaleXImageToWindowsIcon(iconSize, 1, xImageMask, mask);
-                      winScaleXImageToWindowsIcon(iconSize, effBPP, xImageMask, imageMask);
+                      winScaleXImageToWindowsIcon(iconSize, 1, maskStride, xImageMask, mask);
+                      winScaleXImageToWindowsIcon(iconSize, effBPP, stride, xImageMask, imageMask);
                     }
 
                   /* Now we need to set all bits of the icon which are not masked */
