@@ -196,16 +196,18 @@ ReloadEnumWindowsProc (HWND hwnd, LPARAM lParam)
         winWMMessageRec wmMsg;
 
         WindowPtr pWin = GetProp(hwnd, WIN_WINDOW_PROP);
-        winPrivWinPtr pWinPriv = winGetWindowPriv(pWin);
-        winPrivScreenPtr s_pScreenPriv = pWinPriv->pScreenPriv;
+        if (pWin)
+          {
+            winPrivWinPtr pWinPriv = winGetWindowPriv(pWin);
+            winPrivScreenPtr s_pScreenPriv = pWinPriv->pScreenPriv;
 
-        wmMsg.msg = WM_WM_ICON_EVENT;
-        wmMsg.hwndWindow = hwnd;
-        wmMsg.iWindow = (Window)GetProp(hwnd, WIN_WID_PROP);
+            wmMsg.msg = WM_WM_ICON_EVENT;
+            wmMsg.hwndWindow = hwnd;
+            wmMsg.iWindow = (Window)GetProp(hwnd, WIN_WID_PROP);
 
-        winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+            winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+          }
       }
-
       /* Update the system menu for this window */
       SetupSysMenu ((unsigned long)hwnd);
 
