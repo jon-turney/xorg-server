@@ -1916,6 +1916,9 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     if (hint & HINT_NOSYSMENU)
         style = style & ~WS_SYSMENU;
 
+    if (hint & HINT_SKIPTASKBAR)
+        style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
+
     SetWindowLongPtr(hWnd, GWL_STYLE, style);
 
     /* now we have iTaskbar, use that as well */
