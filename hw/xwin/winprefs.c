@@ -166,7 +166,6 @@ static wBOOL CALLBACK
 ReloadEnumWindowsProc (HWND hwnd, LPARAM lParam)
 {
   HICON   hicon;
-  Window  wid;
 
   if (!hwnd) {
     ErrorF("ReloadEnumWindowsProc: hwnd==NULL!\n");
