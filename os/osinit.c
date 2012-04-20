@@ -102,6 +102,7 @@ OsRegisterSigWrapper(OsSigWrapperPtr newSigWrapper)
  * OsSigHandler --
  *    Catch unexpected signals and exit or continue cleanly.
  */
+#ifndef X_NOT_POSIX
 static void
 #ifdef SA_SIGINFO
 OsSigHandler(int signo, siginfo_t * sip, void *unused)
@@ -146,6 +147,7 @@ OsSigHandler(int signo)
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));
 }
+#endif
 
 void
 OsInit(void)
@@ -155,6 +157,7 @@ OsInit(void)
     char fname[PATH_MAX];
 
     if (!been_here) {
+#ifndef X_NOT_POSIX
         struct sigaction act, oact;
         int i;
 
@@ -202,6 +205,8 @@ OsInit(void)
 
         dlinfo(RTLD_SELF, RTLD_DI_SETSIGNAL, &failure_signal);
 #endif
+
+#endif /* !X_NOT_POSIX */
 
 #if !defined(__CYGWIN__)
         fclose(stdin);
