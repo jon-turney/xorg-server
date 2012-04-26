@@ -69,13 +69,11 @@
 
 typedef struct _winPrivScreenRec *winPrivScreenPtr;
 
-
 /*
  * Window privates
  */
 
-typedef struct
-{
+typedef struct {
   DWORD			dwDummy;
   HRGN			hRgn;
   HWND			hWnd;
@@ -105,7 +103,6 @@ typedef struct _winWMMessageRec{
   int			iX, iY;
   int			iWidth, iHeight;
 } winWMMessageRec, *winWMMessagePtr;
-
 
 /*
  * winmultiwindowwm.c
@@ -143,19 +140,19 @@ contains 5... we only need the first 3... so that is all we will define */
 typedef struct MwmHints {
   unsigned long		flags, functions, decorations;
 } MwmHints;
+
 #define		PropMwmHintsElements	3
 
 void
 winSendMessageToWM (void *pWMInfo, winWMMessagePtr msg);
 
 Bool
+
 winInitWM (void **ppWMInfo,
 	   pthread_t *ptWMProc,
 	   pthread_t *ptXMsgProc,
 	   pthread_mutex_t *ppmServerStarted,
-	   int dwScreen,
-	   HWND hwndScreen,
-	   BOOL allowOtherWM);
+          int dwScreen, HWND hwndScreen, BOOL allowOtherWM);
 
 void
 winDeinitMultiWindowWM (void);

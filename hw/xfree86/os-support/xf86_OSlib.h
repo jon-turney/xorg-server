@@ -91,7 +91,6 @@
 # include <sys/stat.h>
 # include <sys/types.h>
 
-
 # include <errno.h>
 
 # if defined(_NEED_SYSI86)
@@ -157,7 +156,6 @@
 # if !defined(VT_ACKACQ)
 #  define VT_ACKACQ 2
 # endif /* !VT_ACKACQ */
-
 
 # if defined(SVR4) 
 #  include <sys/mman.h>
@@ -357,7 +355,6 @@
 # include <limits.h>
 # undef _POSIX_SOURCE
 #endif /* _POSIX_SOURCE */
-
 
 #ifndef DEV_MEM
 #define DEV_MEM "/dev/mem"

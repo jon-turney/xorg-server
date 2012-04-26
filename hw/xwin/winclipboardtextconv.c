@@ -57,8 +57,7 @@ winClipboardDOStoUNIX (char *pszData, int iLength)
   winDebug("DOXtoUNIX() - Original data:'%s'\n", pszData);
 
   /* Loop until the last character */
-  while (pszSrc < pszEnd)
-    {
+    while (pszSrc < pszEnd) {
       /* Copy the current source character to current destination character */
       *pszDest = *pszSrc;
 
@@ -76,7 +75,6 @@ winClipboardDOStoUNIX (char *pszData, int iLength)
   winDebug("DOStoUNIX() - Final string:'%s'\n", pszData);
 }
 
-
 /*
  * Convert \n to \r\n
  */
@@ -92,18 +90,15 @@ winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength)
   winDebug("UNIXtoDOS () - Original data:'%s'\n", *ppszData);
 
   /* Count \n characters without leading \r */
-  while (pszSrc < pszEnd)
-    {
+    while (pszSrc < pszEnd) {
       /* Skip ahead two character if found set of \r\n */
-      if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n')
-	{
+        if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n') {
 	  pszSrc += 2;
 	  continue;
 	} 
 
       /* Increment the count if found naked \n */
-      if (*pszSrc == '\n')
-	{
+        if (*pszSrc == '\n') {
 	  iNewlineCount++;
 	}
 
@@ -124,11 +119,9 @@ winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength)
   pszSrc = *ppszData;
 
   /* Loop through all characters in source string */
-  while (pszSrc < pszEnd)
-    {
+    while (pszSrc < pszEnd) {
       /* Copy line endings that are already valid */
-      if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n')
-	{
+        if (*pszSrc == '\r' && pszSrc + 1 < pszEnd && *(pszSrc + 1) == '\n') {
 	  *pszDest = *pszSrc;
 	  *(pszDest + 1) = *(pszSrc + 1);
 	  pszDest += 2;
@@ -137,8 +130,7 @@ winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength)
 	}
 
       /* Add \r to naked \n's */
-      if (*pszSrc == '\n')
-	{
+        if (*pszSrc == '\n') {
 	  *pszDest = '\r';
 	  *(pszDest + 1) = *pszSrc;
 	  pszDest += 2;

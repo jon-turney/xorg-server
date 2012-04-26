@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -127,9 +126,11 @@ pthread_cond_t serverRunningCond = PTHREAD_COND_INITIALIZER;
 
 int dix_main(int argc, char *argv[], char *envp[]);
 
-int dix_main(int argc, char *argv[], char *envp[])
+int
+dix_main(int argc, char *argv[], char *envp[])
 #else
-int main(int argc, char *argv[], char *envp[])
+int
+main(int argc, char *argv[], char *envp[])
 #endif
 {
     int		i;
@@ -153,8 +154,7 @@ int main(int argc, char *argv[], char *envp[])
 
     alwaysCheckForInput[0] = 0;
     alwaysCheckForInput[1] = 1;
-    while(1)
-    {
+    while (1) {
 	serverGeneration++;
 	ScreenSaverTime = defaultScreenSaverTime;
 	ScreenSaverInterval = defaultScreenSaverInterval;
@@ -166,6 +166,8 @@ int main(int argc, char *argv[], char *envp[])
 	DPMSPowerLevel = 0;
 #endif
 	InitBlockAndWakeupHandlers();
+        /* Perform any operating system dependent initializations you'd like */
+        OsInit();
 
 	if(serverGeneration == 1)
 	{
@@ -179,9 +181,6 @@ int main(int argc, char *argv[], char *envp[])
 	}
 	else
 	    ResetWellKnownSockets ();
-
-	/* Perform any operating system dependent initializations you'd like */
-	OsInit();
 
 	clients[0] = serverClient;
 	currentMaxClients = 1;
@@ -214,9 +213,9 @@ int main(int argc, char *argv[], char *envp[])
 	    FatalError("no screens found");
 	InitExtensions(argc, argv);
 
-	for (i = 0; i < screenInfo.numScreens; i++)
-	{
+        for (i = 0; i < screenInfo.numScreens; i++) {
 	    ScreenPtr pScreen = screenInfo.screens[i];
+
 	    if (!CreateScratchPixmapsForScreen(i))
 		FatalError("failed to create scratch pixmaps");
 	    if (pScreen->CreateScreenResources &&
@@ -232,7 +231,8 @@ int main(int argc, char *argv[], char *envp[])
 
 	InitFonts();
 	if (SetDefaultFontPath(defaultFontPath) != Success) {
-	    ErrorF("[dix] failed to set default font path '%s'", defaultFontPath);
+            ErrorF("[dix] failed to set default font path '%s'",
+                   defaultFontPath);
 	}
 	if (!SetDefaultFont(defaultTextFont)) {
 	    FatalError("could not open default font '%s'", defaultTextFont);
@@ -273,7 +273,8 @@ int main(int argc, char *argv[], char *envp[])
 	    if (!PanoramiXCreateConnectionBlock()) {
 		FatalError("could not create connection block info");
 	    }
-	} else
+        }
+        else
 #endif
 	{
 	    if (!CreateConnectionBlock()) {
@@ -311,6 +312,7 @@ int main(int argc, char *argv[], char *envp[])
 #ifdef PANORAMIX
 	{
 	    Bool remember_it = noPanoramiXExtension;
+
 	    noPanoramiXExtension = TRUE;
 	    FreeAllResources();
 	    noPanoramiXExtension = remember_it;
@@ -326,8 +328,7 @@ int main(int argc, char *argv[], char *envp[])
 	CloseDownDevices();
 	CloseDownEvents();
 
-	for (i = screenInfo.numScreens - 1; i >= 0; i--)
-	{
+        for (i = screenInfo.numScreens - 1; i >= 0; i--) {
 	    FreeScratchPixmapsForScreen(i);
 	    FreeGCperDepth(i);
 	    FreeDefaultStipple(i);
@@ -345,15 +346,13 @@ int main(int argc, char *argv[], char *envp[])
 
 	FreeAuditTimer();
 
-	if (dispatchException & DE_TERMINATE)
-	{
+        if (dispatchException & DE_TERMINATE) {
 	    CloseWellKnownConnections();
 	}
 
 	OsCleanup((dispatchException & DE_TERMINATE) != 0);
 
-	if (dispatchException & DE_TERMINATE)
-	{
+        if (dispatchException & DE_TERMINATE) {
 	    ddxGiveUp(EXIT_NO_ERROR);
 	    break;
 	}
@@ -363,4 +362,3 @@ int main(int argc, char *argv[], char *envp[])
     }
     return 0;
 }
-

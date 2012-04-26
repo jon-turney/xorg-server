@@ -102,17 +102,14 @@ winScaleXImageToWindowsIcon(int iconSize,
   /* Out-of-bounds, fill icon with zero */
   zero = 0;
  
-  for (row = 0; row < iconSize; row++)
-    {
+    for (row = 0; row < iconSize; row++) {
       outPtr = image + stride * row;
-      for (column = 0; column < iconSize; column++)
-	{
+        for (column = 0; column < iconSize; column++) {
 	  posX = factX * column;
 	  posY = factY * row;
 	  
 	  ptr = (unsigned char*) iconData + posY*xStride;
-	  if (effXBPP == 1)
-	    {
+            if (effXBPP == 1) {
 	      ptr += posX / 8;
 	      
 	      /* Out of X icon bounds, leave space blank */
@@ -121,8 +118,7 @@ winScaleXImageToWindowsIcon(int iconSize,
 		ptr = (unsigned char *) &zero;
 	      
 	      if ((*ptr) & (1 << (posX & 7)))
-		switch (effBPP)
-		  {
+                    switch (effBPP) {
 		  case 32:
 		    *(outPtr++) = 0;
 		  case 24:
@@ -137,8 +133,7 @@ winScaleXImageToWindowsIcon(int iconSize,
 		    break;
 		  }
 	      else
-		switch (effBPP)
-		  {
+                    switch (effBPP) {
 		  case 32:
 		    *(outPtr++) = 255;
 		    *(outPtr++) = 255;
@@ -157,8 +152,7 @@ winScaleXImageToWindowsIcon(int iconSize,
 		    break;
 		  }
 	    }
-	  else if (effXDepth == 24 || effXDepth == 32)
-	    {
+            else if (effXDepth == 24 || effXDepth == 32) {
 	      ptr += posX * (effXBPP / 8);
 
 	      /* Out of X icon bounds, leave space blank */
@@ -168,8 +162,7 @@ winScaleXImageToWindowsIcon(int iconSize,
 	      color = (((*ptr) << 16)
 		       + ((*(ptr + 1)) << 8)
 		       + ((*(ptr + 2)) << 0));
-	      switch (effBPP)
-		{
+                switch (effBPP) {
 		case 32:
 		  *(outPtr++) = *(ptr++); /* b */
 		  *(outPtr++) = *(ptr++); /* g */
@@ -200,8 +193,7 @@ winScaleXImageToWindowsIcon(int iconSize,
 		    outPtr[column / 8] &= ~(1 << (7 - (column & 7)));
 		}
 	    }
-	  else if (effXDepth == 16)
-	    {
+            else if (effXDepth == 16) {
 	      ptr += posX * (effXBPP / 8);
 	
 	      /* Out of X icon bounds, leave space blank */
@@ -209,8 +201,7 @@ winScaleXImageToWindowsIcon(int iconSize,
 		  || posY >= pixmap->height)
 		ptr = (unsigned char *) &zero;
 	      color = ((*ptr) << 8) + (*(ptr + 1));
-	      switch (effBPP)
-		{
+                switch (effBPP) {
 		case 32:
 		  *(outPtr++) = (color & 31) << 2;
 		  *(outPtr++) = ((color >> 5) & 31) << 2;
@@ -270,7 +261,8 @@ NetWMToWinIconAlpha(uint32_t *icon)
   ii.xHotspot = 0; /* ignored */
   ii.yHotspot = 0; /* ignored */
   ii.hbmColor = CreateDIBSection(hdc, (BITMAPINFO*)&bmh,
-                DIB_RGB_COLORS, (void**)&DIB_pixels, NULL, 0);
+                                   DIB_RGB_COLORS, (void **) &DIB_pixels, NULL,
+                                   0);
   ReleaseDC(NULL, hdc);
   ii.hbmMask = CreateBitmap(width, height, 1, 1, NULL);
   memcpy(DIB_pixels, pixels, height*width*4);
@@ -313,7 +305,8 @@ NetWMToWinIconThreshold(uint32_t *icon)
   for (row = 0; row < height; row++) {
     for (col = 0; col < width; col++) {
       if ((*pixels & 0xFF000000) > 31<<24) { /* 31 alpha threshold, i.e. opaque above, transparent below */
-	SetPixelV(xorDC, col, row, RGB(((char*)pixels)[2], ((char*)pixels)[1],
+                SetPixelV(xorDC, col, row,
+                          RGB(((char *) pixels)[2], ((char *) pixels)[1],
 		((char*)pixels)[0]));
 	SetPixelV(andDC, col, row, RGB(0, 0, 0)); /* black mask */
       }
@@ -332,7 +325,8 @@ NetWMToWinIconThreshold(uint32_t *icon)
   DeleteObject(ii.hbmColor);
   DeleteObject(ii.hbmMask );
 
-  winDebug("NetWMToWinIconThreshold - %d x %d = %p\n", icon[0], icon[1], result);
+    winDebug("NetWMToWinIconThreshold - %d x %d = %p\n", icon[0], icon[1],
+             result);
   return result;
 }
 
@@ -342,8 +336,7 @@ NetWMToWinIcon(int bpp, uint32_t *icon)
   static Bool hasIconAlphaChannel = FALSE;
   static BOOL versionChecked = FALSE;
 
-  if (!versionChecked)
-    {
+    if (!versionChecked) {
       OSVERSIONINFOEX osvi = {0};
       ULONGLONG dwlConditionMask = 0;
 
@@ -352,12 +345,17 @@ NetWMToWinIcon(int bpp, uint32_t *icon)
       osvi.dwMinorVersion = 1;
 
       /* Windows versions later than XP have icon alpha channel suport, 2000 does not */
-      VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
-      VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
-      hasIconAlphaChannel = VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
+        VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION,
+                          VER_GREATER_EQUAL);
+        VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION,
+                          VER_GREATER_EQUAL);
+        hasIconAlphaChannel =
+            VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION,
+                              dwlConditionMask);
       versionChecked = TRUE;
 
-      ErrorF("OS has icon alpha channel support: %s\n", hasIconAlphaChannel ? "yes" : "no");
+        ErrorF("OS has icon alpha channel support: %s\n",
+               hasIconAlphaChannel ? "yes" : "no");
     }
 
   if (hasIconAlphaChannel && (bpp==32))
@@ -578,25 +576,24 @@ winUpdateIcon (HWND hWnd, Display *pDisplay, Window id, HICON hIconNew)
   winDestroyIcon(hIconOld);
 }
 
-void winInitGlobalIcons (void)
+void
+winInitGlobalIcons(void)
 {
   int sm_cx = GetSystemMetrics(SM_CXICON);
   int sm_cxsm = GetSystemMetrics(SM_CXSMICON);
+
   /* Load default X icon in case it's not ready yet */
-  if (!g_hIconX)
-    {
+    if (!g_hIconX) {
       g_hIconX = winOverrideDefaultIcon(sm_cx);
       g_hSmallIconX = winOverrideDefaultIcon(sm_cxsm);
     }
 
-  if (!g_hIconX)
-    {
+    if (!g_hIconX) {
       g_hIconX = (HICON)LoadImage (g_hInstance,
 	      MAKEINTRESOURCE(IDI_XWIN),
 	      IMAGE_ICON,
 	      GetSystemMetrics(SM_CXICON),
-	      GetSystemMetrics(SM_CYICON),
-	      0);
+                                     GetSystemMetrics(SM_CYICON), 0);
       g_hSmallIconX = (HICON)LoadImage (g_hInstance,
 	      MAKEINTRESOURCE(IDI_XWIN),
 	      IMAGE_ICON,
@@ -606,7 +603,8 @@ void winInitGlobalIcons (void)
     }
 }
 
-void winSelectIcons(HICON *pIcon, HICON *pSmallIcon)
+void
+winSelectIcons(HICON *pIcon, HICON *pSmallIcon)
 {
   HICON hIcon, hSmallIcon;
 
@@ -623,13 +621,13 @@ void winSelectIcons(HICON *pIcon, HICON *pSmallIcon)
     *pSmallIcon = hSmallIcon;
 }
 
-void winDestroyIcon(HICON hIcon)
+void
+winDestroyIcon(HICON hIcon)
 {
   /* Delete the icon if its not one of the application defaults or an override */
   if (hIcon &&
       hIcon != g_hIconX &&
-      hIcon != g_hSmallIconX &&
-      !winIconIsOverride((unsigned long)hIcon))
+        hIcon != g_hSmallIconX && !winIconIsOverride((unsigned long) hIcon))
     DestroyIcon (hIcon);
 }
 #endif

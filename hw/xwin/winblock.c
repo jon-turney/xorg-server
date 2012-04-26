@@ -37,9 +37,7 @@
 /* See Porting Layer Definition - p. 6 */
 void
 winBlockHandler (int nScreen,
-		 pointer pBlockData,
-		 pointer pTimeout,
-		 pointer pReadMask)
+                pointer pBlockData, pointer pTimeout, pointer pReadMask)
 {
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
   winScreenPriv((ScreenPtr)pBlockData);
@@ -47,8 +45,8 @@ winBlockHandler (int nScreen,
 
 #ifndef HAS_DEVWINDOWS
   struct timeval **tvp = pTimeout;
-  if (*tvp != NULL) 
-  {
+
+    if (*tvp != NULL) {
     (*tvp)->tv_sec = 0;
     (*tvp)->tv_usec = 100;
   }
@@ -74,8 +72,7 @@ winBlockHandler (int nScreen,
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
   /* Signal threaded modules to begin */
-  if (pScreenPriv != NULL && !pScreenPriv->fServerStarted)
-    {
+    if (pScreenPriv != NULL && !pScreenPriv->fServerStarted) {
       int		iReturn;
 
       ErrorF ("winBlockHandler - pthread_mutex_unlock()\n");
@@ -85,8 +82,7 @@ winBlockHandler (int nScreen,
 
       /* Unlock the mutex for threaded modules */
       iReturn = pthread_mutex_unlock (&pScreenPriv->pmServerStarted);
-      if (iReturn != 0)
-	{
+        if (iReturn != 0) {
 	  ErrorF ("winBlockHandler - pthread_mutex_unlock () failed: %d\n",
 		  iReturn);
 	}

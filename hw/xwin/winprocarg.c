@@ -88,14 +88,15 @@ winInitializeScreenDefaults(void)
   dwWidth = GetSystemMetrics (SM_CXSCREEN);
   dwHeight = GetSystemMetrics (SM_CYSCREEN);
 
-  winErrorFVerb(2, "winInitializeScreenDefaults - primary monitor w %d h %d\n", (int) dwWidth, (int) dwHeight);
+    winErrorFVerb(2,
+                  "winInitializeScreenDefaults - primary monitor w %d h %d\n",
+                  (int) dwWidth, (int) dwHeight);
 
   /* Set a default DPI, if no '-dpi' option was used */
-  if (monitorResolution == 0)
-    {
+    if (monitorResolution == 0) {
       HDC hdc = GetDC(NULL);
-      if (hdc)
-        {
+
+        if (hdc) {
           int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
           int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
 
@@ -116,7 +117,8 @@ winInitializeScreenDefaults(void)
   defaultScreenInfo.dwHeight = dwHeight;
   defaultScreenInfo.dwUserWidth  = dwWidth;
   defaultScreenInfo.dwUserHeight = dwHeight;
-  defaultScreenInfo.fUserGaveHeightAndWidth = WIN_DEFAULT_USER_GAVE_HEIGHT_AND_WIDTH;
+    defaultScreenInfo.fUserGaveHeightAndWidth =
+        WIN_DEFAULT_USER_GAVE_HEIGHT_AND_WIDTH;
   defaultScreenInfo.fUserGavePosition = FALSE;
   defaultScreenInfo.dwBPP = WIN_DEFAULT_BPP;
   defaultScreenInfo.dwClipUpdatesNBoxes = WIN_DEFAULT_CLIP_UPDATES_NBOXES;
@@ -173,10 +175,10 @@ winInitializeScreens(int maxscreens)
   int i;
   winErrorFVerb (3, "winInitializeScreens - %i\n", maxscreens);
 
-  if (maxscreens > g_iNumScreens)
-    {
+    if (maxscreens > g_iNumScreens) {
       /* Reallocate the memory for DDX-specific screen info */
-      g_ScreenInfo = realloc(g_ScreenInfo, maxscreens * sizeof (winScreenInfo));
+        g_ScreenInfo =
+            realloc(g_ScreenInfo, maxscreens * sizeof(winScreenInfo));
 
       /* Set default values for any new screens */
       for (i = g_iNumScreens; i < maxscreens ; i++)
@@ -219,8 +221,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   winScreenInfo	*screenInfoPtr = NULL;
 
   /* Initialize once */
-  if (!s_fBeenHere)
-    {
+    if (!s_fBeenHere) {
 #ifdef DDXOSVERRORF
       /*
        * This initialises our hook into VErrorF () for catching log messages
@@ -233,8 +234,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
 
       /* Initialize only if option is not -help */
       if (!IS_OPTION("-help") && !IS_OPTION("-h") && !IS_OPTION("--help") &&
-          !IS_OPTION("-version") && !IS_OPTION("--version"))
-	{
+            !IS_OPTION("-version") && !IS_OPTION("--version")) {
 
           /* Log the version information */
           winLogVersionInfo ();
@@ -260,8 +260,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-help' and similar options
    */ 
-  if (IS_OPTION ("-help") || IS_OPTION("-h") || IS_OPTION("--help"))
-    {
+    if (IS_OPTION("-help") || IS_OPTION("-h") || IS_OPTION("--help")) {
       /* Reset logfile. We don't need that helpmessage in the logfile */  
       g_pszLogFile = NULL;
       g_fNoHelpMessageBox = TRUE;
@@ -270,8 +269,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
       return 1;
     }
 
-  if (IS_OPTION ("-version") || IS_OPTION("--version"))
-    {
+    if (IS_OPTION("-version") || IS_OPTION("--version")) {
       /* Reset logfile. We don't need that versioninfo in the logfile */  
       g_pszLogFile = NULL;
       winLogVersionInfo ();
@@ -282,21 +280,18 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-screen scr_num [width height]' argument
    */
-  if (IS_OPTION ("-screen"))
-    {
+    if (IS_OPTION("-screen")) {
       int		iArgsProcessed = 1;
       int		nScreenNum;
       int		iWidth, iHeight, iX, iY;
       int		iMonitor;
 
 #if CYGDEBUG
-      winDebug ("ddxProcessArgument - screen - argc: %d i: %d\n",
-	      argc, i);
+        winDebug("ddxProcessArgument - screen - argc: %d i: %d\n", argc, i);
 #endif
 
       /* Display the usage message if the argument is malformed */
-      if (i + 1 >= argc)
-	{
+        if (i + 1 >= argc) {
 	  return 0;
 	}
       
@@ -304,8 +299,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
       nScreenNum = atoi (argv[i + 1]);
 
       /* Validate the specified screen number */
-      if (nScreenNum < 0)
-        {
+        if (nScreenNum < 0) {
           ErrorF ("ddxProcessArgument - screen - Invalid screen number %d\n",
 		  nScreenNum);
           UseMsg ();
@@ -321,16 +315,17 @@ ddxProcessArgument (int argc, char *argv[], int i)
       winInitializeScreens(nScreenNum+1);
 
 	  /* look for @m where m is monitor number */
-	  if (i + 2 < argc
-		  && 1 == sscanf(argv[i + 2], "@%d", (int *) &iMonitor)) 
-      {
+        if (i + 2 < argc && 1 == sscanf(argv[i + 2], "@%d", (int *) &iMonitor)) {
         struct GetMonitorInfoData data;
-        if (!QueryMonitor(iMonitor, &data))
-        {
-            ErrorF ("ddxProcessArgument - screen - Querying monitors failed\n");
-        } else if (data.bMonitorSpecifiedExists == TRUE) 
-        {
-		  winErrorFVerb(2, "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n", iMonitor);
+
+            if (!QueryMonitor(iMonitor, &data)) {
+                ErrorF
+                    ("ddxProcessArgument - screen - Querying monitors failed\n");
+            }
+            else if (data.bMonitorSpecifiedExists == TRUE) {
+                winErrorFVerb(2,
+                              "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n",
+                              iMonitor);
 		  iArgsProcessed = 3;
 		  g_ScreenInfo[nScreenNum].fUserGaveHeightAndWidth = FALSE;
 		  g_ScreenInfo[nScreenNum].fUserGavePosition = TRUE;
@@ -343,10 +338,10 @@ ddxProcessArgument (int argc, char *argv[], int i)
 		  g_ScreenInfo[nScreenNum].dwInitialX = data.monitorOffsetX;
 		  g_ScreenInfo[nScreenNum].dwInitialY = data.monitorOffsetY;
 		}
-		else 
-        {
+            else {
 		  /* monitor does not exist, error out */
-		  ErrorF ("ddxProcessArgument - screen - Invalid monitor number %d\n",
+                ErrorF
+                    ("ddxProcessArgument - screen - Invalid monitor number %d\n",
 				  iMonitor);
 		  UseMsg ();
 		  exit (0);
@@ -357,10 +352,9 @@ ddxProcessArgument (int argc, char *argv[], int i)
       /* Look for 'WxD' or 'W D' */
       else if (i + 2 < argc
 	  && 2 == sscanf (argv[i + 2], "%dx%d",
-			  (int *) &iWidth,
-			  (int *) &iHeight))
-	{
-	  winErrorFVerb (2, "ddxProcessArgument - screen - Found ``WxD'' arg\n");
+                                (int *) &iWidth, (int *) &iHeight)) {
+            winErrorFVerb(2,
+                          "ddxProcessArgument - screen - Found ``WxD'' arg\n");
 	  iArgsProcessed = 3;
 	  g_ScreenInfo[nScreenNum].fUserGaveHeightAndWidth = TRUE;
 	  g_ScreenInfo[nScreenNum].dwWidth = iWidth;
@@ -369,33 +363,32 @@ ddxProcessArgument (int argc, char *argv[], int i)
 	  g_ScreenInfo[nScreenNum].dwUserHeight = iHeight;
 	  /* Look for WxD+X+Y */
 	  if (2 == sscanf (argv[i + 2], "%*dx%*d+%d+%d",
-			   (int *) &iX,
-			   (int *) &iY))
-	  {
-	    winErrorFVerb (2, "ddxProcessArgument - screen - Found ``X+Y'' arg\n");
+                            (int *) &iX, (int *) &iY)) {
+                winErrorFVerb(2,
+                              "ddxProcessArgument - screen - Found ``X+Y'' arg\n");
 	    g_ScreenInfo[nScreenNum].fUserGavePosition = TRUE;
 	    g_ScreenInfo[nScreenNum].dwInitialX = iX;
 	    g_ScreenInfo[nScreenNum].dwInitialY = iY;
 
 		/* look for WxD+X+Y@m where m is monitor number. take X,Y to be offsets from monitor's root position */
 		if (1 == sscanf (argv[i + 2], "%*dx%*d+%*d+%*d@%d",
-						 (int *) &iMonitor)) 
-        {
+                                (int *) &iMonitor)) {
           struct GetMonitorInfoData data;
-          if (!QueryMonitor(iMonitor, &data))
-          {
-              ErrorF ("ddxProcessArgument - screen - Querying monitors failed\n");
-          } else if (data.bMonitorSpecifiedExists == TRUE) 
-          {
+
+                    if (!QueryMonitor(iMonitor, &data)) {
+                        ErrorF
+                            ("ddxProcessArgument - screen - Querying monitors failed\n");
+                    }
+                    else if (data.bMonitorSpecifiedExists == TRUE) {
 			g_ScreenInfo[nScreenNum].iMonitor = iMonitor;
                         g_ScreenInfo[nScreenNum].hMonitor = data.monitorHandle;
 			g_ScreenInfo[nScreenNum].dwInitialX += data.monitorOffsetX;
 			g_ScreenInfo[nScreenNum].dwInitialY += data.monitorOffsetY;
 		  }
-		  else 
-          {
+                    else {
 			/* monitor does not exist, error out */
-			ErrorF ("ddxProcessArgument - screen - Invalid monitor number %d\n",
+                        ErrorF
+                            ("ddxProcessArgument - screen - Invalid monitor number %d\n",
 					iMonitor);
 			UseMsg ();
 			exit (0);
@@ -406,26 +399,27 @@ ddxProcessArgument (int argc, char *argv[], int i)
 	  }
 
 	  /* look for WxD@m where m is monitor number */
-	  else if (1 == sscanf(argv[i + 2], "%*dx%*d@%d",
-						   (int *) &iMonitor)) 
-      {
+            else if (1 == sscanf(argv[i + 2], "%*dx%*d@%d", (int *) &iMonitor)) {
         struct GetMonitorInfoData data;
-        if (!QueryMonitor(iMonitor, &data))
-        {
-		  ErrorF ("ddxProcessArgument - screen - Querying monitors failed\n");
-        } else if (data.bMonitorSpecifiedExists == TRUE) 
-        {
-		  winErrorFVerb (2, "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n", iMonitor);
+
+                if (!QueryMonitor(iMonitor, &data)) {
+                    ErrorF
+                        ("ddxProcessArgument - screen - Querying monitors failed\n");
+                }
+                else if (data.bMonitorSpecifiedExists == TRUE) {
+                    winErrorFVerb(2,
+                                  "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n",
+                                  iMonitor);
 		  g_ScreenInfo[nScreenNum].fUserGavePosition = TRUE;
 		  g_ScreenInfo[nScreenNum].iMonitor = iMonitor;
 		  g_ScreenInfo[nScreenNum].hMonitor = data.monitorHandle;
 		  g_ScreenInfo[nScreenNum].dwInitialX = data.monitorOffsetX;
 		  g_ScreenInfo[nScreenNum].dwInitialY = data.monitorOffsetY;
 		}
-		else 
-        {
+                else {
 		  /* monitor does not exist, error out */
-		  ErrorF ("ddxProcessArgument - screen - Invalid monitor number %d\n",
+                    ErrorF
+                        ("ddxProcessArgument - screen - Invalid monitor number %d\n",
 				  iMonitor);
 		  UseMsg ();
 		  exit (0);
@@ -434,35 +428,29 @@ ddxProcessArgument (int argc, char *argv[], int i)
 
 	  }
 	}
-      else if (i + 3 < argc
-	       && 1 == sscanf (argv[i + 2], "%d",
-			       (int *) &iWidth)
-	       && 1 == sscanf (argv[i + 3], "%d",
-			       (int *) &iHeight))
-	{
-	  winErrorFVerb (2, "ddxProcessArgument - screen - Found ``W D'' arg\n");
+        else if (i + 3 < argc && 1 == sscanf(argv[i + 2], "%d", (int *) &iWidth)
+                 && 1 == sscanf(argv[i + 3], "%d", (int *) &iHeight)) {
+            winErrorFVerb(2,
+                          "ddxProcessArgument - screen - Found ``W D'' arg\n");
 	  iArgsProcessed = 4;
 	  g_ScreenInfo[nScreenNum].fUserGaveHeightAndWidth = TRUE;
 	  g_ScreenInfo[nScreenNum].dwWidth = iWidth;
 	  g_ScreenInfo[nScreenNum].dwHeight = iHeight;
 	  g_ScreenInfo[nScreenNum].dwUserWidth = iWidth;
 	  g_ScreenInfo[nScreenNum].dwUserHeight = iHeight;
-	  if (i + 5 < argc
-	      && 1 == sscanf (argv[i + 4], "%d",
-			      (int *) &iX)
-	      && 1 == sscanf (argv[i + 5], "%d",
-			      (int *) &iY))
-	  {
-	    winErrorFVerb (2, "ddxProcessArgument - screen - Found ``X Y'' arg\n");
+            if (i + 5 < argc && 1 == sscanf(argv[i + 4], "%d", (int *) &iX)
+                && 1 == sscanf(argv[i + 5], "%d", (int *) &iY)) {
+                winErrorFVerb(2,
+                              "ddxProcessArgument - screen - Found ``X Y'' arg\n");
 	    iArgsProcessed = 6;
 	    g_ScreenInfo[nScreenNum].fUserGavePosition = TRUE;
 	    g_ScreenInfo[nScreenNum].dwInitialX = iX;
 	    g_ScreenInfo[nScreenNum].dwInitialY = iY;
 	  }
 	}
-      else
-	{
-	  winErrorFVerb (2, "ddxProcessArgument - screen - Did not find size arg. "
+        else {
+            winErrorFVerb(2,
+                          "ddxProcessArgument - screen - Did not find size arg. "
 		  "dwWidth: %d dwHeight: %d\n",
 		  (int) g_ScreenInfo[nScreenNum].dwWidth,
 		  (int) g_ScreenInfo[nScreenNum].dwHeight);
@@ -483,7 +471,6 @@ ddxProcessArgument (int argc, char *argv[], int i)
       return iArgsProcessed;
     }
 
-
   /*
    * Is this parameter attached to a screen or global?
    *
@@ -496,26 +483,22 @@ ddxProcessArgument (int argc, char *argv[], int i)
    * for that screen
    *
    */
-  if (iLastScreen == -1)
-    {
+    if (iLastScreen == -1) {
       screenInfoPtr = &defaultScreenInfo;
     }
-  else
-    {
+    else {
       screenInfoPtr = &(g_ScreenInfo[iLastScreen]);
     }
 
   /*
    * Look for the '-engine n' argument
    */
-  if (IS_OPTION ("-engine"))
-    {
+    if (IS_OPTION("-engine")) {
       DWORD		dwEngine = 0;
       CARD8		c8OnBits = 0;
       
       /* Display the usage message if the argument is malformed */
-      if (++i >= argc)
-	{
+        if (++i >= argc) {
 	  UseMsg ();
 	  return 0;
 	}
@@ -527,8 +510,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
       c8OnBits = winCountBits (dwEngine);
 
       /* Argument should only have a single bit on */
-      if (c8OnBits != 1)
-	{
+        if (c8OnBits != 1) {
 	  UseMsg ();
 	  return 0;
 	}
@@ -542,8 +524,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-fullscreen' argument
    */
-  if (IS_OPTION ("-fullscreen"))
-    {
+    if (IS_OPTION("-fullscreen")) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
           if (!screenInfoPtr->fMultiMonitorOverride)
             screenInfoPtr->fMultipleMonitors = FALSE;
@@ -557,8 +538,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-lesspointer' argument
    */
-  if (IS_OPTION ("-lesspointer"))
-    {
+    if (IS_OPTION("-lesspointer")) {
       screenInfoPtr->fLessPointer = TRUE;
 
       /* Indicate that we have processed this argument */
@@ -568,8 +548,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-nodecoration' argument
    */
-  if (IS_OPTION ("-nodecoration"))
-    {
+    if (IS_OPTION("-nodecoration")) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
       if (!screenInfoPtr->fMultiMonitorOverride)
         screenInfoPtr->fMultipleMonitors = FALSE;
@@ -584,8 +563,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-mwextwm' argument
    */
-  if (IS_OPTION ("-mwextwm"))
-    {
+    if (IS_OPTION("-mwextwm")) {
       if (!screenInfoPtr->fMultiMonitorOverride)
         screenInfoPtr->fMultipleMonitors = TRUE;
       screenInfoPtr->fMWExtWM = TRUE;
@@ -596,8 +574,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-internalwm' argument
    */
-  if (IS_OPTION ("-internalwm"))
-    {
+    if (IS_OPTION("-internalwm")) {
       if (!screenInfoPtr->fMultiMonitorOverride)
         screenInfoPtr->fMultipleMonitors = TRUE;
       screenInfoPtr->fMWExtWM = TRUE;
@@ -611,8 +588,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-rootless' argument
    */
-  if (IS_OPTION ("-rootless"))
-    {
+    if (IS_OPTION("-rootless")) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
       if (!screenInfoPtr->fMultiMonitorOverride)
         screenInfoPtr->fMultipleMonitors = FALSE;
@@ -627,8 +603,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-multiwindow' argument
    */
-  if (IS_OPTION ("-multiwindow"))
-    {
+    if (IS_OPTION("-multiwindow")) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
       if (!screenInfoPtr->fMultiMonitorOverride)
         screenInfoPtr->fMultipleMonitors = TRUE;
@@ -644,8 +619,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
    * Look for the '-multiplemonitors' argument
    */
   if (IS_OPTION ("-multiplemonitors")
-      || IS_OPTION ("-multimonitors"))
-    {
+        || IS_OPTION("-multimonitors")) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
       screenInfoPtr->fMultiMonitorOverride = TRUE;
 #endif
@@ -659,8 +633,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
    * Look for the '-nomultiplemonitors' argument
    */
   if (IS_OPTION ("-nomultiplemonitors")
-      || IS_OPTION ("-nomultimonitors"))
-    {
+        || IS_OPTION("-nomultimonitors")) {
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
       screenInfoPtr->fMultiMonitorOverride = TRUE;
 #endif
@@ -670,12 +643,10 @@ ddxProcessArgument (int argc, char *argv[], int i)
       return 1;
     }
 
-
   /*
    * Look for the '-scrollbars' argument
    */
-  if (IS_OPTION ("-scrollbars"))
-    {
+    if (IS_OPTION("-scrollbars")) {
 
       screenInfoPtr->iResizeMode = resizeWithScrollbars;
 
@@ -687,32 +658,31 @@ ddxProcessArgument (int argc, char *argv[], int i)
    * Look for the '-resize' argument
    */
   if (IS_OPTION ("-resize") || IS_OPTION ("-noresize") ||
-      (strncmp(argv[i], "-resize=",strlen("-resize=")) == 0))
-    {
+        (strncmp(argv[i], "-resize=", strlen("-resize=")) == 0)) {
       winResizeMode mode;
 
       if (IS_OPTION ("-resize"))
         mode = resizeWithRandr;
       else if (IS_OPTION ("-noresize"))
         mode = notAllowed;
-      else if (strncmp(argv[i], "-resize=",strlen("-resize=")) == 0)
-        {
+        else if (strncmp(argv[i], "-resize=", strlen("-resize=")) == 0) {
           char *option = argv[i] + strlen("-resize=");
+
           if (strcmp(option, "randr") == 0)
             mode = resizeWithRandr;
           else if (strcmp(option, "scrollbars") == 0)
             mode = resizeWithScrollbars;
           else if (strcmp(option, "none") == 0)
             mode = notAllowed;
-          else
-            {
-              ErrorF ("ddxProcessArgument - resize - Invalid resize mode %s\n", option);
+            else {
+                ErrorF("ddxProcessArgument - resize - Invalid resize mode %s\n",
+                       option);
               return 0;
             }
         }
-      else
-        {
-          ErrorF ("ddxProcessArgument - resize - Invalid resize option %s\n", argv[i]);
+        else {
+            ErrorF("ddxProcessArgument - resize - Invalid resize option %s\n",
+                   argv[i]);
           return 0;
         }
 
@@ -726,8 +696,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-clipboard' argument
    */
-  if (IS_OPTION ("-clipboard"))
-    {
+    if (IS_OPTION("-clipboard")) {
       /* Now the default, we still accept the arg for backwards compatibility */
       g_fClipboard = TRUE;
 
@@ -738,8 +707,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-noclipboard' argument
    */
-  if (IS_OPTION ("-noclipboard"))
-    {
+    if (IS_OPTION("-noclipboard")) {
       g_fClipboard = FALSE;
 
       /* Indicate that we have processed this argument */
@@ -747,12 +715,10 @@ ddxProcessArgument (int argc, char *argv[], int i)
     }
 #endif
 
-
   /*
    * Look for the '-ignoreinput' argument
    */
-  if (IS_OPTION ("-ignoreinput"))
-    {
+    if (IS_OPTION("-ignoreinput")) {
       screenInfoPtr->fIgnoreInput = TRUE;
 
       /* Indicate that we have processed this argument */
@@ -762,21 +728,16 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-emulate3buttons' argument
    */
-  if (IS_OPTION ("-emulate3buttons"))
-    {
+    if (IS_OPTION("-emulate3buttons")) {
       int	iArgsProcessed = 1;
       int	iE3BTimeout = WIN_DEFAULT_E3B_TIME;
 
       /* Grab the optional timeout value */
-      if (i + 1 < argc
-	  && 1 == sscanf (argv[i + 1], "%d",
-			  &iE3BTimeout))
-        {
+        if (i + 1 < argc && 1 == sscanf(argv[i + 1], "%d", &iE3BTimeout)) {
 	  /* Indicate that we have processed the next argument */
 	  iArgsProcessed++;
         }
-      else
-	{
+        else {
 	  /*
 	   * sscanf () won't modify iE3BTimeout if it doesn't find
 	   * the specified format; however, I want to be explicit
@@ -795,8 +756,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-noemulate3buttons' argument
    */
-  if (IS_OPTION ("-noemulate3buttons"))
-    {
+    if (IS_OPTION("-noemulate3buttons")) {
       screenInfoPtr->iE3BTimeout = WIN_E3B_OFF;
 
       /* Indicate that we have processed this argument */
@@ -806,13 +766,11 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-depth n' argument
    */
-  if (IS_OPTION ("-depth"))
-    {
+    if (IS_OPTION("-depth")) {
       DWORD		dwBPP = 0;
       
       /* Display the usage message if the argument is malformed */
-      if (++i >= argc)
-	{
+        if (++i >= argc) {
 	  UseMsg ();
 	  return 0;
 	}
@@ -829,13 +787,11 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-refresh n' argument
    */
-  if (IS_OPTION ("-refresh"))
-    {
+    if (IS_OPTION("-refresh")) {
       DWORD		dwRefreshRate = 0;
       
       /* Display the usage message if the argument is malformed */
-      if (++i >= argc)
-	{
+        if (++i >= argc) {
 	  UseMsg ();
 	  return 0;
 	}
@@ -852,13 +808,11 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-clipupdates num_boxes' argument
    */
-  if (IS_OPTION ("-clipupdates"))
-    {
+    if (IS_OPTION("-clipupdates")) {
       DWORD		dwNumBoxes = 0;
       
       /* Display the usage message if the argument is malformed */
-      if (++i >= argc)
-	{
+        if (++i >= argc) {
 	  UseMsg ();
 	  return 0;
 	}
@@ -876,8 +830,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-emulatepseudo' argument
    */
-  if (IS_OPTION ("-emulatepseudo"))
-    {
+    if (IS_OPTION("-emulatepseudo")) {
       screenInfoPtr->fEmulatePseudo = TRUE;
 
       /* Indicate that we have processed this argument */
@@ -888,8 +841,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-nowinkill' argument
    */
-  if (IS_OPTION ("-nowinkill"))
-    {
+    if (IS_OPTION("-nowinkill")) {
       screenInfoPtr->fUseWinKillKey = FALSE;
 
       /* Indicate that we have processed this argument */
@@ -899,8 +851,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-winkill' argument
    */
-  if (IS_OPTION ("-winkill"))
-    {
+    if (IS_OPTION("-winkill")) {
       screenInfoPtr->fUseWinKillKey = TRUE;
 
       /* Indicate that we have processed this argument */
@@ -910,8 +861,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-nounixkill' argument
    */
-  if (IS_OPTION ("-nounixkill"))
-    {
+    if (IS_OPTION("-nounixkill")) {
       screenInfoPtr->fUseUnixKillKey = FALSE;
 
       /* Indicate that we have processed this argument */
@@ -921,8 +871,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-unixkill' argument
    */
-  if (IS_OPTION ("-unixkill"))
-    {
+    if (IS_OPTION("-unixkill")) {
       screenInfoPtr->fUseUnixKillKey = TRUE;
 
       /* Indicate that we have processed this argument */
@@ -932,8 +881,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-notrayicon' argument
    */
-  if (IS_OPTION ("-notrayicon"))
-    {
+    if (IS_OPTION("-notrayicon")) {
       screenInfoPtr->fNoTrayIcon = TRUE;
 
       /* Indicate that we have processed this argument */
@@ -943,8 +891,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-trayicon' argument
    */
-  if (IS_OPTION ("-trayicon"))
-    {
+    if (IS_OPTION("-trayicon")) {
       screenInfoPtr->fNoTrayIcon = FALSE;
 
       /* Indicate that we have processed this argument */
@@ -954,8 +901,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-fp' argument
    */
-  if (IS_OPTION ("-fp"))
-    {
+    if (IS_OPTION("-fp")) {
       CHECK_ARGS (1);
       g_cmdline.fontPath = argv[++i];
       return 0; /* Let DIX parse this again */
@@ -964,8 +910,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-query' argument
    */
-  if (IS_OPTION ("-query"))
-    {
+    if (IS_OPTION("-query")) {
       CHECK_ARGS (1);
       g_fXdmcpEnabled = TRUE;
       g_pszQueryHost = argv[++i];
@@ -975,8 +920,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-auth' argument
    */
-  if (IS_OPTION ("-auth"))
-    {
+    if (IS_OPTION("-auth")) {
       g_fAuthEnabled = TRUE;
       return 0; /* Let DIX parse this again */
     }
@@ -985,8 +929,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
    * Look for the '-indirect' or '-broadcast' arguments
    */
   if (IS_OPTION ("-indirect")
-      || IS_OPTION ("-broadcast"))
-    {
+        || IS_OPTION("-broadcast")) {
       g_fXdmcpEnabled = TRUE;
       return 0; /* Let DIX parse this again */
     }
@@ -995,8 +938,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
    * Look for the '-config' argument
    */
   if (IS_OPTION ("-config")
-      || IS_OPTION ("-xf86config"))
-    {
+        || IS_OPTION("-xf86config")) {
       CHECK_ARGS (1);
 #ifdef XWIN_XF86CONFIG
       g_cmdline.configFile = argv[++i];
@@ -1004,8 +946,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
       winMessageBoxF ("The %s option is not supported in this "
 		      "release.\n"
 		      "Ignoring this option and continuing.\n",
-		      MB_ICONINFORMATION,
-		      argv[i]);
+                       MB_ICONINFORMATION, argv[i]);
 #endif
       return 2;
     }
@@ -1013,8 +954,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-configdir' argument
    */
-  if (IS_OPTION ("-configdir"))
-    {
+    if (IS_OPTION("-configdir")) {
       CHECK_ARGS (1);
 #ifdef XWIN_XF86CONFIG
       g_cmdline.configDir = argv[++i];
@@ -1022,8 +962,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
       winMessageBoxF ("The %s option is not supported in this "
 		      "release.\n"
 		      "Ignoring this option and continuing.\n",
-		      MB_ICONINFORMATION,
-		      argv[i]);
+                       MB_ICONINFORMATION, argv[i]);
 #endif
       return 2;
     }
@@ -1031,8 +970,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-keyboard' argument
    */
-  if (IS_OPTION ("-keyboard"))
-    {
+    if (IS_OPTION("-keyboard")) {
 #ifdef XWIN_XF86CONFIG
       CHECK_ARGS (1);
       g_cmdline.keyboard = argv[++i];
@@ -1048,8 +986,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-logfile' argument
    */
-  if (IS_OPTION ("-logfile"))
-    {
+    if (IS_OPTION("-logfile")) {
       CHECK_ARGS (1);
       g_pszLogFile = argv[++i];
 #ifdef RELOCATE_PROJECTROOT
@@ -1061,8 +998,7 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-logverbose' argument
    */
-  if (IS_OPTION ("-logverbose"))
-    {
+    if (IS_OPTION("-logverbose")) {
       CHECK_ARGS (1);
       g_iLogVerbose = atoi(argv[++i]);
       return 2;
@@ -1072,77 +1008,65 @@ ddxProcessArgument (int argc, char *argv[], int i)
   /*
    * Look for the '-nounicodeclipboard' argument
    */
-  if (IS_OPTION ("-nounicodeclipboard"))
-    {
+    if (IS_OPTION("-nounicodeclipboard")) {
       g_fUnicodeClipboard = FALSE;
       /* Indicate that we have processed the argument */
       return 1;
     }
 #endif
 
-  if (IS_OPTION ("-xkbrules"))
-    {
+    if (IS_OPTION("-xkbrules")) {
       CHECK_ARGS (1);
       g_cmdline.xkbRules = argv[++i];
       return 2;
     }
-  if (IS_OPTION ("-xkbmodel"))
-    {
+    if (IS_OPTION("-xkbmodel")) {
       CHECK_ARGS (1);
       g_cmdline.xkbModel = argv[++i];
       return 2;
     }
-  if (IS_OPTION ("-xkblayout"))
-    {
+    if (IS_OPTION("-xkblayout")) {
       CHECK_ARGS (1);
       g_cmdline.xkbLayout = argv[++i];
       return 2;
     }
-  if (IS_OPTION ("-xkbvariant"))
-    {
+    if (IS_OPTION("-xkbvariant")) {
       CHECK_ARGS (1);
       g_cmdline.xkbVariant = argv[++i];
       return 2;
     }
-  if (IS_OPTION ("-xkboptions"))
-    {
+    if (IS_OPTION("-xkboptions")) {
       CHECK_ARGS (1);
       g_cmdline.xkbOptions = argv[++i];
       return 2;
     }
 
-  if (IS_OPTION ("-keyhook"))
-    {
+    if (IS_OPTION("-keyhook")) {
       g_fKeyboardHookLL = TRUE;
       return 1;
     }
   
-  if (IS_OPTION ("-nokeyhook"))
-    {
+    if (IS_OPTION("-nokeyhook")) {
       g_fKeyboardHookLL = FALSE;
       return 1;
     }
   
-  if (IS_OPTION ("-swcursor"))
-    {
+    if (IS_OPTION("-swcursor")) {
       g_fSoftwareCursor = TRUE;
       return 1;
     }
   
-  if (IS_OPTION ("-silent-dup-error"))
-    {
+    if (IS_OPTION("-silent-dup-error")) {
       g_fSilentDupError = TRUE;
       return 1;
     }
 
-  if (IS_OPTION("-wgl"))
-    {
+    if (IS_OPTION("-wgl")) {
       g_fNativeGl = TRUE;
       return 1;
     }
 
-  if (IS_OPTION("-nowgl"))
-    {
+    if (IS_OPTION("-nowgl")) {
       g_fNativeGl = FALSE;
       return 1;
     }
@@ -1155,7 +1079,6 @@ ddxProcessArgument (int argc, char *argv[], int i)
 
   return 0;
 }
-
 
 /*
  * winLogCommandLine - Write entire command line to the log file
@@ -1176,13 +1099,11 @@ winLogCommandLine (int argc, char *argv[])
 
   /* Count how much memory is needed for concatenated command line */
   for (i = 0, iCurrLen = 0; i < argc; ++i)
-    if (argv[i])
-      {
+        if (argv[i]) {
 	/* Adds two characters for lines that overflow */
 	if ((strlen (argv[i]) < CHARS_PER_LINE
 	    && iCurrLen + strlen (argv[i]) > CHARS_PER_LINE)
-	    || strlen (argv[i]) > CHARS_PER_LINE)
-	  {
+                || strlen(argv[i]) > CHARS_PER_LINE) {
 	    iCurrLen = 0;
 	    iSize += 2;
 	  }
@@ -1204,13 +1125,11 @@ winLogCommandLine (int argc, char *argv[])
   g_pszCommandLine[0] = '\0';
 
   /* Loop through all args */
-  for (i = 0, iCurrLen = 0; i < argc; ++i)
-    {
+    for (i = 0, iCurrLen = 0; i < argc; ++i) {
       /* Add a character for lines that overflow */
       if ((strlen (argv[i]) < CHARS_PER_LINE
 	   && iCurrLen + strlen (argv[i]) > CHARS_PER_LINE)
-	  || strlen (argv[i]) > CHARS_PER_LINE)
-      {
+            || strlen(argv[i]) > CHARS_PER_LINE) {
 	iCurrLen = 0;
 	
 	/* Add line break if it fits */

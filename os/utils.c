@@ -24,7 +24,6 @@ not be used in advertising or otherwise to promote the sale, use or
 other dealings in this Software without prior written authorization
 from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts,
 Copyright 1994 Quarterdeck Office Systems.
 
@@ -123,6 +122,7 @@ __stdcall unsigned long GetTickCount(void);
 #include "picture.h"
 
 Bool noTestExtensions;
+
 #ifdef COMPOSITE
 Bool noCompositeExtension = FALSE;
 #endif
@@ -150,6 +150,7 @@ Bool noMITShmExtension = FALSE;
 Bool noRRExtension = FALSE;
 #endif
 Bool noRenderExtension = FALSE;
+
 #ifdef XCSECURITY
 Bool noSecurityExtension = FALSE;
 #endif
@@ -252,7 +253,8 @@ LockServer(void)
   int len;
   char port[20];
 
-  if (nolock) return;
+    if (nolock)
+        return;
   /*
    * Path names
    */
@@ -351,7 +353,8 @@ LockServer(void)
          * Process is still active.
          */
         unlink(tmp);
-	FatalError("Server is already active for display %s\n%s %s\n%s\n",
+                FatalError
+                    ("Server is already active for display %s\n%s %s\n%s\n",
 		   port, "\tIf this server is no longer running, remove",
 		   LockFile, "\tand start again.");
       }
@@ -370,7 +373,8 @@ LockServer(void)
 void
 UnlockServer(void)
 {
-  if (nolock) return;
+    if (nolock)
+        return;
 
   if (!StillLocking){
 
@@ -417,6 +421,7 @@ GetTimeInMillis(void)
 #ifdef MONOTONIC_CLOCK
     struct timespec tp;
     static clockid_t clockid;
+
     if (!clockid) {
 #ifdef CLOCK_MONOTONIC_COARSE
         if (clock_getres(CLOCK_MONOTONIC_COARSE, &tp) == 0 &&
@@ -446,24 +451,22 @@ AdjustWaitForDelay (pointer waitTime, unsigned long newdelay)
     struct timeval	    **wt = (struct timeval **) waitTime;
     unsigned long	    olddelay;
 
-    if (*wt == NULL)
-    {
+    if (*wt == NULL) {
 	delay_val.tv_sec = newdelay / 1000;
 	delay_val.tv_usec = 1000 * (newdelay % 1000);
 	*wt = &delay_val;
     }
-    else
-    {
+    else {
 	olddelay = (*wt)->tv_sec * 1000 + (*wt)->tv_usec / 1000;
-	if (newdelay < olddelay)
-	{
+        if (newdelay < olddelay) {
 	    (*wt)->tv_sec = newdelay / 1000;
 	    (*wt)->tv_usec = 1000 * (newdelay % 1000);
 	}
     }
 }
 
-void UseMsg(void)
+void
+UseMsg(void)
 {
     ErrorF("use: X [:<display>] [option]\n");
     ErrorF("-a #                   default pointer acceleration (factor)\n");
@@ -482,7 +485,8 @@ void UseMsg(void)
 #ifdef DPMSExtension
     ErrorF("-dpms                  disables VESA DPMS monitor control\n");
 #endif
-    ErrorF("-deferglyphs [none|all|16] defer loading of [no|all|16-bit] glyphs\n");
+    ErrorF
+        ("-deferglyphs [none|all|16] defer loading of [no|all|16-bit] glyphs\n");
     ErrorF("-f #                   bell base (0-100)\n");
     ErrorF("-fc string             cursor font\n");
     ErrorF("-fn string             default font name\n");
@@ -526,7 +530,8 @@ void UseMsg(void)
     ErrorF("+xinerama              Enable XINERAMA extension\n");
     ErrorF("-xinerama              Disable XINERAMA extension\n");
 #endif
-    ErrorF("-dumbSched             Disable smart scheduling, enable old behavior\n");
+    ErrorF
+        ("-dumbSched             Disable smart scheduling, enable old behavior\n");
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("-sigstop               Enable SIGSTOP based startup\n");
     ErrorF("+extension name        Enable extension\n");
@@ -548,11 +553,16 @@ void UseMsg(void)
 static int 
 VerifyDisplayName(const char *d)
 {
-    if ( d == (char *)0 ) return 0;  /*  null  */
-    if ( *d == '\0' ) return 0;  /*  empty  */
-    if ( *d == '-' ) return 0;  /*  could be confused for an option  */
-    if ( *d == '.' ) return 0;  /*  must not equal "." or ".."  */
-    if ( strchr(d, '/') != (char *)0 ) return 0;  /*  very important!!!  */
+    if (d == (char *) 0)
+        return 0;               /*  null  */
+    if (*d == '\0')
+        return 0;               /*  empty  */
+    if (*d == '-')
+        return 0;               /*  could be confused for an option  */
+    if (*d == '.')
+        return 0;               /*  must not equal "." or ".."  */
+    if (strchr(d, '/') != (char *) 0)
+        return 0;               /*  very important!!!  */
     return 1;
 }
 
@@ -574,15 +584,12 @@ ProcessCommandLine(int argc, char *argv[])
     PartialNetwork = TRUE;
 #endif
 
-    for ( i = 1; i < argc; i++ )
-    {
+    for (i = 1; i < argc; i++) {
 	/* call ddx first, so it can peek/override if it wants */
-        if((skip = ddxProcessArgument(argc, argv, i)))
-	{
+        if ((skip = ddxProcessArgument(argc, argv, i))) {
 	    i += (skip - 1);
 	}
-	else if(argv[i][0] ==  ':')  
-	{
+        else if (argv[i][0] == ':') {
 	    /* initialize display */
 	    display = argv[i];
 	    display++;
@@ -592,26 +599,22 @@ ProcessCommandLine(int argc, char *argv[])
 		FatalError("Bad display name, exiting: %s\n", display);
             }
 	}
-	else if ( strcmp( argv[i], "-a") == 0)
-	{
+        else if (strcmp(argv[i], "-a") == 0) {
 	    if(++i < argc)
 	        defaultPointerControl.num = atoi(argv[i]);
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-ac") == 0)
-	{
+        else if (strcmp(argv[i], "-ac") == 0) {
 	    defeatAccessControl = TRUE;
 	}
-	else if ( strcmp( argv[i], "-audit") == 0)
-	{
+        else if (strcmp(argv[i], "-audit") == 0) {
 	    if(++i < argc)
 	        auditTrailLevel = atoi(argv[i]);
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-auth") == 0)
-	{
+        else if (strcmp(argv[i], "-auth") == 0) {
 	    if(++i < argc)
 	        InitAuthorization (argv[i]);
 	    else
@@ -622,40 +625,35 @@ ProcessCommandLine(int argc, char *argv[])
 	    enableBackingStore = TRUE;
 	else if ( strcmp( argv[i], "-bs") == 0)
 	    disableBackingStore = TRUE;
-	else if ( strcmp( argv[i], "c") == 0)
-	{
+        else if (strcmp(argv[i], "c") == 0) {
 	    if(++i < argc)
 	        defaultKeyboardControl.click = atoi(argv[i]);
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-c") == 0)
-	{
+        else if (strcmp(argv[i], "-c") == 0) {
 	    defaultKeyboardControl.click = 0;
 	}
-	else if ( strcmp( argv[i], "-cc") == 0)
-	{
+        else if (strcmp(argv[i], "-cc") == 0) {
 	    if(++i < argc)
 	        defaultColorVisualClass = atoi(argv[i]);
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-core") == 0)
-	{
+        else if (strcmp(argv[i], "-core") == 0) {
 #if !defined(WIN32) || !defined(__MINGW32__)
 	    struct rlimit   core_limit;
+
 	    getrlimit (RLIMIT_CORE, &core_limit);
 	    core_limit.rlim_cur = core_limit.rlim_max;
 	    setrlimit (RLIMIT_CORE, &core_limit);
 #endif
 	    CoreDump = TRUE;
 	}
-        else if ( strcmp( argv[i], "-nocursor") == 0)
-        {
+        else if (strcmp(argv[i], "-nocursor") == 0) {
             EnableCursor = FALSE;
         }
-        else if ( strcmp( argv[i], "-dpi") == 0)
-	{
+        else if (strcmp(argv[i], "-dpi") == 0) {
 	    if(++i < argc)
 	        monitorResolution = atoi(argv[i]);
 	    else
@@ -678,56 +676,48 @@ ProcessCommandLine(int argc, char *argv[])
 	else if ( strcmp( argv[i], "-dpms") == 0)
 	    DPMSDisabledSwitch = TRUE;
 #endif
-	else if ( strcmp( argv[i], "-deferglyphs") == 0)
-	{
+        else if (strcmp(argv[i], "-deferglyphs") == 0) {
 	    if(++i >= argc || !ParseGlyphCachingMode(argv[i]))
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-f") == 0)
-	{
+        else if (strcmp(argv[i], "-f") == 0) {
 	    if(++i < argc)
 	        defaultKeyboardControl.bell = atoi(argv[i]);
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-fc") == 0)
-	{
+        else if (strcmp(argv[i], "-fc") == 0) {
 	    if(++i < argc)
 	        defaultCursorFont = argv[i];
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-fn") == 0)
-	{
+        else if (strcmp(argv[i], "-fn") == 0) {
 	    if(++i < argc)
 	        defaultTextFont = argv[i];
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-fp") == 0)
-	{
-	    if(++i < argc)
-	    {
+        else if (strcmp(argv[i], "-fp") == 0) {
+            if (++i < argc) {
 	        defaultFontPath = argv[i];
 	    }
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-help") == 0)
-	{
+        else if (strcmp(argv[i], "-help") == 0) {
 	    UseMsg();
 	    exit(0);
 	}
         else if ( (skip=XkbProcessArguments(argc,argv,i))!=0 ) {
 	    if (skip>0)
 		 i+= skip-1;
-	    else UseMsg();
+            else
+                UseMsg();
 	}
 #ifdef RLIMIT_DATA
-	else if ( strcmp( argv[i], "-ld") == 0)
-	{
-	    if(++i < argc)
-	    {
+        else if (strcmp(argv[i], "-ld") == 0) {
+            if (++i < argc) {
 	        limitDataSpace = atoi(argv[i]);
 		if (limitDataSpace > 0)
 		    limitDataSpace *= 1024;
@@ -737,8 +727,7 @@ ProcessCommandLine(int argc, char *argv[])
 	}
 #endif
 #ifdef RLIMIT_NOFILE
-	else if ( strcmp( argv[i], "-lf") == 0)
-	{
+        else if (strcmp(argv[i], "-lf") == 0) {
 	    if(++i < argc)
 	        limitNoFile = atoi(argv[i]);
 	    else
@@ -746,10 +735,8 @@ ProcessCommandLine(int argc, char *argv[])
 	}
 #endif
 #ifdef RLIMIT_STACK
-	else if ( strcmp( argv[i], "-ls") == 0)
-	{
-	    if(++i < argc)
-	    {
+        else if (strcmp(argv[i], "-ls") == 0) {
+            if (++i < argc) {
 	        limitStackSpace = atoi(argv[i]);
 		if (limitStackSpace > 0)
 		    limitStackSpace *= 1024;
@@ -758,42 +745,38 @@ ProcessCommandLine(int argc, char *argv[])
 		UseMsg();
 	}
 #endif
-	else if ( strcmp ( argv[i], "-nolock") == 0)
-	{
+        else if (strcmp(argv[i], "-nolock") == 0) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
 	  if (getuid() != 0)
-	    ErrorF("Warning: the -nolock option can only be used by root\n");
+                ErrorF
+                    ("Warning: the -nolock option can only be used by root\n");
 	  else
 #endif
 	    nolock = TRUE;
 	}
-	else if ( strcmp( argv[i], "-nolisten") == 0)
-	{
+        else if (strcmp(argv[i], "-nolisten") == 0) {
             if(++i < argc) {
 		if (_XSERVTransNoListen(argv[i])) 
 		    FatalError ("Failed to disable listen for %s transport",
 				argv[i]);
-	   } else
+            }
+            else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-noreset") == 0)
-	{
+        else if (strcmp(argv[i], "-noreset") == 0) {
 	    dispatchExceptionAtReset = 0;
 	}
-	else if ( strcmp( argv[i], "-reset") == 0)
-	{
+        else if (strcmp(argv[i], "-reset") == 0) {
 	    dispatchExceptionAtReset = DE_RESET;
 	}
-	else if ( strcmp( argv[i], "-p") == 0)
-	{
+        else if (strcmp(argv[i], "-p") == 0) {
 	    if(++i < argc)
 	        defaultScreenSaverInterval = ((CARD32)atoi(argv[i])) *
 					     MILLI_PER_MIN;
 	    else
 		UseMsg();
 	}
-	else if (strcmp(argv[i], "-pogo") == 0)
-	{
+        else if (strcmp(argv[i], "-pogo") == 0) {
 	    dispatchException = DE_TERMINATE;
 	}
 	else if ( strcmp( argv[i], "-pn") == 0)
@@ -806,41 +789,35 @@ ProcessCommandLine(int argc, char *argv[])
 	    defaultKeyboardControl.autoRepeat = FALSE;
 	else if ( strcmp( argv[i], "-retro") == 0)
 	    party_like_its_1989 = TRUE;
-	else if ( strcmp( argv[i], "-s") == 0)
-	{
+        else if (strcmp(argv[i], "-s") == 0) {
 	    if(++i < argc)
 	        defaultScreenSaverTime = ((CARD32)atoi(argv[i])) *
 					 MILLI_PER_MIN;
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-seat") == 0)
-	{
+        else if (strcmp(argv[i], "-seat") == 0) {
 	    if(++i < argc)
 		SeatId = argv[i];
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-t") == 0)
-	{
+        else if (strcmp(argv[i], "-t") == 0) {
 	    if(++i < argc)
 	        defaultPointerControl.threshold = atoi(argv[i]);
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-terminate") == 0)
-	{
+        else if (strcmp(argv[i], "-terminate") == 0) {
 	    dispatchExceptionAtReset = DE_TERMINATE;
 	}
-	else if ( strcmp( argv[i], "-to") == 0)
-	{
+        else if (strcmp(argv[i], "-to") == 0) {
 	    if(++i < argc)
 		TimeOutValue = ((CARD32)atoi(argv[i])) * MILLI_PER_SECOND;
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-tst") == 0)
-	{
+        else if (strcmp(argv[i], "-tst") == 0) {
 	    noTestExtensions = TRUE;
 	}
 	else if ( strcmp( argv[i], "v") == 0)
@@ -867,13 +844,11 @@ ProcessCommandLine(int argc, char *argv[])
                  if( reqSizeArg > 0L && reqSizeArg < 128L ) {
                      maxBigRequestSize = (reqSizeArg * 1048576L) - 1L;
                  }
-                 else
-                 {
+                else {
                      UseMsg();
                  }
              }
-             else
-             {
+            else {
                  UseMsg();
              }
          }
@@ -888,23 +863,19 @@ ProcessCommandLine(int argc, char *argv[])
 	    PanoramiXExtensionDisabledHack = TRUE;
 	}
 #endif
-	else if ( strcmp( argv[i], "-I") == 0)
-	{
+        else if (strcmp(argv[i], "-I") == 0) {
 	    /* ignore all remaining arguments */
 	    break;
 	}
-	else if (strncmp (argv[i], "tty", 3) == 0)
-	{
+        else if (strncmp(argv[i], "tty", 3) == 0) {
             /* init supplies us with this useless information */
 	}
 #ifdef XDMCP
-	else if ((skip = XdmcpOptions(argc, argv, i)) != i)
-	{
+        else if ((skip = XdmcpOptions(argc, argv, i)) != i) {
 	    i = skip - 1;
 	}
 #endif
-	else if ( strcmp( argv[i], "-dumbSched") == 0)
-	{
+        else if (strcmp(argv[i], "-dumbSched") == 0) {
 	    SmartScheduleDisable = TRUE;
 	}
 	else if ( strcmp( argv[i], "-schedInterval") == 0)
@@ -928,10 +899,8 @@ ProcessCommandLine(int argc, char *argv[])
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-render" ) == 0)
-	{
-	    if (++i < argc)
-	    {
+        else if (strcmp(argv[i], "-render") == 0) {
+            if (++i < argc) {
 		int policy = PictureParseCmapPolicy (argv[i]);
 
 		if (policy != PictureCmapPolicyInvalid)
@@ -942,32 +911,26 @@ ProcessCommandLine(int argc, char *argv[])
 	    else
 		UseMsg ();
 	}
-	else if ( strcmp( argv[i], "-sigstop") == 0)
-	{
+        else if (strcmp(argv[i], "-sigstop") == 0) {
 	    RunFromSigStopParent = TRUE;
 	}
-	else if ( strcmp( argv[i], "+extension") == 0)
-	{
-	    if (++i < argc)
-	    {
+        else if (strcmp(argv[i], "+extension") == 0) {
+            if (++i < argc) {
 		if (!EnableDisableExtension(argv[i], TRUE))
 		    EnableDisableExtensionError(argv[i], TRUE);
 	    }
 	    else
 		UseMsg();
 	}
-	else if ( strcmp( argv[i], "-extension") == 0)
-	{
-	    if (++i < argc)
-	    {
+        else if (strcmp(argv[i], "-extension") == 0) {
+            if (++i < argc) {
 		if (!EnableDisableExtension(argv[i], FALSE))
 		    EnableDisableExtensionError(argv[i], FALSE);
 	    }
 	    else
 		UseMsg();
 	}
- 	else
- 	{
+        else {
 	    ErrorF("Unrecognized option: %s\n", argv[i]);
 	    UseMsg();
 	    FatalError("Unrecognized option: %s\n", argv[i]);
@@ -985,14 +948,15 @@ set_font_authorizations(char **authorizations, int *authlen, pointer client)
     static char *result = NULL;
     static char *p = NULL;
 
-    if (p == NULL)
-    {
+    if (p == NULL) {
 	char hname[1024], *hnameptr;
 	unsigned int len;
+
 #if defined(IPv6) && defined(AF_INET6)
 	struct addrinfo hints, *ai = NULL;
 #else
 	struct hostent *host;
+
 #ifdef XTHREADS_NEEDS_BYNAMEPARAMS
 	_Xgethostbynameparams hparams;
 #endif
@@ -1004,7 +968,8 @@ set_font_authorizations(char **authorizations, int *authlen, pointer client)
 	hints.ai_flags = AI_CANONNAME;
 	if (getaddrinfo(hname, NULL, &hints, &ai) == 0) {
 	    hnameptr = ai->ai_canonname;
-	} else {
+        }
+        else {
 	    hnameptr = hname;
 	}
 #else
@@ -1064,6 +1029,7 @@ void *
 XNFalloc(unsigned long amount)
 {
     void *ptr = malloc(amount);
+
     if (!ptr)
         FatalError("Out of memory");
     return ptr;
@@ -1079,6 +1045,7 @@ void *
 XNFcalloc(unsigned long amount)
 {
     void *ret = calloc(1, amount);
+
     if (!ret)
         FatalError("XNFcalloc: Out of memory");
     return ret;
@@ -1106,6 +1073,7 @@ void *
 XNFrealloc(void *ptr, unsigned long amount)
 {
     void *ret = realloc(ptr, amount);
+
     if (!ret)
 	FatalError("XNFrealloc: Out of memory");
     return ret;
@@ -1116,7 +1084,6 @@ Xfree(void *ptr)
 {
     free(ptr);
 }
-
 
 char *
 Xstrdup(const char *s)
@@ -1188,8 +1155,7 @@ SmartScheduleInit (void)
     act.sa_handler = SmartScheduleTimer;
     sigemptyset (&act.sa_mask);
     sigaddset (&act.sa_mask, SIGALRM);
-    if (sigaction (SIGALRM, &act, 0) < 0)
-    {
+    if (sigaction(SIGALRM, &act, 0) < 0) {
 	perror ("sigaction for smart scheduler");
 	SmartScheduleDisable = TRUE;
     }
@@ -1204,8 +1170,7 @@ void
 OsBlockSignals (void)
 {
 #ifdef SIG_BLOCK
-    if (BlockedSignalCount++ == 0)
-    {
+    if (BlockedSignalCount++ == 0) {
 	sigset_t    set;
 	
 	sigemptyset (&set);
@@ -1230,8 +1195,7 @@ void
 OsReleaseSignals (void)
 {
 #ifdef SIG_BLOCK
-    if (--BlockedSignalCount == 0)
-    {
+    if (--BlockedSignalCount == 0) {
 	sigprocmask (SIG_SETMASK, &PreviousSignalMask, 0);
     }
 #endif
@@ -1383,7 +1347,8 @@ Popen(const char *command, const char *type)
 		close(pdes[1]);
 	    }
 	    close(pdes[0]);
-	} else {
+        }
+        else {
 	    if (pdes[0] != 0) {
 		/* stdin */
 		dup2(pdes[0], 0);
@@ -1402,7 +1367,8 @@ Popen(const char *command, const char *type)
     if (*type == 'r') {
 	iop = fdopen(pdes[0], type);
 	close(pdes[1]);
-    } else {
+    }
+    else {
 	iop = fdopen(pdes[1], type);
 	close(pdes[0]);
     }
@@ -1422,6 +1388,7 @@ pointer
 Fopen(const char *file, const char *type)
 {
     FILE *iop;
+
 #ifndef HAS_SAVED_IDS_AND_SETEUID
     struct pid *cur;
     int pdes[2], pid;
@@ -1458,7 +1425,8 @@ Fopen(const char *file, const char *type)
 		close(pdes[1]);
 	    }
 	    close(pdes[0]);
-	} else {
+        }
+        else {
 	    if (pdes[0] != 0) {
 		/* stdin */
 		dup2(pdes[0], 0);
@@ -1477,7 +1445,8 @@ Fopen(const char *file, const char *type)
     if (*type == 'r') {
 	iop = fdopen(pdes[0], type);
 	close(pdes[1]);
-    } else {
+    }
+    else {
 	iop = fdopen(pdes[1], type);
 	close(pdes[0]);
     }
@@ -1558,7 +1527,6 @@ Fclose(pointer iop)
 
 #endif /* !WIN32 */
 
-
 /*
  * CheckUserParameters: check for long command line arguments and long
  * environment variables.  By default, these checks are only done when
@@ -1585,7 +1553,6 @@ Fclose(pointer iop)
 #ifndef NO_OUTPUT_PIPES
 #define NO_OUTPUT_PIPES 0
 #endif
-
 
 /* Check args and env only if running setuid (euid == 0 && euid != uid) ? */
 #ifndef CHECK_EUID
@@ -1646,13 +1613,12 @@ CheckUserParameters(int argc, char **argv, char **envp)
     {
 	/* Check each argv[] */
 	for (i = 1; i < argc; i++) {
-	    if (strcmp(argv[i], "-fp") == 0)
-	    {
+            if (strcmp(argv[i], "-fp") == 0) {
 		i++; /* continue with next argument. skip the length check */
 		if (i >= argc)
 		    break;
-	    } else
-	    {
+            }
+            else {
 		if (strlen(argv[i]) > MAX_ARG_LENGTH) {
 		    bad = ArgTooLong;
 		    break;
@@ -1706,10 +1672,12 @@ CheckUserParameters(int argc, char **argv, char **envp)
 			if (strlen(envp[i]) > MAX_ENV_PATH_LENGTH) {
 			    bad = EnvTooLong;
 			    break;
-			} else {
+                        }
+                        else {
 			    free(e);
 			}
-		    } else {
+                    }
+                    else {
 			bad = EnvTooLong;
 			break;
 		    }

@@ -43,13 +43,16 @@
   (((a & 0xff000000U)>>24) | ((a & 0xff0000U)>>8) | \
    ((a & 0xff00U)<<8) | ((a & 0xffU)<<24))
 
-static int Map1Size( GLint k, GLint order)
+static int
+Map1Size(GLint k, GLint order)
 {
-    if (order <= 0 || k < 0) return -1;
+    if (order <= 0 || k < 0)
+        return -1;
     return k * order;
 }
 
-int __glXMap1dReqSize( const GLbyte *pc, Bool swap )
+int
+__glXMap1dReqSize(const GLbyte * pc, Bool swap)
 {
     GLenum target;
     GLint order, k;
@@ -64,7 +67,8 @@ int __glXMap1dReqSize( const GLbyte *pc, Bool swap )
     return 8 * Map1Size( k, order );
 }
 
-int __glXMap1fReqSize( const GLbyte *pc, Bool swap )
+int
+__glXMap1fReqSize(const GLbyte * pc, Bool swap)
 {
     GLenum target;
     GLint order, k;
@@ -79,13 +83,16 @@ int __glXMap1fReqSize( const GLbyte *pc, Bool swap )
     return 4 * Map1Size(k, order);
 }
 
-static int Map2Size(int k, int majorOrder, int minorOrder)
+static int
+Map2Size(int k, int majorOrder, int minorOrder)
 {
-    if (majorOrder <= 0 || minorOrder <= 0 || k < 0) return -1;
+    if (majorOrder <= 0 || minorOrder <= 0 || k < 0)
+        return -1;
     return k * majorOrder * minorOrder;
 }
 
-int __glXMap2dReqSize( const GLbyte *pc, Bool swap )
+int
+__glXMap2dReqSize(const GLbyte * pc, Bool swap)
 {
     GLenum target;
     GLint uorder, vorder, k;
@@ -102,7 +109,8 @@ int __glXMap2dReqSize( const GLbyte *pc, Bool swap )
     return 8 * Map2Size( k, uorder, vorder );
 }
 
-int __glXMap2fReqSize( const GLbyte *pc, Bool swap )
+int
+__glXMap2fReqSize(const GLbyte * pc, Bool swap)
 {
     GLenum target;
     GLint uorder, vorder, k;
@@ -158,7 +166,8 @@ int __glXMap2fReqSize( const GLbyte *pc, Bool swap )
  * are invalid, -1 is returned.  If \c target is one of \c GL_PROXY_*, zero
  * is returned.
  */
-int __glXImageSize( GLenum format, GLenum type, GLenum target,
+int
+__glXImageSize(GLenum format, GLenum type, GLenum target,
 		    GLsizei w, GLsizei h, GLsizei d,
 		    GLint imageHeight, GLint rowLength,
 		    GLint skipImages, GLint skipRows, GLint alignment )
@@ -171,7 +180,8 @@ int __glXImageSize( GLenum format, GLenum type, GLenum target,
 	 (format != GL_COLOR_INDEX && format != GL_STENCIL_INDEX))) {
 	return -1;
     }
-    if (w==0 || h==0 || d == 0) return 0;
+    if (w == 0 || h == 0 || d == 0)
+        return 0;
 
     switch( target ) {
     case GL_PROXY_TEXTURE_1D:
@@ -192,7 +202,8 @@ int __glXImageSize( GLenum format, GLenum type, GLenum target,
     if (type == GL_BITMAP) {
 	if (rowLength > 0) {
 	    groupsPerRow = rowLength;
-	} else {
+        }
+        else {
 	    groupsPerRow = w;
 	}
 	rowSize = bits_to_bytes(groupsPerRow);
@@ -201,7 +212,8 @@ int __glXImageSize( GLenum format, GLenum type, GLenum target,
 	    rowSize += alignment - padding;
 	}
 	return ((h + skipRows) * rowSize);
-    } else {
+    }
+    else {
 	switch(format) {
 	  case GL_COLOR_INDEX:
 	  case GL_STENCIL_INDEX:
@@ -285,7 +297,8 @@ int __glXImageSize( GLenum format, GLenum type, GLenum target,
 	groupSize = bytesPerElement * elementsPerGroup;
 	if (rowLength > 0) {
 	    groupsPerRow = rowLength;
-	} else {
+        }
+        else {
 	    groupsPerRow = w;
 	}
 	rowSize = groupsPerRow * groupSize;
@@ -295,31 +308,42 @@ int __glXImageSize( GLenum format, GLenum type, GLenum target,
 	}
 	if (imageHeight > 0) {
 	    imageSize = (imageHeight + skipRows) * rowSize;
-	} else {
+        }
+        else {
 	    imageSize = (h + skipRows) * rowSize;
 	}
 	return ((d + skipImages) * imageSize);
     }
 }
 
-
 /* XXX this is used elsewhere - should it be exported from glxserver.h? */
-int __glXTypeSize(GLenum enm)
+int
+__glXTypeSize(GLenum enm)
 {
   switch(enm) {
-    case GL_BYTE:		return sizeof(GLbyte);
-    case GL_UNSIGNED_BYTE:	return sizeof(GLubyte);
-    case GL_SHORT:		return sizeof(GLshort);
-    case GL_UNSIGNED_SHORT:	return sizeof(GLushort);
-    case GL_INT:		return sizeof(GLint);
-    case GL_UNSIGNED_INT:	return sizeof(GLint);
-    case GL_FLOAT:		return sizeof(GLfloat);
-    case GL_DOUBLE:		return sizeof(GLdouble);
-    default:			return -1;
+    case GL_BYTE:
+        return sizeof(GLbyte);
+    case GL_UNSIGNED_BYTE:
+        return sizeof(GLubyte);
+    case GL_SHORT:
+        return sizeof(GLshort);
+    case GL_UNSIGNED_SHORT:
+        return sizeof(GLushort);
+    case GL_INT:
+        return sizeof(GLint);
+    case GL_UNSIGNED_INT:
+        return sizeof(GLint);
+    case GL_FLOAT:
+        return sizeof(GLfloat);
+    case GL_DOUBLE:
+        return sizeof(GLdouble);
+    default:
+        return -1;
   }
 }
 
-int __glXDrawArraysReqSize( const GLbyte *pc, Bool swap )
+int
+__glXDrawArraysReqSize(const GLbyte * pc, Bool swap)
 {
     __GLXdispatchDrawArraysHeader *hdr = (__GLXdispatchDrawArraysHeader *) pc;
     __GLXdispatchDrawArraysComponentHeader *compHeader;
@@ -386,7 +410,8 @@ int __glXDrawArraysReqSize( const GLbyte *pc, Bool swap )
 	    (numVertexes * arrayElementSize));
 }
 
-int __glXSeparableFilter2DReqSize( const GLbyte *pc, Bool swap )
+int
+__glXSeparableFilter2DReqSize(const GLbyte * pc, Bool swap)
 {
     __GLXdispatchConvolutionFilterHeader *hdr =
 			(__GLXdispatchConvolutionFilterHeader *) pc;

@@ -42,7 +42,6 @@
 #endif
 #include "misc.h"
 
-
 /*
  * References to external symbols
  */
@@ -56,7 +55,6 @@ extern HWND		g_hwndClipboard;
 extern void		*g_pClipboardDisplay;
 extern Window		g_iClipboardWindow;
 
-
 /*
  * Global variables
  */
@@ -67,7 +65,6 @@ static XIOErrorHandler g_winClipboardOldIOErrorHandler;
 static pthread_t g_winClipboardProcThread;
 
 Bool				g_fUseUnicode = FALSE;
-
 
 /*
  * Local function prototypes
@@ -93,6 +90,7 @@ winClipboardProc (void *pvNotUsed)
   int			iReturn;
   HWND			hwnd = NULL;
   int			iConnectionNumber = 0;
+
 #ifdef HAS_DEVWINDOWS
   int			fdMessageQueue = 0;
 #else
@@ -121,18 +119,16 @@ winClipboardProc (void *pvNotUsed)
   /* Set error handler */
   XSetErrorHandler (winClipboardErrorHandler);
   g_winClipboardProcThread = pthread_self();
-  g_winClipboardOldIOErrorHandler = XSetIOErrorHandler (winClipboardIOErrorHandler);
+    g_winClipboardOldIOErrorHandler =
+        XSetIOErrorHandler(winClipboardIOErrorHandler);
 
   /* Set jump point for Error exits */
   iReturn = setjmp (g_jmpEntry);
   
   /* Check if we should continue operations */
-  if (iReturn != WIN_JMP_ERROR_IO
-      && iReturn != WIN_JMP_OKAY)
-    {
+    if (iReturn != WIN_JMP_ERROR_IO && iReturn != WIN_JMP_OKAY) {
       /* setjmp returned an unknown value, exit */
-      ErrorF ("winClipboardProc - setjmp returned: %d exiting\n",
-	      iReturn);
+        ErrorF("winClipboardProc - setjmp returned: %d exiting\n", iReturn);
       goto winClipboardProc_Exit;
     }
   else if (iReturn == WIN_JMP_ERROR_IO)
@@ -162,14 +158,11 @@ winClipboardProc (void *pvNotUsed)
   ErrorF ("winClipboardProc - DISPLAY=%s\n", szDisplay);
 
   /* Open the X display */
-  do
-    {
+    do {
       pDisplay = XOpenDisplay (szDisplay);
-      if (pDisplay == NULL)
-	{
+        if (pDisplay == NULL) {
 	  ErrorF ("winClipboardProc - Could not open display, "
-		  "try: %d, sleeping: %d\n",
-		  iRetries + 1, WIN_CONNECT_DELAY);
+                   "try: %d, sleeping: %d\n", iRetries + 1, WIN_CONNECT_DELAY);
 	  ++iRetries;
 	  sleep (WIN_CONNECT_DELAY);
 	  continue;
@@ -180,8 +173,7 @@ winClipboardProc (void *pvNotUsed)
   while (pDisplay == NULL && iRetries < WIN_CONNECT_RETRIES);
 
   /* Make sure that the display opened */
-  if (pDisplay == NULL)
-    {
+    if (pDisplay == NULL) {
       ErrorF ("winClipboardProc - Failed opening the display, giving up\n");
       goto winClipboardProc_Done;
     }
@@ -198,8 +190,7 @@ winClipboardProc (void *pvNotUsed)
 #ifdef HAS_DEVWINDOWS
   /* Open a file descriptor for the windows message queue */
   fdMessageQueue = open (WIN_MSG_QUEUE_FNAME, O_RDONLY);
-  if (fdMessageQueue == -1)
-    {
+    if (fdMessageQueue == -1) {
       ErrorF ("winClipboardProc - Failed opening %s\n", WIN_MSG_QUEUE_FNAME);
       goto winClipboardProc_Done;
     }
@@ -222,8 +213,7 @@ winClipboardProc (void *pvNotUsed)
 				 0,
 				 BlackPixel (pDisplay, 0),
 				 BlackPixel (pDisplay, 0));
-  if (iWindow == 0)
-    {
+    if (iWindow == 0) {
       ErrorF ("winClipboardProc - Could not create an X window.\n");
       goto winClipboardProc_Done;
     }
@@ -231,9 +221,7 @@ winClipboardProc (void *pvNotUsed)
   XStoreName(pDisplay, iWindow, "xwinclip");
 
   /* Select event types to watch */
-  if (XSelectInput (pDisplay,
-		    iWindow,
-		    PropertyChangeMask) == BadWindow)
+    if (XSelectInput(pDisplay, iWindow, PropertyChangeMask) == BadWindow)
     ErrorF ("winClipboardProc - XSelectInput generated BadWindow "
 	    "on messaging window\n");
 
@@ -247,14 +235,12 @@ winClipboardProc (void *pvNotUsed)
   g_hwndClipboard = hwnd;
 
   /* Assert ownership of selections if Win32 clipboard is owned */
-  if (NULL != GetClipboardOwner ())
-    {
+    if (NULL != GetClipboardOwner()) {
       /* PRIMARY */
       iReturn = XSetSelectionOwner (pDisplay, XA_PRIMARY,
 				    iWindow, CurrentTime);
       if (iReturn == BadAtom || iReturn == BadWindow ||
-	  XGetSelectionOwner (pDisplay, XA_PRIMARY) != iWindow)
-	{
+            XGetSelectionOwner(pDisplay, XA_PRIMARY) != iWindow) {
 	  ErrorF ("winClipboardProc - Could not set PRIMARY owner\n");
 	  goto winClipboardProc_Done;
 	}
@@ -263,8 +249,7 @@ winClipboardProc (void *pvNotUsed)
       iReturn = XSetSelectionOwner (pDisplay, atomClipboard,
 				    iWindow, CurrentTime);
       if (iReturn == BadAtom || iReturn == BadWindow ||
-	  XGetSelectionOwner (pDisplay, atomClipboard) != iWindow)
-	{
+            XGetSelectionOwner(pDisplay, atomClipboard) != iWindow) {
 	  ErrorF ("winClipboardProc - Could not set CLIPBOARD owner\n");
 	  goto winClipboardProc_Done;
 	}
@@ -276,10 +261,7 @@ winClipboardProc (void *pvNotUsed)
    *	   because there may be events in local data structures
    *	   already.
    */
-  winClipboardFlushXEvents (hwnd,
-			    iWindow,
-			    pDisplay,
-			    fUseUnicode);
+    winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode);
 
   /* Pre-flush Windows messages */
   if (!winClipboardFlushWindowsMessageQueue (hwnd))
@@ -292,8 +274,7 @@ winClipboardProc (void *pvNotUsed)
   g_fClipboardStarted = TRUE;
 
   /* Loop for X events */
-  while (1)
-    {
+    while (1) {
       /* Setup the file descriptor set */
       /*
        * NOTE: You have to do this before every call to select
@@ -329,8 +310,7 @@ winClipboardProc (void *pvNotUsed)
       iSelectError = WSAGetLastError();
 #endif
 
-      if (iReturn < 0)
-	{
+        if (iReturn < 0) {
 #ifndef HAS_WINSOCK
           if (iSelectError == EINTR)
 #else
@@ -353,11 +333,8 @@ winClipboardProc (void *pvNotUsed)
 	  /* Process X events */
 	  /* Exit when we see that server is shutting down */
 	  iReturn = winClipboardFlushXEvents (hwnd,
-					      iWindow,
-					      pDisplay,
-					      fUseUnicode);
-	  if (WIN_XEVENTS_SHUTDOWN == iReturn)
-	    {
+                                               iWindow, pDisplay, fUseUnicode);
+            if (WIN_XEVENTS_SHUTDOWN == iReturn) {
 	      ErrorF ("winClipboardProc - winClipboardFlushXEvents "
 		      "trapped shutdown event, exiting main loop.\n");
 	      break;
@@ -374,8 +351,7 @@ winClipboardProc (void *pvNotUsed)
           winDebug ("winClipboardProc - /dev/windows ready, pumping Windows message queue\n");
 
 	  /* Process Windows messages */
-	  if (!winClipboardFlushWindowsMessageQueue (hwnd))
-	    {
+            if (!winClipboardFlushWindowsMessageQueue(hwnd)) {
 	      ErrorF ("winClipboardProc - "
 		      "winClipboardFlushWindowsMessageQueue trapped "
 		      "WM_QUIT message, exiting main loop.\n");
@@ -395,8 +371,7 @@ winClipboardProc_Exit:
 
 winClipboardProc_Done:
   /* Close our Windows window */
-  if (g_hwndClipboard )
-    {
+    if (g_hwndClipboard) {
       /* Destroy the Window window (hwnd) */
       winDebug("winClipboardProc - Destroy Windows window\n");
       PostMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
@@ -404,15 +379,13 @@ winClipboardProc_Done:
     }
 
   /* Close our X window */
-  if (pDisplay && iWindow)
-    {
+    if (pDisplay && iWindow) {
       iReturn = XDestroyWindow (pDisplay, iWindow);
       if (iReturn == BadWindow)
 	ErrorF ("winClipboardProc - XDestroyWindow returned BadWindow.\n");
       else
 	ErrorF ("winClipboardProc - XDestroyWindow succeeded.\n");
     }
-
 
 #ifdef HAS_DEVWINDOWS
   /* Close our Win32 message handle */
@@ -430,13 +403,10 @@ winClipboardProc_Done:
   XSync (pDisplay, TRUE);
 
   /* Select event types to watch */
-  XSelectInput (pDisplay,
-		DefaultRootWindow (pDisplay),
-		None);
+    XSelectInput(pDisplay, DefaultRootWindow(pDisplay), None);
 
   /* Close our X display */
-  if (pDisplay)
-    {
+    if (pDisplay) {
       XCloseDisplay (pDisplay);
     }
 #endif
@@ -449,21 +419,20 @@ winClipboardProc_Done:
   g_hwndClipboard = NULL;
 
   /* checking if we need to restart */
-  if (clipboardRestarts >= WIN_CLIPBOARD_RETRIES)
-    {
+    if (clipboardRestarts >= WIN_CLIPBOARD_RETRIES) {
       /* terminates clipboard thread but the main server still lives */
-      ErrorF("winClipboardProc - the clipboard thread has restarted %d times and seems to be unstable, disabling clipboard integration\n",  clipboardRestarts);
+        ErrorF
+            ("winClipboardProc - the clipboard thread has restarted %d times and seems to be unstable, disabling clipboard integration\n",
+             clipboardRestarts);
       g_fClipboard = FALSE;
       return;
     }
 
-  if (g_fClipboard)
-    {
+    if (g_fClipboard) {
       sleep(WIN_CLIPBOARD_DELAY);
       ErrorF("winClipboardProc - trying to restart clipboard thread \n");
       /* Create the clipboard client thread */
-      if (!winInitClipboard ())
-        {
+        if (!winInitClipboard()) {
           ErrorF ("winClipboardProc - winClipboardInit failed.\n");
           return;
         }
@@ -472,8 +441,7 @@ winClipboardProc_Done:
       /* Flag that clipboard client has been launched */
       g_fClipboardLaunched = TRUE;
     }
-  else
-    {
+    else {
       ErrorF ("winClipboardProc - Clipboard disabled  - Exit from server \n");
       /* clipboard thread has exited, stop server as well */
       kill(getpid(), SIGTERM);
@@ -484,7 +452,6 @@ winClipboardProc_Done:
   return NULL;
 }
 
-
 /*
  * winClipboardErrorHandler - Our application specific error handler
  */
@@ -494,19 +461,12 @@ winClipboardErrorHandler (Display *pDisplay, XErrorEvent *pErr)
 {
   char pszErrorMsg[100];
   
-  XGetErrorText (pDisplay,
-		 pErr->error_code,
-		 pszErrorMsg,
-		 sizeof (pszErrorMsg));
+    XGetErrorText(pDisplay, pErr->error_code, pszErrorMsg, sizeof(pszErrorMsg));
   ErrorF ("winClipboardErrorHandler - ERROR: \n\t%s\n"
 	  "\tSerial: %lu, Request Code: %d, Minor Code: %d\n",
-	  pszErrorMsg,
-	  pErr->serial,
-	  pErr->request_code,
-	  pErr->minor_code);
+           pszErrorMsg, pErr->serial, pErr->request_code, pErr->minor_code);
   return 0;
 }
-
 
 /*
  * winClipboardIOErrorHandler - Our application specific IO error handler
@@ -517,8 +477,7 @@ winClipboardIOErrorHandler (Display *pDisplay)
 {
   ErrorF ("winClipboardIOErrorHandler!\n\n");
 
-  if (pthread_equal(pthread_self(),g_winClipboardProcThread))
-    {
+    if (pthread_equal(pthread_self(), g_winClipboardProcThread)) {
       /* Restart at the main entry point */
       longjmp (g_jmpEntry, WIN_JMP_ERROR_IO);
     }

@@ -34,7 +34,6 @@
 #include "dixstruct.h"
 #include "winclipboard.h"
 
-
 /*
  * Local typedefs
  */
@@ -42,7 +41,6 @@
 typedef int (*winDispatchProcPtr) (ClientPtr);
 
 int winProcSetSelectionOwner(ClientPtr /* client */);
-
 
 /*
  * References to external symbols
@@ -52,7 +50,6 @@ extern pthread_t		g_ptClipboardProc;
 extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
 extern Bool			g_fClipboard;
 extern HWND			g_hwndClipboard;
-
 
 /*
  * Intialize the Clipboard module
@@ -64,18 +61,13 @@ winInitClipboard (void)
   winDebug ("winInitClipboard ()\n");
 
   /* Wrap some internal server functions */
-  if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner)
-    {
+    if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner) {
       winProcSetSelectionOwnerOrig = ProcVector[X_SetSelectionOwner];
       ProcVector[X_SetSelectionOwner] = winProcSetSelectionOwner;
     }
   
   /* Spawn a thread for the Clipboard module */
-  if (pthread_create (&g_ptClipboardProc,
-		      NULL,
-		      winClipboardProc,
-		      NULL))
-    {
+    if (pthread_create(&g_ptClipboardProc, NULL, winClipboardProc, NULL)) {
       /* Bail if thread creation failed */
       ErrorF ("winInitClipboard - pthread_create failed.\n");
       return FALSE;
@@ -83,7 +75,6 @@ winInitClipboard (void)
 
   return TRUE;
 }
-
 
 /*
  * Create the Windows window that we use to recieve Windows messages
@@ -137,9 +128,7 @@ winClipboardCreateMessagingWindow (void)
 void
 winFixClipboardChain (void)
 {
-   if (g_fClipboard
-       && g_hwndClipboard)
-     {
+    if (g_fClipboard && g_hwndClipboard) {
        PostMessage (g_hwndClipboard, WM_WM_REINIT, 0, 0);
      }
 }

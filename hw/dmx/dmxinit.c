@@ -115,7 +115,8 @@ Bool            dmxAddRemoveScreens = FALSE;
 /* dmxErrorHandler catches errors that occur when calling one of the
  * back-end servers.  Some of this code is based on _XPrintDefaultError
  * in xc/lib/X11/XlibInt.c */
-static int dmxErrorHandler(Display *dpy, XErrorEvent *ev)
+static int
+dmxErrorHandler(Display * dpy, XErrorEvent * ev)
 {
 #define DMX_ERROR_BUF_SIZE 256
                                 /* RATS: these buffers are only used in
@@ -134,12 +135,15 @@ static int dmxErrorHandler(Display *dpy, XErrorEvent *ev)
     if (ev->request_code < 128) {
         snprintf(request, sizeof(request), "%d", ev->request_code);
         XGetErrorDatabaseText(dpy, "XRequest", request, "", buf, sizeof(buf));
-    } else {
+    }
+    else {
         for (ext = dpy->ext_procs;
              ext && ext->codes.major_opcode != ev->request_code;
              ext = ext->next);
-        if (ext) strlcpy(buf, ext->name, sizeof(buf));
-        else     buf[0] = '\0';
+        if (ext)
+            strlcpy(buf, ext->name, sizeof(buf));
+        else
+            buf[0] = '\0';
     }
     dmxLog(dmxWarning, "                 Major opcode: %d (%s)\n",
            ev->request_code, buf);
@@ -147,8 +151,7 @@ static int dmxErrorHandler(Display *dpy, XErrorEvent *ev)
                                 /* Find minor opcode name */
     if (ev->request_code >= 128 && ext) {
         snprintf(request, sizeof(request), "%d", ev->request_code);
-        snprintf(request, sizeof(request), "%s.%d",
-                    ext->name, ev->minor_code);
+        snprintf(request, sizeof(request), "%s.%d", ext->name, ev->minor_code);
         XGetErrorDatabaseText(dpy, "XRequest", request, "", buf, sizeof(buf));
         dmxLog(dmxWarning, "                 Minor opcode: %d (%s)\n",
                ev->minor_code, buf);
@@ -179,13 +182,15 @@ static int dmxErrorHandler(Display *dpy, XErrorEvent *ev)
 }
 
 #ifdef GLXEXT
-static int dmxNOPErrorHandler(Display *dpy, XErrorEvent *ev)
+static int
+dmxNOPErrorHandler(Display * dpy, XErrorEvent * ev)
 {
     return 0;
 }
 #endif
 
-Bool dmxOpenDisplay(DMXScreenInfo *dmxScreen)
+Bool
+dmxOpenDisplay(DMXScreenInfo * dmxScreen)
 {
     if (!(dmxScreen->beDisplay = XOpenDisplay(dmxScreen->name)))
 	return FALSE;
@@ -194,12 +199,14 @@ Bool dmxOpenDisplay(DMXScreenInfo *dmxScreen)
     return TRUE;
 }
 
-void dmxSetErrorHandler(DMXScreenInfo *dmxScreen)
+void
+dmxSetErrorHandler(DMXScreenInfo * dmxScreen)
 {
     XSetErrorHandler(dmxErrorHandler);
 }
 
-static void dmxPrintScreenInfo(DMXScreenInfo *dmxScreen)
+static void
+dmxPrintScreenInfo(DMXScreenInfo * dmxScreen)
 {
     XWindowAttributes attribs;
     int               ndepths = 0, *depths = NULL;
@@ -209,7 +216,8 @@ static void dmxPrintScreenInfo(DMXScreenInfo *dmxScreen)
     int               scr    = DefaultScreen(dpy);
 
     XGetWindowAttributes(dpy, DefaultRootWindow(dpy), &attribs);
-    if (!(depths = XListDepths(dpy, scr, &ndepths))) ndepths = 0;
+    if (!(depths = XListDepths(dpy, scr, &ndepths)))
+        ndepths = 0;
     
     dmxLogOutput(dmxScreen, "Name of display: %s\n", DisplayString(dpy));
     dmxLogOutput(dmxScreen, "Version number:  %d.%d\n",
@@ -217,7 +225,8 @@ static void dmxPrintScreenInfo(DMXScreenInfo *dmxScreen)
     dmxLogOutput(dmxScreen, "Vendor string:   %s\n", ServerVendor(dpy));
     if (!strstr(ServerVendor(dpy), "XFree86")) {
         dmxLogOutput(dmxScreen, "Vendor release:  %d\n", VendorRelease(dpy));
-    } else {
+    }
+    else {
                                 /* This code based on xdpyinfo.c */
     	int v = VendorRelease(dpy);
         int major = -1, minor = -1, patch = -1, subpatch = -1;
@@ -229,26 +238,32 @@ static void dmxPrintScreenInfo(DMXScreenInfo *dmxScreen)
             minor = (v / 100) % 10;
             if (((v / 10) % 10) || (v % 10)) {
                 patch = (v / 10) % 10;
-                if (v % 10) subpatch = v % 10;
+                if (v % 10)
+                    subpatch = v % 10;
             }
-        } else if (v < 40000000) {
+        }
+        else if (v < 40000000) {
             major = v / 1000;
             minor = (v / 10) % 10;
-            if (v % 10) patch = v % 10;
-	} else {
+            if (v % 10)
+                patch = v % 10;
+        }
+        else {
             major = v / 10000000;
             minor = (v / 100000) % 100;
             patch = (v / 1000) % 100;
-            if (v % 1000) subpatch = v % 1000;
+            if (v % 1000)
+                subpatch = v % 1000;
 	}
         dmxLogOutput(dmxScreen, "Vendor release:  %d (XFree86 version: %d.%d",
                      v, major, minor);
-        if (patch > 0)    dmxLogOutputCont(dmxScreen, ".%d", patch);
-        if (subpatch > 0) dmxLogOutputCont(dmxScreen, ".%d", subpatch);
+        if (patch > 0)
+            dmxLogOutputCont(dmxScreen, ".%d", patch);
+        if (subpatch > 0)
+            dmxLogOutputCont(dmxScreen, ".%d", subpatch);
         dmxLogOutputCont(dmxScreen, ")\n");
     }
 
-    
     dmxLogOutput(dmxScreen, "Dimensions:      %dx%d pixels\n", 
                  attribs.width, attribs.height);
     dmxLogOutput(dmxScreen, "%d depths on screen %d: ", ndepths, scr);
@@ -275,10 +290,12 @@ static void dmxPrintScreenInfo(DMXScreenInfo *dmxScreen)
     XFree(depths);
 }
 
-void dmxGetScreenAttribs(DMXScreenInfo *dmxScreen)
+void
+dmxGetScreenAttribs(DMXScreenInfo * dmxScreen)
 {
     XWindowAttributes attribs;
     Display           *dpy   = dmxScreen->beDisplay;
+
 #ifdef GLXEXT
     int               dummy;
 #endif
@@ -293,7 +310,8 @@ void dmxGetScreenAttribs(DMXScreenInfo *dmxScreen)
         if (dmxScreen->scrnWidth) {
             dmxScreen->scrnX   = (attribs.width - dmxScreen->scrnWidth
 				  - dmxScreen->scrnX);
-        } else {
+        }
+        else {
             dmxScreen->scrnWidth  = attribs.width - dmxScreen->scrnX;
             dmxScreen->scrnX   = 0;
         }
@@ -302,7 +320,8 @@ void dmxGetScreenAttribs(DMXScreenInfo *dmxScreen)
         if (dmxScreen->scrnHeight) {
             dmxScreen->scrnY   = (attribs.height - dmxScreen->scrnHeight
 				  - dmxScreen->scrnY);
-        } else {
+        }
+        else {
             dmxScreen->scrnHeight = attribs.height - dmxScreen->scrnY;
             dmxScreen->scrnY   = 0;
         }
@@ -312,8 +331,10 @@ void dmxGetScreenAttribs(DMXScreenInfo *dmxScreen)
     if (!dmxScreen->scrnHeight)
         dmxScreen->scrnHeight = attribs.height - dmxScreen->scrnY;
 
-    if (!dmxScreen->rootWidth)  dmxScreen->rootWidth  = dmxScreen->scrnWidth;
-    if (!dmxScreen->rootHeight) dmxScreen->rootHeight = dmxScreen->scrnHeight;
+    if (!dmxScreen->rootWidth)
+        dmxScreen->rootWidth = dmxScreen->scrnWidth;
+    if (!dmxScreen->rootHeight)
+        dmxScreen->rootHeight = dmxScreen->scrnHeight;
     if (dmxScreen->rootWidth + dmxScreen->rootX > dmxScreen->scrnWidth)
         dmxScreen->rootWidth = dmxScreen->scrnWidth - dmxScreen->rootX;
     if (dmxScreen->rootHeight + dmxScreen->rootY > dmxScreen->scrnHeight)
@@ -331,9 +352,12 @@ void dmxGetScreenAttribs(DMXScreenInfo *dmxScreen)
 					  * at depth 8.  More work needs
 					  * to be done here. */
 
-    if (dmxScreen->beDepth <= 8)       dmxScreen->beBPP = 8;
-    else if (dmxScreen->beDepth <= 16) dmxScreen->beBPP = 16;
-    else                               dmxScreen->beBPP = 32;
+    if (dmxScreen->beDepth <= 8)
+        dmxScreen->beBPP = 8;
+    else if (dmxScreen->beDepth <= 16)
+        dmxScreen->beBPP = 16;
+    else
+        dmxScreen->beBPP = 32;
 
 #ifdef GLXEXT
     /* get the majorOpcode for the back-end GLX extension */
@@ -352,7 +376,8 @@ void dmxGetScreenAttribs(DMXScreenInfo *dmxScreen)
                             "Support for depth == 8 is not complete\n");
 }
 
-Bool dmxGetVisualInfo(DMXScreenInfo *dmxScreen)
+Bool
+dmxGetVisualInfo(DMXScreenInfo * dmxScreen)
 {
     int i;
     XVisualInfo visinfo;
@@ -360,8 +385,7 @@ Bool dmxGetVisualInfo(DMXScreenInfo *dmxScreen)
     visinfo.screen = DefaultScreen(dmxScreen->beDisplay);
     dmxScreen->beVisuals = XGetVisualInfo(dmxScreen->beDisplay,
 					  VisualScreenMask,
-					  &visinfo,
-					  &dmxScreen->beNumVisuals);
+                                          &visinfo, &dmxScreen->beNumVisuals);
 
     dmxScreen->beDefVisualIndex = -1;
 
@@ -374,16 +398,19 @@ Bool dmxGetVisualInfo(DMXScreenInfo *dmxScreen)
 			    dmxScreen->beDefVisualIndex = i;
 			    break;
 			}
-		    } else {
+                    }
+                    else {
 			dmxScreen->beDefVisualIndex = i;
 			break;
 		    }
 		}
-	    } else if (dmxScreen->beVisuals[i].depth == dmxDepth) {
+            }
+            else if (dmxScreen->beVisuals[i].depth == dmxDepth) {
 		dmxScreen->beDefVisualIndex = i;
 		break;
 	    }
-    } else {
+    }
+    else {
 	visinfo.visualid =
 	    XVisualIDFromVisual(DefaultVisual(dmxScreen->beDisplay,
 					      visinfo.screen));
@@ -402,7 +429,8 @@ Bool dmxGetVisualInfo(DMXScreenInfo *dmxScreen)
     return dmxScreen->beDefVisualIndex >= 0;
 }
 
-void dmxGetColormaps(DMXScreenInfo *dmxScreen)
+void
+dmxGetColormaps(DMXScreenInfo * dmxScreen)
 {
     int i;
 
@@ -414,8 +442,7 @@ void dmxGetColormaps(DMXScreenInfo *dmxScreen)
 	dmxScreen->beDefColormaps[i] =
 	    XCreateColormap(dmxScreen->beDisplay,
 			    DefaultRootWindow(dmxScreen->beDisplay),
-			    dmxScreen->beVisuals[i].visual,
-			    AllocNone);
+                            dmxScreen->beVisuals[i].visual, AllocNone);
 
     dmxScreen->beBlackPixel = BlackPixel(dmxScreen->beDisplay,
 					 DefaultScreen(dmxScreen->beDisplay));
@@ -423,7 +450,8 @@ void dmxGetColormaps(DMXScreenInfo *dmxScreen)
 					 DefaultScreen(dmxScreen->beDisplay));
 }
 
-void dmxGetPixmapFormats(DMXScreenInfo *dmxScreen)
+void
+dmxGetPixmapFormats(DMXScreenInfo * dmxScreen)
 {
     dmxScreen->beDepths =
 	XListDepths(dmxScreen->beDisplay, DefaultScreen(dmxScreen->beDisplay),
@@ -434,8 +462,8 @@ void dmxGetPixmapFormats(DMXScreenInfo *dmxScreen)
 			   &dmxScreen->beNumPixmapFormats);
 }
 
-static Bool dmxSetPixmapFormats(ScreenInfo *pScreenInfo,
-				DMXScreenInfo *dmxScreen)
+static Bool
+dmxSetPixmapFormats(ScreenInfo * pScreenInfo, DMXScreenInfo * dmxScreen)
 {
     XPixmapFormatValues *bePixmapFormat;
     PixmapFormatRec     *format;
@@ -466,7 +494,8 @@ static Bool dmxSetPixmapFormats(ScreenInfo *pScreenInfo,
     return TRUE;
 }
 
-void dmxCheckForWM(DMXScreenInfo *dmxScreen)
+void
+dmxCheckForWM(DMXScreenInfo * dmxScreen)
 {
     Status status;
     XWindowAttributes xwa;
@@ -482,12 +511,12 @@ void dmxCheckForWM(DMXScreenInfo *dmxScreen)
 
 /** Initialize the display and collect relevant information about the
  *  display properties */
-static void dmxDisplayInit(DMXScreenInfo *dmxScreen)
+static void
+dmxDisplayInit(DMXScreenInfo * dmxScreen)
 {
     if (!dmxOpenDisplay(dmxScreen))
 	dmxLog(dmxFatal,
-               "dmxOpenDisplay: Unable to open display %s\n",
-               dmxScreen->name);
+               "dmxOpenDisplay: Unable to open display %s\n", dmxScreen->name);
 
     dmxSetErrorHandler(dmxScreen);
     dmxCheckForWM(dmxScreen);
@@ -504,10 +533,15 @@ static void dmxDisplayInit(DMXScreenInfo *dmxScreen)
  * below.  This information is to help with bug reports and is not
  * critical. */
 #if !defined(_POSIX_SOURCE) 
-static const char *dmxExecOS(void) { return ""; }
+static const char *
+dmxExecOS(void)
+{
+    return "";
+}
 #else
 #include <sys/utsname.h>
-static const char *dmxExecOS(void)
+static const char *
+dmxExecOS(void)
 {
     static char buffer[128];
     static int  initialized = 0;
@@ -523,7 +557,8 @@ static const char *dmxExecOS(void)
 }
 #endif
 
-static const char *dmxBuildCompiler(void)
+static const char *
+dmxBuildCompiler(void)
 {
     static char buffer[128];
     static int  initialized = 0;
@@ -538,7 +573,8 @@ static const char *dmxBuildCompiler(void)
     return buffer;
 }
 
-static const char *dmxExecHost(void)
+static const char *
+dmxExecHost(void)
 {
     static char buffer[128];
     static int  initialized = 0;
@@ -551,10 +587,12 @@ static const char *dmxExecHost(void)
 }
 
 /** This routine is called in Xserver/dix/main.c from \a main(). */
-void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
+void
+InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 {
     int                  i;
     static unsigned long dmxGeneration = 0;
+
 #ifdef GLXEXT
     Bool                 glxSupported  = TRUE;
 #endif
@@ -576,7 +614,8 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
         day      = vendrel;
 
                                 /* Add other epoch tests here */
-        if (major > 0 && minor > 0) year += 2000;
+        if (major > 0 && minor > 0)
+            year += 2000;
 
         dmxLog(dmxInfo, "Generation:         %d\n", dmxGeneration);
         dmxLog(dmxInfo, "DMX version:        %d.%d.%02d%02d%02d (%s)\n",
@@ -600,7 +639,8 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
             dmxStatFree(dmxScreens[i].stat);
             dmxScreens[i].stat = NULL;
         }
-        for (i = 0; i < dmxNumInputs; i++) dmxInputFree(&dmxInputs[i]);
+        for (i = 0; i < dmxNumInputs; i++)
+            dmxInputFree(&dmxInputs[i]);
         free(dmxScreens);
         free(dmxInputs);
         dmxScreens    = NULL;
@@ -644,8 +684,7 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
 	       "InitOutput: Disabling lazy window creation optimization\n");
         dmxLog(dmxInfo,
 	       "            since it requires the offscreen optimization\n");
-        dmxLog(dmxInfo,
-	       "            to function properly.\n");
+        dmxLog(dmxInfo, "            to function properly.\n");
 	dmxLazyWindowCreation = FALSE;
     }
 
@@ -663,7 +702,8 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
 
     /* Since we only have a single screen thus far, we only need to set
        the pixmap formats to match that screen.  FIXME: this isn't true.*/
-    if (!dmxSetPixmapFormats(pScreenInfo, &dmxScreens[0])) return;
+    if (!dmxSetPixmapFormats(pScreenInfo, &dmxScreens[0]))
+        return;
 
     /* Might want to install a signal handler to allow cleaning up after
      * unexpected signals.  The DIX/OS layer already handles SIGINT and
@@ -728,7 +768,8 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
 						     dmxScreen->glxVisuals,
 						     dmxScreen->numGlxVisuals,
 						     &nconfigs);
-	    } else {
+            }
+            else {
 		configs = dmxScreen->glxVisuals;
 		nconfigs = dmxScreen->numGlxVisuals;
 	    }
@@ -750,6 +791,7 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
 		    /* Find the visual depth */
 		    if (configs[i].vid > 0) {
 			int  j;
+
 			for (j = 0; j < dmxScreen->beNumVisuals; j++) {
 			    if (dmxScreen->beVisuals[j].visualid ==
 				configs[i].vid) {
@@ -800,7 +842,8 @@ void InitOutput(ScreenInfo *pScreenInfo, int argc, char *argv[])
 /* RATS: Assuming the fp string (which comes from the command-line argv
          vector) is NULL-terminated, the buffer is large enough for the
          strcpy. */ 
-static void dmxSetDefaultFontPath(const char *fp)
+static void
+dmxSetDefaultFontPath(const char *fp)
 {
     if (dmxFontPath) {
 	int fplen = strlen(fp) + 1;
@@ -809,7 +852,8 @@ static void dmxSetDefaultFontPath(const char *fp)
 	dmxFontPath = realloc(dmxFontPath, len+fplen+1);
 	dmxFontPath[len] = ',';
 	strncpy(&dmxFontPath[len+1], fp, fplen);
-    } else {
+    }
+    else {
 	dmxFontPath = strdup(fp);
     }
 
@@ -819,20 +863,23 @@ static void dmxSetDefaultFontPath(const char *fp)
 /** This function is called in Xserver/os/utils.c from \a AbortServer().
  * We must ensure that backend and console state is restored in the
  * event the server shutdown wasn't clean. */
-void AbortDDX(enum ExitCode error)
+void
+AbortDDX(enum ExitCode error)
 {
     int i;
 
     for (i=0; i < dmxNumScreens; i++) {
         DMXScreenInfo *dmxScreen = &dmxScreens[i];
         
-        if (dmxScreen->beDisplay) XCloseDisplay(dmxScreen->beDisplay);
+        if (dmxScreen->beDisplay)
+            XCloseDisplay(dmxScreen->beDisplay);
         dmxScreen->beDisplay = NULL;
     }
 }
 
 #ifdef DDXMAIN
-void ddxMain(void)
+void
+ddxMain(void)
 {
 }
 #endif
@@ -840,13 +887,15 @@ void ddxMain(void)
 /** This function is called in Xserver/dix/main.c from \a main() when
  * dispatchException & DE_TERMINATE (which is the only way to exit the
  * main loop without an interruption. */
-void ddxGiveUp(enum ExitCode error)
+void
+ddxGiveUp(enum ExitCode error)
 {
     AbortDDX(error);
 }
 
 /** This function is called in Xserver/os/osinit.c from \a OsInit(). */
-void OsVendorInit(void)
+void
+OsVendorInit(void)
 {
 }
 
@@ -855,90 +904,124 @@ void OsVendorInit(void)
  * OsVendorVErrorFProc will cause \a VErrorF() (which is called by the
  * two routines mentioned here, as well as by others) to use the
  * referenced routine instead of \a vfprintf().) */
-void OsVendorFatalError(void)
+void
+OsVendorFatalError(void)
 {
 }
 
 /** Process our command line arguments. */
-int ddxProcessArgument(int argc, char *argv[], int i)
+int
+ddxProcessArgument(int argc, char *argv[], int i)
 {
     int retval = 0;
     
     if (!strcmp(argv[i], "-display")) {
-	if (++i < argc) dmxConfigStoreDisplay(argv[i]);
+        if (++i < argc)
+            dmxConfigStoreDisplay(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-inputfrom") || !strcmp(argv[i], "-input")) {
-	if (++i < argc) dmxConfigStoreInput(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-inputfrom") || !strcmp(argv[i], "-input")) {
+        if (++i < argc)
+            dmxConfigStoreInput(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-xinputfrom") || !strcmp(argv[i],"-xinput")) {
-        if (++i < argc) dmxConfigStoreXInput(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-xinputfrom") || !strcmp(argv[i], "-xinput")) {
+        if (++i < argc)
+            dmxConfigStoreXInput(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-noshadowfb")) {
+    }
+    else if (!strcmp(argv[i], "-noshadowfb")) {
         dmxLog(dmxWarning,
                "-noshadowfb has been deprecated "
 	       "since it is now the default\n");
 	dmxShadowFB = FALSE;
 	retval = 1;
-    } else if (!strcmp(argv[i], "-nomulticursor")) {
+    }
+    else if (!strcmp(argv[i], "-nomulticursor")) {
         dmxCursorNoMulti();
 	retval = 1;
-    } else if (!strcmp(argv[i], "-shadowfb")) {
+    }
+    else if (!strcmp(argv[i], "-shadowfb")) {
 	dmxShadowFB = TRUE;
 	retval = 1;
-    } else if (!strcmp(argv[i], "-configfile")) {
-        if (++i < argc) dmxConfigStoreFile(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-configfile")) {
+        if (++i < argc)
+            dmxConfigStoreFile(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-config")) {
-        if (++i < argc) dmxConfigStoreConfig(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-config")) {
+        if (++i < argc)
+            dmxConfigStoreConfig(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-fontpath")) {
-        if (++i < argc) dmxSetDefaultFontPath(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-fontpath")) {
+        if (++i < argc)
+            dmxSetDefaultFontPath(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-stat")) {
-        if ((i += 2) < argc) dmxStatActivate(argv[i-1], argv[i]);
+    }
+    else if (!strcmp(argv[i], "-stat")) {
+        if ((i += 2) < argc)
+            dmxStatActivate(argv[i - 1], argv[i]);
         retval = 3;
-    } else if (!strcmp(argv[i], "-syncbatch")) {
-        if (++i < argc) dmxSyncActivate(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-syncbatch")) {
+        if (++i < argc)
+            dmxSyncActivate(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-nooffscreenopt")) {
+    }
+    else if (!strcmp(argv[i], "-nooffscreenopt")) {
 	dmxOffScreenOpt = FALSE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-nosubdivprims")) {
+    }
+    else if (!strcmp(argv[i], "-nosubdivprims")) {
 	dmxSubdividePrimitives = FALSE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-nowindowopt")) {
+    }
+    else if (!strcmp(argv[i], "-nowindowopt")) {
 	dmxLazyWindowCreation = FALSE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-noxkb")) {
+    }
+    else if (!strcmp(argv[i], "-noxkb")) {
 	dmxUseXKB = FALSE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-depth")) {
-        if (++i < argc) dmxDepth = atoi(argv[i]);
+    }
+    else if (!strcmp(argv[i], "-depth")) {
+        if (++i < argc)
+            dmxDepth = atoi(argv[i]);
         retval = 2;
-    } else if (!strcmp(argv[i], "-norender")) {
+    }
+    else if (!strcmp(argv[i], "-norender")) {
 	noRenderExtension = TRUE;
         retval = 1;
 #ifdef GLXEXT
-    } else if (!strcmp(argv[i], "-noglxproxy")) {
+    }
+    else if (!strcmp(argv[i], "-noglxproxy")) {
 	dmxGLXProxy = FALSE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-noglxswapgroup")) {
+    }
+    else if (!strcmp(argv[i], "-noglxswapgroup")) {
 	dmxGLXSwapGroupSupport = FALSE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-glxsyncswap")) {
+    }
+    else if (!strcmp(argv[i], "-glxsyncswap")) {
 	dmxGLXSyncSwap = TRUE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-glxfinishswap")) {
+    }
+    else if (!strcmp(argv[i], "-glxfinishswap")) {
 	dmxGLXFinishSwap = TRUE;
         retval = 1;
 #endif
-    } else if (!strcmp(argv[i], "-ignorebadfontpaths")) {
+    }
+    else if (!strcmp(argv[i], "-ignorebadfontpaths")) {
 	dmxIgnoreBadFontPaths = TRUE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-addremovescreens")) {
+    }
+    else if (!strcmp(argv[i], "-addremovescreens")) {
 	dmxAddRemoveScreens = TRUE;
         retval = 1;
-    } else if (!strcmp(argv[i], "-param")) {
+    }
+    else if (!strcmp(argv[i], "-param")) {
         if ((i += 2) < argc) {
             if (!strcasecmp(argv[i-1], "xkbrules"))
                 dmxConfigSetXkbRules(argv[i]);
@@ -957,12 +1040,14 @@ int ddxProcessArgument(int argc, char *argv[], int i)
         }
         retval = 3;
     }
-    if (!serverGeneration) dmxConfigSetMaxScreens();
+    if (!serverGeneration)
+        dmxConfigSetMaxScreens();
     return retval;
 }
 
 /** Provide succinct usage information for the DMX server. */
-void ddxUseMsg(void)
+void
+ddxUseMsg(void)
 {
     ErrorF("\n\nDevice Dependent Usage:\n");
     ErrorF("-display string      Specify the back-end display(s)\n");
@@ -990,7 +1075,8 @@ void ddxUseMsg(void)
     ErrorF("-glxsyncswap         Force XSync after swap buffers\n");
     ErrorF("-glxfinishswap       Force glFinish after swap buffers\n");
 #endif
-    ErrorF("-ignorebadfontpaths  Ignore bad font paths during initialization\n");
+    ErrorF
+        ("-ignorebadfontpaths  Ignore bad font paths during initialization\n");
     ErrorF("-addremovescreens    Enable dynamic screen addition/removal\n");
     ErrorF("-param ...           Specify configuration parameters (e.g.,\n");
     ErrorF("                     XkbRules, XkbModel, XkbLayout, etc.)\n");

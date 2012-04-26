@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -67,12 +66,12 @@ SOFTWARE.
 
 #include "dixstruct.h"
 
-
 #if !defined(SYSV) && !defined(WIN32) 
 #include <sys/resource.h>
 #endif
 
 extern char *display;
+
 #ifdef RLIMIT_DATA
 int limitDataSpace = -1;
 #endif
@@ -128,7 +127,8 @@ OsSigHandler(int signo)
   if (sip->si_code == SI_USER) {
       ErrorF("Recieved signal %d sent by process %ld, uid %ld\n",
 	     signo, (long) sip->si_pid, (long) sip->si_uid);
-  } else {
+    }
+    else {
       switch (signo) {
           case SIGSEGV:
           case SIGBUS:
@@ -153,6 +153,7 @@ OsInit(void)
     if (!been_here) {
 	struct sigaction act, oact;
 	int i;
+
 	int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
 			  SIGSYS,
 			  SIGXCPU,
@@ -160,7 +161,8 @@ OsInit(void)
 #ifdef SIGEMT
 			  SIGEMT,
 #endif
-			  0 /* must be last */ };
+            0 /* must be last */
+        };
 	sigemptyset(&act.sa_mask);
 #ifdef SA_SIGINFO
 	act.sa_sigaction = OsSigHandler;
@@ -182,6 +184,7 @@ OsInit(void)
 	 */
 	do {
 	    void *array;
+
 	    backtrace(&array, 1);
 	} while (0);
 #endif
@@ -192,6 +195,7 @@ OsInit(void)
 	 * after ourselves.
 	 */
 	int failure_signal = SIGQUIT;
+
 	dlinfo(RTLD_SELF, RTLD_DI_SETSIGNAL, &failure_signal);
 #endif
 
@@ -204,12 +208,10 @@ OsInit(void)
 	    setpgid (0, 0);
 
 #ifdef RLIMIT_DATA
-	if (limitDataSpace >= 0)
-	{
+        if (limitDataSpace >= 0) {
 	    struct rlimit	rlim;
 
-	    if (!getrlimit(RLIMIT_DATA, &rlim))
-	    {
+            if (!getrlimit(RLIMIT_DATA, &rlim)) {
 		if ((limitDataSpace > 0) && (limitDataSpace < rlim.rlim_max))
 		    rlim.rlim_cur = limitDataSpace;
 		else
@@ -219,12 +221,10 @@ OsInit(void)
 	}
 #endif
 #ifdef RLIMIT_STACK
-	if (limitStackSpace >= 0)
-	{
+        if (limitStackSpace >= 0) {
 	    struct rlimit	rlim;
 
-	    if (!getrlimit(RLIMIT_STACK, &rlim))
-	    {
+            if (!getrlimit(RLIMIT_STACK, &rlim)) {
 		if ((limitStackSpace > 0) && (limitStackSpace < rlim.rlim_max))
 		    rlim.rlim_cur = limitStackSpace;
 		else
@@ -234,12 +234,10 @@ OsInit(void)
 	}
 #endif
 #ifdef RLIMIT_NOFILE
-	if (limitNoFile >= 0)
-	{
+        if (limitNoFile >= 0) {
 	    struct rlimit	rlim;
 
-	    if (!getrlimit(RLIMIT_NOFILE, &rlim))
-	    {
+            if (!getrlimit(RLIMIT_NOFILE, &rlim)) {
 		if ((limitNoFile > 0) && (limitNoFile < rlim.rlim_max))
 		    rlim.rlim_cur = limitNoFile;
 		else
@@ -264,8 +262,7 @@ OsInit(void)
 void
 OsCleanup(Bool terminating)
 {
-    if (terminating)
-    {
+    if (terminating) {
 	UnlockServer();
     }
 }

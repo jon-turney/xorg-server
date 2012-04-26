@@ -53,7 +53,6 @@
 /* Windows headers */
 #include <X11/Xwindows.h>
 
-
 /* Clipboard module constants */
 #define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
 #define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
@@ -83,7 +82,6 @@ extern void ErrorF (const char* /*f*/, ...);
 extern void winDebug (const char *format, ...);
 extern void winErrorFVerb (int verb, const char *format, ...);
 
-
 /*
  * winclipboardinit.c
  */
@@ -91,9 +89,7 @@ extern void winErrorFVerb (int verb, const char *format, ...);
 Bool
 winInitClipboard (void);
 
-HWND
-winClipboardCreateMessagingWindow (void);
-
+HWND winClipboardCreateMessagingWindow(void);
 
 /*
  * winclipboardtextconv.c
@@ -105,37 +101,30 @@ winClipboardDOStoUNIX (char *pszData, int iLength);
 void
 winClipboardUNIXtoDOS (unsigned char **ppszData, int iLength);
 
-
 /*
  * winclipboardthread.c
  */
 
-void *
-winClipboardProc (void *);
+void *winClipboardProc(void *);
 
 void
 winDeinitClipboard (void);
-
 
 /*
  * winclipboardwndproc.c
  */
 
-BOOL
-winClipboardFlushWindowsMessageQueue (HWND hwnd);
+BOOL winClipboardFlushWindowsMessageQueue(HWND hwnd);
 
 LRESULT CALLBACK
-winClipboardWindowProc (HWND hwnd, UINT message, 
-			WPARAM wParam, LPARAM lParam);
-
+winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 /*
  * winclipboardxevents.c
  */
 
 int
+
 winClipboardFlushXEvents (HWND hwnd,
-			  int iWindow,
-			  Display *pDisplay,
-			  Bool fUnicodeSupport);
+                         int iWindow, Display * pDisplay, Bool fUnicodeSupport);
 #endif

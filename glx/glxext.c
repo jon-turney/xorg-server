@@ -63,6 +63,7 @@ RESTYPE __glXDrawableRes;
 xGLXSingleReply __glXReply;
 
 static DevPrivateKeyRec glxClientPrivateKeyRec;
+
 #define glxClientPrivateKey (&glxClientPrivateKeyRec)
 
 /*
@@ -73,7 +74,8 @@ static int __glXDispatch(ClientPtr);
 /*
 ** Called when the extension is reset.
 */
-static void ResetExtension(ExtensionEntry* extEntry)
+static void
+ResetExtension(ExtensionEntry * extEntry)
 {
     __glXFlushContextCache();
 }
@@ -81,7 +83,8 @@ static void ResetExtension(ExtensionEntry* extEntry)
 /*
 ** Reset state used to keep track of large (multi-request) commands.
 */
-void __glXResetLargeCommandStatus(__GLXclientState *cl)
+void
+__glXResetLargeCommandStatus(__GLXclientState * cl)
 {
     cl->largeCmdBytesSoFar = 0;
     cl->largeCmdBytesTotal = 0;
@@ -95,7 +98,8 @@ void __glXResetLargeCommandStatus(__GLXclientState *cl)
 ** flag that the ID is no longer valid, and (maybe) free the context.
 ** use.
 */
-static int ContextGone(__GLXcontext* cx, XID id)
+static int
+ContextGone(__GLXcontext * cx, XID id)
 {
     cx->idExists = GL_FALSE;
     if (!cx->isCurrent) {
@@ -114,7 +118,8 @@ static int glxBlockClients;
 ** Destroy routine that gets called when a drawable is freed.  A drawable
 ** contains the ancillary buffers needed for rendering.
 */
-static Bool DrawableGone(__GLXdrawable *glxPriv, XID xid)
+static Bool
+DrawableGone(__GLXdrawable * glxPriv, XID xid)
 {
     __GLXcontext *c, *next;
 
@@ -154,13 +159,15 @@ static Bool DrawableGone(__GLXdrawable *glxPriv, XID xid)
     return True;
 }
 
-void __glXAddToContextList(__GLXcontext *cx)
+void
+__glXAddToContextList(__GLXcontext * cx)
 {
     cx->next = glxAllContexts;
     glxAllContexts = cx;
 }
 
-static void __glXRemoveFromContextList(__GLXcontext *cx)
+static void
+__glXRemoveFromContextList(__GLXcontext * cx)
 {
     __GLXcontext *c, *prev;
 
@@ -179,9 +186,11 @@ static void __glXRemoveFromContextList(__GLXcontext *cx)
 /*
 ** Free a context.
 */
-GLboolean __glXFreeContext(__GLXcontext *cx)
+GLboolean
+__glXFreeContext(__GLXcontext * cx)
 {
-    if (cx->idExists || cx->isCurrent) return GL_FALSE;
+    if (cx->idExists || cx->isCurrent)
+        return GL_FALSE;
     
     free(cx->feedbackBuf);
     free(cx->selectBuf);
@@ -199,7 +208,8 @@ GLboolean __glXFreeContext(__GLXcontext *cx)
 	__glXleaveServer(GL_FALSE);
 	cx->destroy(cx);
 	__glXenterServer(GL_FALSE);
-    } else {
+    }
+    else {
 	cx->next = glxPendingDestroyContexts;
 	glxPendingDestroyContexts = cx;
     }
@@ -221,7 +231,8 @@ static GLboolean errorOccured = GL_FALSE;
 /*
 ** The GL was will call this routine if an error occurs.
 */
-void __glXErrorCallBack(GLenum code)
+void
+__glXErrorCallBack(GLenum code)
 {
     errorOccured = GL_TRUE;
 }
@@ -229,7 +240,8 @@ void __glXErrorCallBack(GLenum code)
 /*
 ** Clear the error flag before calling the GL command.
 */
-void __glXClearErrorOccured(void)
+void
+__glXClearErrorOccured(void)
 {
     errorOccured = GL_FALSE;
 }
@@ -237,7 +249,8 @@ void __glXClearErrorOccured(void)
 /*
 ** Check if the GL command caused an error.
 */
-GLboolean __glXErrorOccured(void)
+GLboolean
+__glXErrorOccured(void)
 {
     return errorOccured;
 }
@@ -245,7 +258,8 @@ GLboolean __glXErrorOccured(void)
 static int __glXErrorBase;
 int __glXEventBase;
 
-int __glXError(int error)
+int
+__glXError(int error)
 {
     return __glXErrorBase + error;
 }
@@ -257,9 +271,7 @@ glxGetClient(ClientPtr pClient)
 }
 
 static void
-glxClientCallback (CallbackListPtr	*list,
-		   pointer		closure,
-		   pointer		data)
+glxClientCallback(CallbackListPtr *list, pointer closure, pointer data)
 {
     NewClientInfoRec	*clientinfo = (NewClientInfoRec *) data;
     ClientPtr		pClient = clientinfo->client;
@@ -291,7 +303,8 @@ glxClientCallback (CallbackListPtr	*list,
 
 static __GLXprovider *__glXProviderStack;
 
-void GlxPushProvider(__GLXprovider *provider)
+void
+GlxPushProvider(__GLXprovider * provider)
 {
     provider->next = __glXProviderStack;
     __glXProviderStack = provider;
@@ -300,7 +313,8 @@ void GlxPushProvider(__GLXprovider *provider)
 /*
 ** Initialize the GLX extension.
 */
-void GlxExtensionInit(void)
+void
+GlxExtensionInit(void)
 {
     ExtensionEntry *extEntry;
     ScreenPtr pScreen;
@@ -315,7 +329,8 @@ void GlxExtensionInit(void)
     if (!__glXContextRes || !__glXDrawableRes)
 	return;
 
-    if (!dixRegisterPrivateKey(&glxClientPrivateKeyRec, PRIVATE_CLIENT, sizeof (__GLXclientState)))
+    if (!dixRegisterPrivateKey
+        (&glxClientPrivateKeyRec, PRIVATE_CLIENT, sizeof(__GLXclientState)))
 	return;
     if (!AddCallback (&ClientStateCallback, glxClientCallback, 0))
 	return;
@@ -354,8 +369,7 @@ void GlxExtensionInit(void)
     */
     extEntry = AddExtension(GLX_EXTENSION_NAME, __GLX_NUMBER_EVENTS,
 			    __GLX_NUMBER_ERRORS, __glXDispatch,
-			    __glXDispatch, ResetExtension,
-			    StandardMinorOpcode);
+                            __glXDispatch, ResetExtension, StandardMinorOpcode);
     if (!extEntry) {
 	FatalError("__glXExtensionInit: AddExtensions failed\n");
 	return;
@@ -371,7 +385,8 @@ void GlxExtensionInit(void)
 
 /************************************************************************/
 
-void __glXFlushContextCache(void)
+void
+__glXFlushContextCache(void)
 {
     __glXLastContext = 0;
 }
@@ -382,8 +397,8 @@ void __glXFlushContextCache(void)
 ** switching it between different contexts).  While we are at it, look up
 ** a context by its tag and return its (__GLXcontext *).
 */
-__GLXcontext *__glXForceCurrent(__GLXclientState *cl, GLXContextTag tag,
-				int *error)
+__GLXcontext *
+__glXForceCurrent(__GLXclientState * cl, GLXContextTag tag, int *error)
 {
     __GLXcontext *cx;
 
@@ -433,7 +448,8 @@ __GLXcontext *__glXForceCurrent(__GLXclientState *cl, GLXContextTag tag,
 
 /************************************************************************/
 
-void glxSuspendClients(void)
+void
+glxSuspendClients(void)
 {
     int i;
 
@@ -445,7 +461,8 @@ void glxSuspendClients(void)
     glxBlockClients = TRUE;
 }
 
-void glxResumeClients(void)
+void
+glxResumeClients(void)
 {
     __GLXcontext *cx, *next;
     int i;
@@ -480,15 +497,16 @@ __glXnopLeaveServer(GLboolean rendering)
 static void (*__glXenterServerFunc)(GLboolean) = __glXnopEnterServer;
 static void (*__glXleaveServerFunc)(GLboolean)  = __glXnopLeaveServer;
 
-void __glXsetEnterLeaveServerFuncs(void (*enter)(GLboolean),
+void
+__glXsetEnterLeaveServerFuncs(void (*enter) (GLboolean),
 				   void (*leave)(GLboolean))
 {
   __glXenterServerFunc = enter;
   __glXleaveServerFunc = leave;
 }
 
-
-void __glXenterServer(GLboolean rendering)
+void
+__glXenterServer(GLboolean rendering)
 {
   glxServerLeaveCount--;
 
@@ -496,7 +514,8 @@ void __glXenterServer(GLboolean rendering)
     (*__glXenterServerFunc)(rendering);
 }
 
-void __glXleaveServer(GLboolean rendering)
+void
+__glXleaveServer(GLboolean rendering)
 {
   if (glxServerLeaveCount == 0)
     (*__glXleaveServerFunc)(rendering);
@@ -507,7 +526,8 @@ void __glXleaveServer(GLboolean rendering)
 /*
 ** Top level dispatcher; all commands are executed from here down.
 */
-static int __glXDispatch(ClientPtr client)
+static int
+__glXDispatch(ClientPtr client)
 {
     REQUEST(xGLXSingleReq);
     CARD8 opcode;
@@ -544,6 +564,7 @@ static int __glXDispatch(ClientPtr client)
                                           client->swapped);
     if (proc != NULL) {
 	GLboolean rendering = opcode <= X_GLXRenderLarge;
+
 	__glXleaveServer(rendering);
 
 	retval = (*proc)(cl, (GLbyte *) stuff);

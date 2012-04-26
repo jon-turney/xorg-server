@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -44,7 +43,6 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 
 ******************************************************************/
-
 
 #ifndef OS_H
 #define OS_H
@@ -92,14 +90,12 @@ extern _X_HIDDEN void ddxMain(void);
 extern _X_EXPORT void (*OsVendorVErrorFProc)(const char *, va_list args);
 #endif
 
-extern _X_EXPORT int WaitForSomething(
-    int* /*pClientsReady*/
+extern _X_EXPORT int WaitForSomething(int *     /*pClientsReady */
 );
 
 extern _X_EXPORT int ReadRequestFromClient(ClientPtr /*client*/);
 
-extern _X_EXPORT Bool InsertFakeRequest(
-    ClientPtr /*client*/, 
+extern _X_EXPORT Bool InsertFakeRequest(ClientPtr /*client */ ,
     char* /*data*/, 
     int /*count*/);
 
@@ -111,7 +107,8 @@ extern _X_EXPORT void FlushIfCriticalOutputPending(void);
 
 extern _X_EXPORT void SetCriticalOutputPending(void);
 
-extern _X_EXPORT int WriteToClient(ClientPtr /*who*/, int /*count*/, const void* /*buf*/);
+extern _X_EXPORT int WriteToClient(ClientPtr /*who */ , int /*count */ ,
+                                   const void * /*buf */ );
 
 extern _X_EXPORT void ResetOsBuffers(void);
 
@@ -129,15 +126,13 @@ extern _X_EXPORT void CloseWellKnownConnections(void);
 
 extern _X_EXPORT XID AuthorizationIDOfClient(ClientPtr /*client*/);
 
-extern _X_EXPORT const char *ClientAuthorized(
-    ClientPtr /*client*/,
+extern _X_EXPORT const char *ClientAuthorized(ClientPtr /*client */ ,
     unsigned int /*proto_n*/,
     char* /*auth_proto*/,
     unsigned int /*string_n*/,
     char* /*auth_string*/);
 
-extern _X_EXPORT Bool EstablishNewConnections(
-    ClientPtr /*clientUnused*/,
+extern _X_EXPORT Bool EstablishNewConnections(ClientPtr /*clientUnused */ ,
     pointer /*closure*/);
 
 extern _X_EXPORT void CheckConnections(void);
@@ -170,14 +165,12 @@ extern void ListenOnOpenFD(int /* fd */, int /* noxauth */);
 
 extern _X_EXPORT CARD32 GetTimeInMillis(void);
 
-extern _X_EXPORT void AdjustWaitForDelay(
-    pointer /*waitTime*/,
+extern _X_EXPORT void AdjustWaitForDelay(pointer /*waitTime */ ,
     unsigned long /*newdelay*/);
 
 typedef	struct _OsTimerRec *OsTimerPtr;
 
-typedef CARD32 (*OsTimerCallback)(
-    OsTimerPtr /* timer */,
+typedef CARD32 (*OsTimerCallback) (OsTimerPtr /* timer */ ,
     CARD32 /* time */,
     pointer /* arg */);
 
@@ -188,8 +181,7 @@ extern _X_EXPORT Bool TimerForce(OsTimerPtr /* timer */);
 #define TimerAbsolute (1<<0)
 #define TimerForceOld (1<<1)
 
-extern _X_EXPORT OsTimerPtr TimerSet(
-    OsTimerPtr /* timer */,
+extern _X_EXPORT OsTimerPtr TimerSet(OsTimerPtr /* timer */ ,
     int /* flags */,
     CARD32 /* millis */,
     OsTimerCallback /* func */,
@@ -210,8 +202,7 @@ extern _X_EXPORT void UseMsg(void);
 
 extern _X_EXPORT void ProcessCommandLine(int /*argc*/, char* /*argv*/[]);
 
-extern _X_EXPORT int set_font_authorizations(
-    char ** /* authorizations */, 
+extern _X_EXPORT int set_font_authorizations(char ** /* authorizations */ ,
     int * /*authlen */, 
     pointer /* client */);
 
@@ -221,20 +212,28 @@ extern _X_EXPORT int set_font_authorizations(
 /*
  * Use malloc(3) instead.
  */
-extern _X_EXPORT void *Xalloc(unsigned long /*amount*/) _X_DEPRECATED;
+extern _X_EXPORT void *
+Xalloc(unsigned long /*amount */ ) _X_DEPRECATED;
+
 /*
  * Use calloc(3) instead
  */
-extern _X_EXPORT void *Xcalloc(unsigned long /*amount*/) _X_DEPRECATED;
+extern _X_EXPORT void *
+Xcalloc(unsigned long /*amount */ ) _X_DEPRECATED;
+
 /*
  * Use realloc(3) instead
  */
-extern _X_EXPORT void *Xrealloc(void * /*ptr*/, unsigned long /*amount*/)
+extern _X_EXPORT void *
+Xrealloc(void * /*ptr */ , unsigned long /*amount */ )
     _X_DEPRECATED;
+
 /*
  * Use free(3) instead
  */
-extern _X_EXPORT void Xfree(void * /*ptr*/) _X_DEPRECATED;
+extern _X_EXPORT void
+Xfree(void * /*ptr */ )
+    _X_DEPRECATED;
 
 #endif
 
@@ -242,78 +241,114 @@ extern _X_EXPORT void Xfree(void * /*ptr*/) _X_DEPRECATED;
  * This function malloc(3)s buffer, terminating the server if there is not
  * enough memory.
  */
-extern _X_EXPORT void *XNFalloc(unsigned long /*amount*/);
+extern _X_EXPORT void *
+XNFalloc(unsigned long /*amount */ );
+
 /*
  * This function calloc(3)s buffer, terminating the server if there is not
  * enough memory.
  */
-extern _X_EXPORT void *XNFcalloc(unsigned long /*amount*/);
+extern _X_EXPORT void *
+XNFcalloc(unsigned long /*amount */ );
+
 /*
  * This function realloc(3)s passed buffer, terminating the server if there is
  * not enough memory.
  */
-extern _X_EXPORT void *XNFrealloc(void * /*ptr*/, unsigned long /*amount*/);
+extern _X_EXPORT void *
+XNFrealloc(void * /*ptr */ , unsigned long /*amount */ );
 
 /*
  * This function strdup(3)s passed string. The only difference from the library
  * function that it is safe to pass NULL, as NULL will be returned.
  */
-extern _X_EXPORT char *Xstrdup(const char *s);
+extern _X_EXPORT char *
+Xstrdup(const char *s);
 
 /*
  * This function strdup(3)s passed string, terminating the server if there is
  * not enough memory. If NULL is passed to this function, NULL is returned.
  */
-extern _X_EXPORT char *XNFstrdup(const char *s);
+extern _X_EXPORT char *
+XNFstrdup(const char *s);
 
 /* Include new X*asprintf API */
 #include "Xprintf.h"
 
 /* Older api deprecated in favor of the asprintf versions */
-extern _X_EXPORT char *Xprintf(const char *fmt, ...) _X_ATTRIBUTE_PRINTF(1,2) _X_DEPRECATED;
-extern _X_EXPORT char *Xvprintf(const char *fmt, va_list va)_X_ATTRIBUTE_PRINTF(1,0) _X_DEPRECATED;
-extern _X_EXPORT char *XNFprintf(const char *fmt, ...) _X_ATTRIBUTE_PRINTF(1,2) _X_DEPRECATED;
-extern _X_EXPORT char *XNFvprintf(const char *fmt, va_list va)_X_ATTRIBUTE_PRINTF(1,0) _X_DEPRECATED;
+extern _X_EXPORT char *
+Xprintf(const char *fmt, ...)
+_X_ATTRIBUTE_PRINTF(1, 2)
+    _X_DEPRECATED;
+extern _X_EXPORT char *
+Xvprintf(const char *fmt, va_list va)
+_X_ATTRIBUTE_PRINTF(1, 0)
+    _X_DEPRECATED;
+extern _X_EXPORT char *
+XNFprintf(const char *fmt, ...)
+_X_ATTRIBUTE_PRINTF(1, 2)
+    _X_DEPRECATED;
+extern _X_EXPORT char *
+XNFvprintf(const char *fmt, va_list va)
+_X_ATTRIBUTE_PRINTF(1, 0)
+    _X_DEPRECATED;
 
 typedef void (*OsSigHandlerPtr)(int /* sig */);
 typedef int (*OsSigWrapperPtr)(int /* sig */);
 
-extern _X_EXPORT OsSigHandlerPtr OsSignal(int /* sig */, OsSigHandlerPtr /* handler */);
-extern _X_EXPORT OsSigWrapperPtr OsRegisterSigWrapper(OsSigWrapperPtr newWrap);
+extern _X_EXPORT OsSigHandlerPtr
+OsSignal(int /* sig */ , OsSigHandlerPtr /* handler */ );
+extern _X_EXPORT OsSigWrapperPtr
+OsRegisterSigWrapper(OsSigWrapperPtr newWrap);
 
 extern _X_EXPORT int auditTrailLevel;
 
-extern _X_EXPORT void LockServer(void);
-extern _X_EXPORT void UnlockServer(void);
+extern _X_EXPORT void
+LockServer(void);
+extern _X_EXPORT void
+UnlockServer(void);
 
-extern _X_EXPORT int OsLookupColor(
-    int	/*screen*/,
+extern _X_EXPORT int
+OsLookupColor(int /*screen */ ,
     char * /*name*/,
     unsigned /*len*/,
     unsigned short * /*pred*/,
     unsigned short * /*pgreen*/,
     unsigned short * /*pblue*/);
 
-extern _X_EXPORT void OsInit(void);
+extern _X_EXPORT void
+OsInit(void);
 
-extern _X_EXPORT void OsCleanup(Bool);
+extern _X_EXPORT void
+OsCleanup(Bool);
 
-extern _X_EXPORT void OsVendorFatalError(void);
+extern _X_EXPORT void
+OsVendorFatalError(void);
 
-extern _X_EXPORT void OsVendorInit(void);
+extern _X_EXPORT void
+OsVendorInit(void);
 
-extern _X_EXPORT void OsBlockSignals (void);
+extern _X_EXPORT void
+OsBlockSignals(void);
 
-extern _X_EXPORT void OsReleaseSignals (void);
+extern _X_EXPORT void
+OsReleaseSignals(void);
 
-extern _X_EXPORT void OsAbort (void) _X_NORETURN;
+extern _X_EXPORT void
+OsAbort(void)
+    _X_NORETURN;
 
 #if !defined(WIN32)
-extern _X_EXPORT int System(const char *);
-extern _X_EXPORT pointer Popen(const char *, const char *);
-extern _X_EXPORT int Pclose(pointer);
-extern _X_EXPORT pointer Fopen(const char *, const char *);
-extern _X_EXPORT int Fclose(pointer);
+extern _X_EXPORT int
+System(const char *);
+extern _X_EXPORT pointer
+Popen(const char *, const char *);
+extern _X_EXPORT int
+Pclose(pointer);
+extern _X_EXPORT pointer
+Fopen(const char *, const char *);
+extern _X_EXPORT int
+Fclose(pointer);
 #else
 #define System(a) system(a)
 #define Popen(a,b) popen(a,b)
@@ -322,42 +357,47 @@ extern _X_EXPORT int Fclose(pointer);
 #define Fclose(a) fclose(a)
 #endif
 
-extern _X_EXPORT void CheckUserParameters(int argc, char **argv, char **envp);
-extern _X_EXPORT void CheckUserAuthorization(void);
+extern _X_EXPORT void
+CheckUserParameters(int argc, char **argv, char **envp);
+extern _X_EXPORT void
+CheckUserAuthorization(void);
 
-extern _X_EXPORT int AddHost(
-    ClientPtr	/*client*/,
+extern _X_EXPORT int
+AddHost(ClientPtr /*client */ ,
     int         /*family*/,
     unsigned    /*length*/,
     const void */*pAddr*/);
 
-extern _X_EXPORT Bool ForEachHostInFamily (
-    int	    /*family*/,
+extern _X_EXPORT Bool
+ForEachHostInFamily(int /*family */ ,
     Bool    (* /*func*/ )(
             unsigned char * /* addr */,
             short           /* len */,
             pointer         /* closure */),
     pointer /*closure*/);
 
-extern _X_EXPORT int RemoveHost(
-    ClientPtr	/*client*/,
+extern _X_EXPORT int
+RemoveHost(ClientPtr /*client */ ,
     int         /*family*/,
     unsigned    /*length*/,
     pointer     /*pAddr*/);
 
-extern _X_EXPORT int GetHosts(
-    pointer * /*data*/,
+extern _X_EXPORT int
+GetHosts(pointer * /*data */ ,
     int	    * /*pnHosts*/,
     int	    * /*pLen*/,
     BOOL    * /*pEnabled*/);
 
 typedef struct sockaddr * sockaddrPtr;
 
-extern _X_EXPORT int InvalidHost(sockaddrPtr /*saddr*/, int /*len*/, ClientPtr client);
+extern _X_EXPORT int
+InvalidHost(sockaddrPtr /*saddr */ , int /*len */ , ClientPtr client);
 
-extern _X_EXPORT int LocalClient(ClientPtr /* client */);
+extern _X_EXPORT int
+LocalClient(ClientPtr /* client */ );
 
-extern _X_EXPORT int LocalClientCred(ClientPtr, int *, int *);
+extern _X_EXPORT int
+LocalClientCred(ClientPtr, int *, int *);
 
 #define LCC_UID_SET	(1 << 0)
 #define LCC_GID_SET	(1 << 1)
@@ -374,45 +414,56 @@ typedef struct {
     int zoneid;		/* Only set on Solaris 10 & later */
 } LocalClientCredRec;
 
-extern _X_EXPORT int GetLocalClientCreds(ClientPtr, LocalClientCredRec **);
-extern _X_EXPORT void FreeLocalClientCreds(LocalClientCredRec *);
+extern _X_EXPORT int
+GetLocalClientCreds(ClientPtr, LocalClientCredRec **);
+extern _X_EXPORT void
+FreeLocalClientCreds(LocalClientCredRec *);
 
-extern _X_EXPORT int ChangeAccessControl(ClientPtr /*client*/, int /*fEnabled*/);
+extern _X_EXPORT int
+ChangeAccessControl(ClientPtr /*client */ , int /*fEnabled */ );
 
-extern _X_EXPORT int GetAccessControl(void);
+extern _X_EXPORT int
+GetAccessControl(void);
 
+extern _X_EXPORT void
+AddLocalHosts(void);
 
-extern _X_EXPORT void AddLocalHosts(void);
+extern _X_EXPORT void
+ResetHosts(char *display);
 
-extern _X_EXPORT void ResetHosts(char *display);
+extern _X_EXPORT void
+EnableLocalHost(void);
 
-extern _X_EXPORT void EnableLocalHost(void);
+extern _X_EXPORT void
+DisableLocalHost(void);
 
-extern _X_EXPORT void DisableLocalHost(void);
+extern _X_EXPORT void
+AccessUsingXdmcp(void);
 
-extern _X_EXPORT void AccessUsingXdmcp(void);
-
-extern _X_EXPORT void DefineSelf(int /*fd*/);
+extern _X_EXPORT void
+DefineSelf(int /*fd */ );
 
 #if XDMCP
-extern _X_EXPORT void AugmentSelf(pointer /*from*/, int /*len*/);
+extern _X_EXPORT void
+AugmentSelf(pointer /*from */ , int /*len */ );
 
-extern _X_EXPORT void RegisterAuthorizations(void);
+extern _X_EXPORT void
+RegisterAuthorizations(void);
 #endif
 
-extern _X_EXPORT void InitAuthorization(char * /*filename*/);
+extern _X_EXPORT void
+InitAuthorization(char * /*filename */ );
 
 /* extern int LoadAuthorization(void); */
 
-extern _X_EXPORT int AuthorizationFromID (
-	XID 		id,
+extern _X_EXPORT int
+AuthorizationFromID(XID id,
 	unsigned short	*name_lenp,
 	const char	**namep,
-	unsigned short	*data_lenp,
-	char		**datap);
+                    unsigned short *data_lenp, char **datap);
 
-extern _X_EXPORT XID CheckAuthorization(
-    unsigned int /*namelength*/,
+extern _X_EXPORT XID
+CheckAuthorization(unsigned int /*namelength */ ,
     const char * /*name*/,
     unsigned int /*datalength*/,
     const char * /*data*/,
@@ -420,23 +471,23 @@ extern _X_EXPORT XID CheckAuthorization(
     const char ** /*reason*/
 );
 
-extern _X_EXPORT void ResetAuthorization(void);
+extern _X_EXPORT void
+ResetAuthorization(void);
 
-extern _X_EXPORT int RemoveAuthorization (
-    unsigned short	name_length,
+extern _X_EXPORT int
+RemoveAuthorization(unsigned short name_length,
     const char		*name,
-    unsigned short	data_length,
-    const char		*data);
+                    unsigned short data_length, const char *data);
 
-extern _X_EXPORT int AddAuthorization(
-    unsigned int	/*name_length*/,
+extern _X_EXPORT int
+AddAuthorization(unsigned int /*name_length */ ,
     const char *	/*name*/,
     unsigned int	/*data_length*/,
     char *		/*data*/);
 
 #ifdef XCSECURITY
-extern _X_EXPORT XID GenerateAuthorization(
-    unsigned int   /* name_length */,
+extern _X_EXPORT XID
+GenerateAuthorization(unsigned int /* name_length */ ,
     const char	*  /* name */,
     unsigned int   /* data_length */,
     const char	*  /* data */,
@@ -444,9 +495,11 @@ extern _X_EXPORT XID GenerateAuthorization(
     char	** /* data_return */);
 #endif
 
-extern _X_EXPORT int ddxProcessArgument(int /*argc*/, char * /*argv*/ [], int /*i*/);
+extern _X_EXPORT int
+ddxProcessArgument(int /*argc */ , char * /*argv */ [], int /*i */ );
 
-extern _X_EXPORT void ddxUseMsg(void);
+extern _X_EXPORT void
+ddxUseMsg(void);
 
 /* stuff for ReplyCallback */
 extern _X_EXPORT CallbackListPtr ReplyCallback;
@@ -469,33 +522,42 @@ enum ExitCode {
     EXIT_ERR_DRIVERS	= 3,
 };
 
-extern _X_EXPORT void AbortDDX(enum ExitCode error);
-extern _X_EXPORT void ddxGiveUp(enum ExitCode error);
-extern _X_EXPORT int TimeSinceLastInputEvent(void);
+extern _X_EXPORT void
+AbortDDX(enum ExitCode error);
+extern _X_EXPORT void
+ddxGiveUp(enum ExitCode error);
+extern _X_EXPORT int
+TimeSinceLastInputEvent(void);
 
 /* strcasecmp.c */
 #ifndef HAVE_STRCASECMP
 #define strcasecmp xstrcasecmp
-extern _X_EXPORT int xstrcasecmp(const char *s1, const char *s2);
+extern _X_EXPORT int
+xstrcasecmp(const char *s1, const char *s2);
 #endif
 
 #ifndef HAVE_STRNCASECMP
 #define strncasecmp xstrncasecmp
-extern _X_EXPORT int xstrncasecmp(const char *s1, const char *s2, size_t n);
+extern _X_EXPORT int
+xstrncasecmp(const char *s1, const char *s2, size_t n);
 #endif
 
 #ifndef HAVE_STRCASESTR
 #define strcasestr xstrcasestr
-extern _X_EXPORT char *xstrcasestr(const char *s, const char *find);
+extern _X_EXPORT char *
+xstrcasestr(const char *s, const char *find);
 #endif
 
 #ifndef HAVE_STRLCPY
-extern _X_EXPORT size_t strlcpy(char *dst, const char *src, size_t siz);
-extern _X_EXPORT size_t strlcat(char *dst, const char *src, size_t siz);
+extern _X_EXPORT size_t
+strlcpy(char *dst, const char *src, size_t siz);
+extern _X_EXPORT size_t
+strlcat(char *dst, const char *src, size_t siz);
 #endif
 
 #ifndef HAVE_STRNDUP
-extern _X_EXPORT char * strndup(const char *str, size_t n);
+extern _X_EXPORT char *
+strndup(const char *str, size_t n);
 #endif
 
 /* Logging. */
@@ -521,34 +583,58 @@ typedef enum {
     X_UNKNOWN = -1		/* unknown -- this must always be last */
 } MessageType;
 
-extern _X_EXPORT const char *LogInit(const char *fname, const char *backup);
-extern _X_EXPORT void LogClose(enum ExitCode error);
-extern _X_EXPORT Bool LogSetParameter(LogParameter param, int value);
-extern _X_EXPORT void LogVWrite(int verb, const char *f, va_list args) _X_ATTRIBUTE_PRINTF(2,0);
-extern _X_EXPORT void LogWrite(int verb, const char *f, ...) _X_ATTRIBUTE_PRINTF(2,3);
-extern _X_EXPORT void LogVMessageVerb(MessageType type, int verb, const char *format,
-			    va_list args) _X_ATTRIBUTE_PRINTF(3,0);
-extern _X_EXPORT void LogMessageVerb(MessageType type, int verb, const char *format,
-			   ...) _X_ATTRIBUTE_PRINTF(3,4);
-extern _X_EXPORT void LogMessage(MessageType type, const char *format, ...)
+extern _X_EXPORT const char *
+LogInit(const char *fname, const char *backup);
+extern _X_EXPORT void
+LogClose(enum ExitCode error);
+extern _X_EXPORT Bool
+LogSetParameter(LogParameter param, int value);
+extern _X_EXPORT void
+LogVWrite(int verb, const char *f, va_list args)
+_X_ATTRIBUTE_PRINTF(2, 0);
+extern _X_EXPORT void
+LogWrite(int verb, const char *f, ...)
+_X_ATTRIBUTE_PRINTF(2, 3);
+extern _X_EXPORT void
+LogVMessageVerb(MessageType type, int verb, const char *format, va_list args)
+_X_ATTRIBUTE_PRINTF(3, 0);
+extern _X_EXPORT void
+LogMessageVerb(MessageType type, int verb, const char *format, ...)
+_X_ATTRIBUTE_PRINTF(3, 4);
+extern _X_EXPORT void
+LogMessage(MessageType type, const char *format, ...)
 			_X_ATTRIBUTE_PRINTF(2,3);
 
-extern _X_EXPORT void LogVHdrMessageVerb(MessageType type, int verb,
+extern _X_EXPORT void
+LogVHdrMessageVerb(MessageType type, int verb,
 			    const char *msg_format, va_list msg_args,
 			    const char *hdr_format, va_list hdr_args)
-			_X_ATTRIBUTE_PRINTF(3,0) _X_ATTRIBUTE_PRINTF(5,0);
-extern _X_EXPORT void LogHdrMessageVerb(MessageType type, int verb,
+_X_ATTRIBUTE_PRINTF(3, 0)
+_X_ATTRIBUTE_PRINTF(5, 0);
+extern _X_EXPORT void
+LogHdrMessageVerb(MessageType type, int verb,
 			    const char *msg_format, va_list msg_args,
 			    const char *hdr_format, ...)
-			_X_ATTRIBUTE_PRINTF(3,0) _X_ATTRIBUTE_PRINTF(5,6);
-extern _X_EXPORT void LogHdrMessage(MessageType type, const char *msg_format,
+_X_ATTRIBUTE_PRINTF(3, 0)
+_X_ATTRIBUTE_PRINTF(5, 6);
+extern _X_EXPORT void
+LogHdrMessage(MessageType type, const char *msg_format,
 			    va_list msg_args, const char *hdr_format, ...)
-			_X_ATTRIBUTE_PRINTF(2,0) _X_ATTRIBUTE_PRINTF(4,5);
+_X_ATTRIBUTE_PRINTF(2, 0)
+_X_ATTRIBUTE_PRINTF(4, 5);
 
-extern _X_EXPORT void FreeAuditTimer(void);
-extern _X_EXPORT void AuditF(const char *f, ...) _X_ATTRIBUTE_PRINTF(1,2);
-extern _X_EXPORT void VAuditF(const char *f, va_list args) _X_ATTRIBUTE_PRINTF(1,0);
-extern _X_EXPORT void FatalError(const char *f, ...) _X_ATTRIBUTE_PRINTF(1,2) _X_NORETURN;
+extern _X_EXPORT void
+FreeAuditTimer(void);
+extern _X_EXPORT void
+AuditF(const char *f, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
+extern _X_EXPORT void
+VAuditF(const char *f, va_list args)
+_X_ATTRIBUTE_PRINTF(1, 0);
+extern _X_EXPORT void
+FatalError(const char *f, ...)
+_X_ATTRIBUTE_PRINTF(1, 2)
+    _X_NORETURN;
 
 #ifdef DEBUG
 #define DebugF ErrorF
@@ -556,10 +642,16 @@ extern _X_EXPORT void FatalError(const char *f, ...) _X_ATTRIBUTE_PRINTF(1,2) _X
 #define DebugF(...) /* */
 #endif
 
-extern _X_EXPORT void VErrorF(const char *f, va_list args) _X_ATTRIBUTE_PRINTF(1,0);
-extern _X_EXPORT void ErrorF(const char *f, ...) _X_ATTRIBUTE_PRINTF(1,2);
-extern _X_EXPORT void LogPrintMarkers(void);
+extern _X_EXPORT void
+VErrorF(const char *f, va_list args)
+_X_ATTRIBUTE_PRINTF(1, 0);
+extern _X_EXPORT void
+ErrorF(const char *f, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
+extern _X_EXPORT void
+LogPrintMarkers(void);
 
-extern _X_EXPORT void xorg_backtrace(void);
+extern _X_EXPORT void
+xorg_backtrace(void);
 
 #endif /* OS_H */

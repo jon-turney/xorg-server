@@ -58,33 +58,30 @@ winMWExtWMReorderWindows (ScreenPtr pScreen)
 
   pScreenPriv->fRestacking = TRUE;
 
-  if (pScreenPriv->fWindowOrderChanged)
-    {
+    if (pScreenPriv->fWindowOrderChanged) {
 #if CYGMULTIWINDOW_DEBUG
       winDebug ("winMWExtWMReorderWindows - Need to restack\n");
 #endif
       hwnd = GetTopWindow (NULL);
 
-      while (hwnd)
-	{
+        while (hwnd) {
 	  GetWindowThreadProcessId (hwnd, &dwWindowProcessID);
 
 	  if ((dwWindowProcessID == dwCurrentProcessID)
-	      && GetProp (hwnd, WIN_WINDOW_PROP))
-	    {
+                && GetProp(hwnd, WIN_WINDOW_PROP)) {
 	      pRLWinSib = pRLWin;
-	      pRLWin = (win32RootlessWindowPtr)GetProp (hwnd, WIN_WINDOW_PROP);
+                pRLWin =
+                    (win32RootlessWindowPtr) GetProp(hwnd, WIN_WINDOW_PROP);
 	      
-	      if (pRLWinSib)
-		{
+                if (pRLWinSib) {
 		  vlist[0] = pRLWinSib->pFrame->win->drawable.id;
 		  vlist[1] = Below;
 
-		  ConfigureWindow (pRLWin->pFrame->win, CWSibling | CWStackMode,
-				   vlist, wClient(pRLWin->pFrame->win));
+                    ConfigureWindow(pRLWin->pFrame->win,
+                                    CWSibling | CWStackMode, vlist,
+                                    wClient(pRLWin->pFrame->win));
 		}
-	      else
-		{
+                else {
 		  /* 1st window - raise to the top */
 		  vlist[0] = Above;
 
@@ -101,7 +98,6 @@ winMWExtWMReorderWindows (ScreenPtr pScreen)
 }
 #endif
 
-
 /*
  * winMWExtWMMoveXWindow
  */
@@ -117,7 +113,6 @@ winMWExtWMMoveXWindow (WindowPtr pWin, int x, int y)
   free(vlist);
 }
 
-
 /*
  * winMWExtWMResizeXWindow
  */
@@ -132,7 +127,6 @@ winMWExtWMResizeXWindow (WindowPtr pWin, int w, int h)
   ConfigureWindow (pWin, CWWidth | CWHeight, vlist, wClient(pWin));
   free(vlist);
 }
-
 
 /*
  * winMWExtWMMoveResizeXWindow
@@ -152,7 +146,6 @@ winMWExtWMMoveResizeXWindow (WindowPtr pWin, int x, int y, int w, int h)
   free(vlist);
 }
 
-
 /*
  * winMWExtWMDecorateWindow - Update window style. Called by EnumWindows.
  */
@@ -166,17 +159,20 @@ winMWExtWMDecorateWindow (HWND hwnd, LPARAM lParam)
   winScreenInfo		*pScreenInfo = NULL;
 
   /* Check if the Windows window property for our X window pointer is valid */
-  if ((pRLWinPriv = (win32RootlessWindowPtr)GetProp (hwnd, WIN_WINDOW_PROP)) != NULL)
-    {
-      if (pRLWinPriv != NULL && pRLWinPriv->pFrame != NULL && pRLWinPriv->pFrame->win != NULL)
+    if ((pRLWinPriv =
+         (win32RootlessWindowPtr) GetProp(hwnd, WIN_WINDOW_PROP)) != NULL) {
+        if (pRLWinPriv != NULL && pRLWinPriv->pFrame != NULL &&
+            pRLWinPriv->pFrame->win != NULL)
         pScreen				= pRLWinPriv->pFrame->win->drawable.pScreen;
-      if (pScreen) pScreenPriv		= winGetScreenPriv(pScreen);
-      if (pScreenPriv) pScreenInfo	= pScreenPriv->pScreenInfo;
-      if (pRLWinPriv && pScreenInfo) winMWExtWMUpdateWindowDecoration (pRLWinPriv, pScreenInfo);
+        if (pScreen)
+            pScreenPriv = winGetScreenPriv(pScreen);
+        if (pScreenPriv)
+            pScreenInfo = pScreenPriv->pScreenInfo;
+        if (pRLWinPriv && pScreenInfo)
+            winMWExtWMUpdateWindowDecoration(pRLWinPriv, pScreenInfo);
     }
   return TRUE;
 }
-
 
 /*
  * winMWExtWMUpdateWindowDecoration - Update window style.
@@ -197,8 +193,7 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
   /* Get current window placement */
   GetWindowPlacement (pRLWinPriv->hWnd, &wndPlace);
 
-  if (winIsInternalWMRunning(pScreenInfo))
-    {
+    if (winIsInternalWMRunning(pScreenInfo)) {
       if (!pRLWinPriv->pFrame->win->overrideRedirect)
 	fDecorate = TRUE;
     }
@@ -224,16 +219,15 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
   dwExStyle = GetWindowLongPtr (pRLWinPriv->hWnd, GWL_EXSTYLE);
   dwStyle = GetWindowLongPtr (pRLWinPriv->hWnd, GWL_STYLE);
 
-  if (fDecorate)
-    {
+    if (fDecorate) {
       RECT		rcNew;
       int		iDx, iDy;
       winWMMessageRec	wmMsg;
+
       winScreenPriv(pScreenInfo->pScreen);
 
       /* */
-      if (!(dwExStyle & WS_EX_APPWINDOW))
-	{
+        if (!(dwExStyle & WS_EX_APPWINDOW)) {
 	  winDebug ("\tBare=>Decorate\n");
 	  /* Setup a rectangle with the X window position and size */
 	  SetRect (&rcNew,
@@ -250,8 +244,7 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
 	  /* */
 	  AdjustWindowRectEx (&rcNew,
 			      WS_POPUP | WS_SIZEBOX | WS_OVERLAPPEDWINDOW,
-			      FALSE,
-			      WS_EX_APPWINDOW);
+                               FALSE, WS_EX_APPWINDOW);
 
 #ifdef CYGMULTIWINDOW_DEBUG
           winDebug("\tAdjusted {%d, %d, %d, %d}, {%d, %d}\n", 
@@ -291,7 +284,6 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
 			rcNew.right - rcNew.left, rcNew.bottom - rcNew.top,
 			showCmd);
             
-
 	  wmMsg.hwndWindow = pRLWinPriv->hWnd;
 	  wmMsg.iWindow	= (Window)pRLWinPriv->pFrame->win->drawable.id;
 	  wmMsg.msg = WM_WM_NAME_EVENT;
@@ -301,13 +293,11 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
 				  wBoundingShape(pRLWinPriv->pFrame->win));
 	}
     }
-  else
-    {
+    else {
       RECT		rcNew;
 
       /* */
-      if (dwExStyle & WS_EX_APPWINDOW)
-	{
+        if (dwExStyle & WS_EX_APPWINDOW) {
 	  winDebug ("\tDecorate=>Bare\n");
 	  /* Setup a rectangle with the X window position and size */
 	  SetRect (&rcNew,
@@ -319,8 +309,7 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
 	  /* */
 	  AdjustWindowRectEx (&rcNew,
 			      WS_POPUP | WS_CLIPCHILDREN,
-			      FALSE,
-			      WS_EX_TOOLWINDOW);
+                               FALSE, WS_EX_TOOLWINDOW);
 
 	  /* Calculate position deltas */
 	  iDx = pRLWinPriv->pFrame->x - rcNew.left;
@@ -355,7 +344,6 @@ winMWExtWMUpdateWindowDecoration (win32RootlessWindowPtr pRLWinPriv,
     }
 }
 
-
 /*
  * winIsInternalWMRunning (winScreenInfoPtr pScreenInfo)
  */
@@ -364,7 +352,6 @@ winIsInternalWMRunning (winScreenInfoPtr pScreenInfo)
 {
   return pScreenInfo->fInternalWM && !pScreenInfo->fAnotherWMRunning;
 }
-
 
 /*
  * winMWExtWMRestackWindows
@@ -388,49 +375,52 @@ winMWExtWMRestackWindows (ScreenPtr pScreen)
 
   pScreenPriv->fRestacking = TRUE;
 
-  if (pRoot != NULL)
-    {
+    if (pRoot != NULL) {
       for (pWin = pRoot->firstChild; pWin; pWin = pWin->nextSib)
 	nWindow ++;
 
       hWinPosInfo = BeginDeferWindowPos(nWindow);
 
-      for (pWin = pRoot->firstChild; pWin; pWin = pWin->nextSib)
-	{
-	  if (pWin->realized)
-	    {
+        for (pWin = pRoot->firstChild; pWin; pWin = pWin->nextSib) {
+            if (pWin->realized) {
 	      UINT uFlags;
 
-	      pRLWin = (win32RootlessWindowPtr) RootlessFrameForWindow (pWin, FALSE);
-	      if (pRLWin == NULL) continue;
+                pRLWin =
+                    (win32RootlessWindowPtr) RootlessFrameForWindow(pWin,
+                                                                    FALSE);
+                if (pRLWin == NULL)
+                    continue;
 
 	      if (pWinPrev)
-		pRLWinPrev = (win32RootlessWindowPtr) RootlessFrameForWindow (pWinPrev, FALSE);
+                    pRLWinPrev =
+                        (win32RootlessWindowPtr)
+                        RootlessFrameForWindow(pWinPrev, FALSE);
 
 	      uFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW;
-	      if (pRLWinPrev != NULL) uFlags |= SWP_NOACTIVATE;
+                if (pRLWinPrev != NULL)
+                    uFlags |= SWP_NOACTIVATE;
 
 #if CYGMULTIWINDOW_DEBUG
-	      winDebug ("winMWExtWMRestackWindows - DeferWindowPos (%08x, %08x)\n",
-			pRLWin->hWnd,
-			pRLWinPrev ? pRLWinPrev->hWnd : HWND_TOP);
+                winDebug
+                    ("winMWExtWMRestackWindows - DeferWindowPos (%08x, %08x)\n",
+                     pRLWin->hWnd, pRLWinPrev ? pRLWinPrev->hWnd : HWND_TOP);
 #endif
 	      hWinPosInfo = DeferWindowPos (hWinPosInfo, pRLWin->hWnd,
-					    pRLWinPrev ? pRLWinPrev->hWnd : HWND_TOP,
-					    0, 0, 0, 0,
+                                             pRLWinPrev ? pRLWinPrev->
+                                             hWnd : HWND_TOP, 0, 0, 0, 0,
 					    uFlags);
-	      if (hWinPosInfo == NULL)
-		{
-		  ErrorF ("winMWExtWMRestackWindows - DeferWindowPos () failed: %d\n",
+                if (hWinPosInfo == NULL) {
+                    ErrorF
+                        ("winMWExtWMRestackWindows - DeferWindowPos () failed: %d\n",
 			  (int) GetLastError ());
 		  return;
 		}
 	      pWinPrev = pWin;
 	    }
 	}
-      if (!EndDeferWindowPos (hWinPosInfo))
-	{
-	  ErrorF ("winMWExtWMRestackWindows - EndDeferWindowPos () failed: %d\n",
+        if (!EndDeferWindowPos(hWinPosInfo)) {
+            ErrorF
+                ("winMWExtWMRestackWindows - EndDeferWindowPos () failed: %d\n",
 		  (int) GetLastError ());
 	  return;
 	}

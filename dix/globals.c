@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -45,7 +44,6 @@ SOFTWARE.
 
 ********************************************************/
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -63,6 +61,7 @@ SOFTWARE.
 #include "ddxhooks.h"
 
 ScreenInfo screenInfo;
+
 KeybdCtrl defaultKeyboardControl = {
 	DEFAULT_KEYBOARD_CLICK,
 	DEFAULT_BELL,
@@ -71,13 +70,15 @@ KeybdCtrl defaultKeyboardControl = {
 	DEFAULT_AUTOREPEAT,
 	DEFAULT_AUTOREPEATS,
 	DEFAULT_LEDS,
-	0};
+    0
+};
 
 PtrCtrl defaultPointerControl = {
 	DEFAULT_PTR_NUMERATOR,
 	DEFAULT_PTR_DENOMINATOR,
 	DEFAULT_PTR_THRESHOLD,
-	0};
+    0
+};
 
 ClientPtr  clients[MAXCLIENTS];
 ClientPtr  serverClient;
@@ -107,6 +108,7 @@ CARD32 defaultScreenSaverTime = DEFAULT_SCREEN_SAVER_TIME;
 CARD32 defaultScreenSaverInterval = DEFAULT_SCREEN_SAVER_INTERVAL;
 int  defaultScreenSaverBlanking = DEFAULT_SCREEN_SAVER_BLANKING;
 int  defaultScreenSaverAllowExposures = DEFAULT_SCREEN_SAVER_EXPOSURES;
+
 #ifdef SCREENSAVER
 Bool screenSaverSuspended = FALSE;
 #endif

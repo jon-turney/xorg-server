@@ -49,26 +49,41 @@ Equipment Corporation.
 
 Bool noPseudoramiXExtension = FALSE;
 
-extern int ProcPanoramiXQueryVersion (ClientPtr client);
+extern int
+ProcPanoramiXQueryVersion(ClientPtr client);
 
-static void PseudoramiXResetProc(ExtensionEntry *extEntry);
+static void
+PseudoramiXResetProc(ExtensionEntry *extEntry);
 
-static int ProcPseudoramiXQueryVersion(ClientPtr client);
-static int ProcPseudoramiXGetState(ClientPtr client);
-static int ProcPseudoramiXGetScreenCount(ClientPtr client);
-static int ProcPseudoramiXGetScreenSize(ClientPtr client);
-static int ProcPseudoramiXIsActive(ClientPtr client);
-static int ProcPseudoramiXQueryScreens(ClientPtr client);
-static int ProcPseudoramiXDispatch(ClientPtr client);
+static int
+ProcPseudoramiXQueryVersion(ClientPtr client);
+static int
+ProcPseudoramiXGetState(ClientPtr client);
+static int
+ProcPseudoramiXGetScreenCount(ClientPtr client);
+static int
+ProcPseudoramiXGetScreenSize(ClientPtr client);
+static int
+ProcPseudoramiXIsActive(ClientPtr client);
+static int
+ProcPseudoramiXQueryScreens(ClientPtr client);
+static int
+ProcPseudoramiXDispatch(ClientPtr client);
 
-static int SProcPseudoramiXQueryVersion(ClientPtr client);
-static int SProcPseudoramiXGetState(ClientPtr client);
-static int SProcPseudoramiXGetScreenCount(ClientPtr client);
-static int SProcPseudoramiXGetScreenSize(ClientPtr client);
-static int SProcPseudoramiXIsActive(ClientPtr client);
-static int SProcPseudoramiXQueryScreens(ClientPtr client);
-static int SProcPseudoramiXDispatch(ClientPtr client);
-
+static int
+SProcPseudoramiXQueryVersion(ClientPtr client);
+static int
+SProcPseudoramiXGetState(ClientPtr client);
+static int
+SProcPseudoramiXGetScreenCount(ClientPtr client);
+static int
+SProcPseudoramiXGetScreenSize(ClientPtr client);
+static int
+SProcPseudoramiXIsActive(ClientPtr client);
+static int
+SProcPseudoramiXQueryScreens(ClientPtr client);
+static int
+SProcPseudoramiXDispatch(ClientPtr client);
 
 typedef struct {
     int x;
@@ -127,10 +142,10 @@ PseudoramiXAddScreen(int x, int y, int w, int h)
     s->h = h;
 }
 
-
 // Initialize PseudoramiX.
 // Copied from PanoramiXExtensionInit
-void PseudoramiXExtensionInit(int argc, char *argv[])
+void
+PseudoramiXExtensionInit(int argc, char *argv[])
 {
     Bool	     	success = FALSE;
     ExtensionEntry 	*extEntry;
@@ -157,7 +172,8 @@ void PseudoramiXExtensionInit(int argc, char *argv[])
                                 StandardMinorOpcode);
         if (!extEntry) {
             ErrorF("PseudoramiXExtensionInit(): AddExtension failed\n");
-        } else {
+        }
+        else {
             pseudoramiXGeneration = serverGeneration;
             success = TRUE;
         }
@@ -170,34 +186,34 @@ void PseudoramiXExtensionInit(int argc, char *argv[])
     }
 }
 
-
-void PseudoramiXResetScreens(void)
+void
+PseudoramiXResetScreens(void)
 {
     TRACE;
 
     pseudoramiXNumScreens = 0;
 }
 
-
-static void PseudoramiXResetProc(ExtensionEntry *extEntry)
+static void
+PseudoramiXResetProc(ExtensionEntry *extEntry)
 {
     TRACE;
 
     PseudoramiXResetScreens();
 }
 
-
 // was PanoramiX
-static int ProcPseudoramiXQueryVersion(ClientPtr client)
+static int
+ProcPseudoramiXQueryVersion(ClientPtr client)
 {
     TRACE;
 
     return ProcPanoramiXQueryVersion(client);
 }
 
-
 // was PanoramiX
-static int ProcPseudoramiXGetState(ClientPtr client)
+static int
+ProcPseudoramiXGetState(ClientPtr client)
 {
     REQUEST(xPanoramiXGetStateReq);
     WindowPtr pWin;
@@ -225,9 +241,9 @@ static int ProcPseudoramiXGetState(ClientPtr client)
     return Success;
 }
 
-
 // was PanoramiX
-static int ProcPseudoramiXGetScreenCount(ClientPtr client)
+static int
+ProcPseudoramiXGetScreenCount(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenCountReq);
     WindowPtr pWin;
@@ -255,9 +271,9 @@ static int ProcPseudoramiXGetScreenCount(ClientPtr client)
     return Success;
 }
 
-
 // was PanoramiX
-static int ProcPseudoramiXGetScreenSize(ClientPtr client)
+static int
+ProcPseudoramiXGetScreenSize(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenSizeReq);
     WindowPtr			pWin;
@@ -296,9 +312,9 @@ static int ProcPseudoramiXGetScreenSize(ClientPtr client)
     return Success;
 }
 
-
 // was Xinerama
-static int ProcPseudoramiXIsActive(ClientPtr client)
+static int
+ProcPseudoramiXIsActive(ClientPtr client)
 {
     /* REQUEST(xXineramaIsActiveReq); */
     xXineramaIsActiveReply	rep;
@@ -320,14 +336,16 @@ static int ProcPseudoramiXIsActive(ClientPtr client)
     return Success;
 }
 
-
 // was Xinerama
-static int ProcPseudoramiXQueryScreens(ClientPtr client)
+static int
+ProcPseudoramiXQueryScreens(ClientPtr client)
 {
     /* REQUEST(xXineramaQueryScreensReq); */
     xXineramaQueryScreensReply	rep;
 
-    DEBUG_LOG("noPseudoramiXExtension=%d, pseudoramiXNumScreens=%d\n", noPseudoramiXExtension, pseudoramiXNumScreens);
+    DEBUG_LOG("noPseudoramiXExtension=%d, pseudoramiXNumScreens=%d\n",
+              noPseudoramiXExtension,
+              pseudoramiXNumScreens);
     
     REQUEST_SIZE_MATCH(xXineramaQueryScreensReq);
 
@@ -365,30 +383,32 @@ static int ProcPseudoramiXQueryScreens(ClientPtr client)
     return Success;
 }
 
-
 // was PanoramiX
 static int ProcPseudoramiXDispatch (ClientPtr client)
-{   REQUEST(xReq);
+{
+    REQUEST(xReq);
     TRACE;
-    switch (stuff->data)
-    {
+    switch (stuff->data) {
 	case X_PanoramiXQueryVersion:
 	     return ProcPseudoramiXQueryVersion(client);
+
 	case X_PanoramiXGetState:
 	     return ProcPseudoramiXGetState(client);
+
 	case X_PanoramiXGetScreenCount:
 	     return ProcPseudoramiXGetScreenCount(client);
+
 	case X_PanoramiXGetScreenSize:
 	     return ProcPseudoramiXGetScreenSize(client);
+
 	case X_XineramaIsActive:
 	     return ProcPseudoramiXIsActive(client);
+
 	case X_XineramaQueryScreens:
 	     return ProcPseudoramiXQueryScreens(client);
     }
     return BadRequest;
 }
-
-
 
 static int
 SProcPseudoramiXQueryVersion (ClientPtr client)
@@ -438,7 +458,6 @@ SProcPseudoramiXGetScreenSize(ClientPtr client)
 	return ProcPseudoramiXGetScreenSize(client);
 }
 
-
 static int
 SProcPseudoramiXIsActive(ClientPtr client)
 {
@@ -450,7 +469,6 @@ SProcPseudoramiXIsActive(ClientPtr client)
 	REQUEST_SIZE_MATCH(xXineramaIsActiveReq);
 	return ProcPseudoramiXIsActive(client);
 }
-
 
 static int
 SProcPseudoramiXQueryScreens(ClientPtr client)
@@ -464,25 +482,29 @@ SProcPseudoramiXQueryScreens(ClientPtr client)
 	return ProcPseudoramiXQueryScreens(client);
 }
 
-
 static int
 SProcPseudoramiXDispatch (ClientPtr client)
-{   REQUEST(xReq);
+{
+    REQUEST(xReq);
 
     TRACE;
 
-    switch (stuff->data)
-    {
+    switch (stuff->data) {
 	case X_PanoramiXQueryVersion:
 	     return SProcPseudoramiXQueryVersion(client);
+
 	case X_PanoramiXGetState:
 	     return SProcPseudoramiXGetState(client);
+
 	case X_PanoramiXGetScreenCount:
 	     return SProcPseudoramiXGetScreenCount(client);
+
 	case X_PanoramiXGetScreenSize:
 	     return SProcPseudoramiXGetScreenSize(client);
+
 	case X_XineramaIsActive:
 	     return SProcPseudoramiXIsActive(client);
+
 	case X_XineramaQueryScreens:
 	     return SProcPseudoramiXQueryScreens(client);
     }

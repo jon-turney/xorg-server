@@ -37,7 +37,6 @@
 #include "dixstruct.h"
 #include <X11/Xatom.h>
 
-
 /*
  * Constants
  */
@@ -46,7 +45,6 @@
 #define CLIP_OWN_PRIMARY		0
 #define CLIP_OWN_CLIPBOARD		1
 
-
 /*
  * Local function prototypes
  */
@@ -54,9 +52,9 @@
 int winProcEstablishConnection(ClientPtr /* client */);
 int winProcQueryTree(ClientPtr /* client */);
 int winProcSetSelectionOwner(ClientPtr /* client */);
+
 DISPATCH_PROC(winProcEstablishConnection);
 DISPATCH_PROC(winProcSetSelectionOwner);
-
 
 /*
  * References to external symbols
@@ -77,7 +75,6 @@ extern winDispatchProcPtr	winProcEstablishConnectionOrig;
 extern winDispatchProcPtr	winProcQueryTreeOrig;
 extern winDispatchProcPtr	winProcSetSelectionOwnerOrig;
 
-
 /*
  * Wrapper for internal EstablishConnection function.
  * Initializes internal clients that must not be started until
@@ -94,8 +91,7 @@ winProcEstablishConnection (ClientPtr client)
   if (s_iCallCount == 0) winDebug ("winProcEstablishConnection - Hello\n");
 
   /* Do nothing if clipboard is not enabled */
-  if (!g_fClipboard)
-    {
+    if (!g_fClipboard) {
       ErrorF ("winProcEstablishConnection - Clipboard is not enabled, "
 	      "returning.\n");
       
@@ -107,8 +103,7 @@ winProcEstablishConnection (ClientPtr client)
     }
 
   /* Watch for server reset */
-  if (s_ulServerGeneration != serverGeneration)
-    {
+    if (s_ulServerGeneration != serverGeneration) {
       /* Save new generation number */
       s_ulServerGeneration = serverGeneration;
 
@@ -133,8 +128,7 @@ winProcEstablishConnection (ClientPtr client)
    * to be called before we initialize our clipboard client.
    */
   iReturn = (*winProcEstablishConnectionOrig) (client);
-  if (iReturn != 0)
-    {
+    if (iReturn != 0) {
       ErrorF ("winProcEstablishConnection - ProcEstablishConnection "
 	      "failed, bailing.\n");
       return iReturn;
@@ -144,16 +138,14 @@ winProcEstablishConnection (ClientPtr client)
   winProcEstablishConnectionOrig = NULL;
 
   /* If the clipboard client has already been started, abort */
-  if (g_fClipboardLaunched)
-    {
+    if (g_fClipboardLaunched) {
       ErrorF ("winProcEstablishConnection - Clipboard client already "
 	      "launched, returning.\n");
       return iReturn;
     }
 
   /* Startup the clipboard client if clipboard mode is being used */
-  if (g_fClipboard)
-    {
+    if (g_fClipboard) {
       /*
        * NOTE: The clipboard client is started here for a reason:
        * 1) Assume you are using XDMCP (e.g. XWin -query %hostname%)
@@ -172,8 +164,7 @@ winProcEstablishConnection (ClientPtr client)
        */
       
       /* Create the clipboard client thread */
-      if (!winInitClipboard ())
-	{
+        if (!winInitClipboard()) {
 	  ErrorF ("winProcEstablishConnection - winClipboardInit "
 		  "failed.\n");
 	  return iReturn;
@@ -187,7 +178,6 @@ winProcEstablishConnection (ClientPtr client)
 
   return iReturn;
 }
-
 
 /*
  * Wrapper for internal SetSelectionOwner function.
@@ -203,6 +193,7 @@ winProcSetSelectionOwner (ClientPtr client)
   Bool			fOwnedToNotOwned = FALSE;
   static Window		s_iOwners[CLIP_NUM_SELECTIONS] = {None};
   static unsigned long	s_ulServerGeneration = 0;
+
   REQUEST(xSetSelectionOwnerReq);
   
   REQUEST_SIZE_MATCH(xSetSelectionOwnerReq);
@@ -211,8 +202,7 @@ winProcSetSelectionOwner (ClientPtr client)
            stuff->selection, stuff->window);
 
   /* Watch for server reset */
-  if (s_ulServerGeneration != serverGeneration)
-    {
+    if (s_ulServerGeneration != serverGeneration) {
       /* Save new generation number */
       s_ulServerGeneration = serverGeneration;
 
@@ -222,18 +212,17 @@ winProcSetSelectionOwner (ClientPtr client)
     }
 
   /* Abort if clipboard not completely initialized yet */
-  if (!g_fClipboardStarted)
-    {
+    if (!g_fClipboardStarted) {
       /* ErrorF ("winProcSetSelectionOwner - Clipboard not yet started, "
 	      "aborting.\n"); */
       goto winProcSetSelectionOwner_Done;
     }
   
   /* Grab window if we have one */
-  if (None != stuff->window)
-    {
+    if (None != stuff->window) {
       /* Grab the Window from the request */
-      int rc = dixLookupWindow(&pWindow, stuff->window, client, DixReadAccess);
+        int rc =
+            dixLookupWindow(&pWindow, stuff->window, client, DixReadAccess);
       if (rc != Success) {
 	  ErrorF ("winProcSetSelectionOwner - Found BadWindow, aborting.\n");
 	  goto winProcSetSelectionOwner_Done;
@@ -243,12 +232,9 @@ winProcSetSelectionOwner (ClientPtr client)
   /* Now we either have a valid window or None */
 
   /* Save selection owners for monitored selections, ignore other selections */
-  if (XA_PRIMARY == stuff->selection)
-    {
+    if (XA_PRIMARY == stuff->selection) {
       /* Look for owned -> not owned transition */
-      if (None == stuff->window
-	  && None != s_iOwners[CLIP_OWN_PRIMARY])
-	{
+        if (None == stuff->window && None != s_iOwners[CLIP_OWN_PRIMARY]) {
 	  fOwnedToNotOwned = TRUE;
 
 	  winDebug("winProcSetSelectionOwner - PRIMARY - Going from "
@@ -267,12 +253,9 @@ winProcSetSelectionOwner (ClientPtr client)
       winDebug("winProcSetSelectionOwner - PRIMARY - Now owned by XID 0x%08x\n",
                stuff->window);
     }
-  else if (MakeAtom ("CLIPBOARD", 9, TRUE) == stuff->selection)
-    {
+    else if (MakeAtom("CLIPBOARD", 9, TRUE) == stuff->selection) {
       /* Look for owned -> not owned transition */
-      if (None == stuff->window
-	  && None != s_iOwners[CLIP_OWN_CLIPBOARD])
-	{
+        if (None == stuff->window && None != s_iOwners[CLIP_OWN_CLIPBOARD]) {
 	  fOwnedToNotOwned = TRUE;
 
 	  winDebug("winProcSetSelectionOwner - CLIPBOARD - Going from "
@@ -316,9 +299,7 @@ winProcSetSelectionOwner (ClientPtr client)
       && s_iOwners[CLIP_OWN_PRIMARY] == None
       && s_iOwners[CLIP_OWN_CLIPBOARD] == None
       && fOwnedToNotOwned
-      && g_hwndClipboard != NULL
-      && g_hwndClipboard == GetClipboardOwner ())
-    {
+        && g_hwndClipboard != NULL && g_hwndClipboard == GetClipboardOwner()) {
       winDebug("winProcSetSelectionOwner - We currently own the "
                "clipboard and neither the PRIMARY nor the CLIPBOARD "
                "selections are owned, releasing ownership of Win32 "
@@ -333,15 +314,13 @@ winProcSetSelectionOwner (ClientPtr client)
     }
 
   /* Abort if no window at this point */
-  if (None == stuff->window)
-    {
+    if (None == stuff->window) {
       winDebug("winProcSetSelectionOwner - No window, returning.\n");
       goto winProcSetSelectionOwner_Done;
     }
 
   /* Abort if invalid selection */
-  if (!ValidAtom (stuff->selection))
-    {
+    if (!ValidAtom(stuff->selection)) {
       ErrorF ("winProcSetSelectionOwner - Found BadAtom, aborting.\n");
       goto winProcSetSelectionOwner_Done;
     }
@@ -350,38 +329,33 @@ winProcSetSelectionOwner (ClientPtr client)
   pDrawable = (DrawablePtr) pWindow;
   
   /* Abort if clipboard manager is owning the selection */
-  if (pDrawable->id == g_iClipboardWindow)
-    {
+    if (pDrawable->id == g_iClipboardWindow) {
       winDebug("winProcSetSelectionOwner - We changed ownership, "
                "aborting.\n");
       goto winProcSetSelectionOwner_Done;
     }
 
   /* Abort if root window is taking ownership */
-  if (pDrawable->id == 0)
-    {
+    if (pDrawable->id == 0) {
       ErrorF ("winProcSetSelectionOwner - Root window taking ownership, "
 	      "aborting\n");
       goto winProcSetSelectionOwner_Done;
     }
 
   /* Close clipboard if we have it open already */
-  if (GetOpenClipboardWindow () == g_hwndClipboard)
-    {
+    if (GetOpenClipboardWindow() == g_hwndClipboard) {
       CloseClipboard ();
     }
 
   /* Access the Windows clipboard */
-  if (!OpenClipboard (g_hwndClipboard))
-    {
+    if (!OpenClipboard(g_hwndClipboard)) {
       ErrorF ("winProcSetSelectionOwner - OpenClipboard () failed: %08x\n",
 	      (int) GetLastError ());
       goto winProcSetSelectionOwner_Done;
     }
 
   /* Take ownership of the Windows clipboard */
-  if (!EmptyClipboard ())
-    {
+    if (!EmptyClipboard()) {
       ErrorF ("winProcSetSelectionOwner - EmptyClipboard () failed: %08x\n",
 	      (int) GetLastError ());
       goto winProcSetSelectionOwner_Done;
@@ -395,11 +369,9 @@ winProcSetSelectionOwner (ClientPtr client)
   g_atomLastOwnedSelection = stuff->selection;
 
   /* Release the clipboard */
-  if (!CloseClipboard ())
-    {
+    if (!CloseClipboard()) {
       ErrorF ("winProcSetSelectionOwner - CloseClipboard () failed: "
-	      "%08x\n",
-	      (int) GetLastError ());
+               "%08x\n", (int) GetLastError());
       goto winProcSetSelectionOwner_Done;
     }
 

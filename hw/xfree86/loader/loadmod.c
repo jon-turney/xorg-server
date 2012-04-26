@@ -74,8 +74,7 @@ typedef struct _pattern {
 } PatternRec, *PatternPtr;
 
 /* Prototypes for static functions */
-static char *FindModule(const char *, const char *, const char **,
-			PatternPtr);
+static char *FindModule(const char *, const char *, const char **, PatternPtr);
 static Bool CheckVersion(const char *, XF86ModuleVersionInfo *,
 			 const XF86ModReqInfo *);
 static void UnloadModuleOrDriver(ModuleDescPtr mod);
@@ -141,8 +140,7 @@ InitPathList(const char *path)
 	return NULL;
     elem = strtok(fullpath, ",");
     while (elem) {
-	if (PathIsAbsolute(elem))
-	{
+        if (PathIsAbsolute(elem)) {
 	    len = strlen(elem);
 	    addslash = (elem[len - 1] != '/');
 	    if (addslash)
@@ -265,14 +263,16 @@ InitPatterns(const char **patternlist)
 			   p->pattern, errmsg);
 		    i--;
 		}
-	    } else {
+            }
+            else {
 		for (p = stdPatterns; p->pattern; p++, i++)
 		    patterns[i] = *p;
 		if (p != stdPatterns)
 		    i--;
 	    }
 	patterns[i].pattern = NULL;
-    } else
+    }
+    else
 	patterns = stdPatterns;
     return patterns;
 }
@@ -312,7 +312,8 @@ InitSubdirs(const char **subdirlist)
 	for (i = 0, s = subdirlist; *s; i++, s++) {
 	    if (*s == DEFAULT_LIST) {
 		i += sizeof(stdSubdirs) / sizeof(stdSubdirs[0]) - 1 - 1;
-	    } else {
+            }
+            else {
 		/*
 		 * Path validity check.  Don't allow absolute paths, or
 		 * paths containing "..".  To catch absolute paths on
@@ -346,7 +347,8 @@ InitSubdirs(const char **subdirlist)
 	    if (**s && (*s)[len - 1] != '/') {
 		slash = "/";
 		len++;
-	    } else
+            }
+            else
 		slash = "";
 	    len += oslen + 2;
 	    if (!(subdirs[i] = malloc(len))) {
@@ -614,7 +616,8 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
 	    xf86ErrorF(".%d", vercode[2]);
 	xf86ErrorF("%s%s, module version = %d.%d.%d\n", verstr, verstr + 2,
 		   data->majorversion, data->minorversion, data->patchlevel);
-    } else {
+    }
+    else {
 	vercode[0] = ver / 10000000;
 	vercode[1] = (ver / 100000) % 100;
 	vercode[2] = (ver / 1000) % 100;
@@ -664,7 +667,8 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
 			    abimaj, vermaj);
 		if (!(LoaderOptions & LDR_OPT_ABI_MISMATCH_NONFATAL))
 		    return FALSE;
-	    } else if (abimin > vermin) {
+            }
+            else if (abimin > vermin) {
 		if (LoaderOptions & LDR_OPT_ABI_MISMATCH_NONFATAL)
 		    errtype = X_WARNING;
 		else
@@ -687,13 +691,15 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
 			    "doesn't match required major version (%d)\n",
 			    data->majorversion, req->majorversion);
 		return FALSE;
-	    } else if (req->minorversion != MINOR_UNSPEC) {
+            }
+            else if (req->minorversion != MINOR_UNSPEC) {
 		if (data->minorversion < req->minorversion) {
 		    xf86MsgVerb(X_WARNING, 2, "module minor version (%d) "
 				"is less than the required minor version (%d)\n",
 				data->minorversion, req->minorversion);
 		    return FALSE;
-		} else if (data->minorversion == req->minorversion &&
+                }
+                else if (data->minorversion == req->minorversion &&
 			   req->patchlevel != PATCH_UNSPEC) {
 		    if (data->patchlevel < req->patchlevel) {
 			xf86MsgVerb(X_WARNING, 2, "module patch level (%d) "
@@ -713,7 +719,8 @@ CheckVersion(const char *module, XF86ModuleVersionInfo * data,
 			    req->moduleclass);
 		return FALSE;
 	    }
-	} else if (req->abiclass != ABI_CLASS_NONE) {
+        }
+        else if (req->abiclass != ABI_CLASS_NONE) {
 	    if (!data->abiclass || strcmp(req->abiclass, data->abiclass)) {
 		xf86MsgVerb(X_WARNING, 2, "ABI class (%s) doesn't match the "
 			    "required ABI class (%s)\n",
@@ -832,8 +839,7 @@ static const char *compiled_in_modules[] = {
 static ModuleDescPtr
 doLoadModule(const char *module, const char *path, const char **subdirlist,
 	     const char **patternlist, pointer options,
-	     const XF86ModReqInfo * modreq,
-	     int *errmaj, int *errmin)
+             const XF86ModReqInfo * modreq, int *errmaj, int *errmin)
 {
     XF86ModuleData *initdata = NULL;
     char **pathlist = NULL;
@@ -858,14 +864,14 @@ doLoadModule(const char *module, const char *path, const char **subdirlist,
 		    "LoadModule: given non-canonical module name \"%s\"\n",
 		    module);
 	m = name;
-    } else {
+    }
+    else {
 	xf86ErrorFVerb(3, "\n");
 	m = (char *)module;
     }
 
     for (cim = compiled_in_modules; *cim; cim++)
-	if (!strcmp (m, *cim))
-	{
+        if (!strcmp(m, *cim)) {
 	    xf86MsgVerb(X_INFO, 3, "Module \"%s\" already built-in\n", m);
 	    ret = (ModuleDescPtr) 1;
 	    goto LoadModule_exit;
@@ -968,7 +974,8 @@ doLoadModule(const char *module, const char *path, const char **subdirlist,
                     *errmin = 0;
                 goto LoadModule_fail;
             }
-        } else {
+        }
+        else {
             xf86Msg(X_ERROR,
                     "LoadModule: Module %s does not supply"
                     " version information\n", module);
@@ -983,7 +990,8 @@ doLoadModule(const char *module, const char *path, const char **subdirlist,
 	if (teardown)
 	    ret->TearDownProc = teardown;
 	ret->VersionInfo = vers;
-    } else {
+    }
+    else {
 	/* No initdata is OK for external modules */
 	if (options == EXTERN_MODULE)
 	    goto LoadModule_exit;
@@ -1002,7 +1010,8 @@ doLoadModule(const char *module, const char *path, const char **subdirlist,
 	if (!ret->TearDownData) {
 	    goto LoadModule_fail;
 	}
-    } else if (options) {
+    }
+    else if (options) {
 	xf86Msg(X_WARNING, "Module Options present, but no SetupProc "
 		"available for %s\n", module);
     }

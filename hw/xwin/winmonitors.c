@@ -27,7 +27,6 @@ from The Open Group.
 
 */
 
-
 #include "win.h"
 #include "winmonitors.h"
 
@@ -36,13 +35,14 @@ from The Open Group.
  */
 
 static
-wBOOL CALLBACK getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
+    wBOOL CALLBACK
+getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
 {
   struct GetMonitorInfoData* data = (struct GetMonitorInfoData*)_data;
+
   // only get data for monitor number specified in <data>
   data->monitorNum++;
-  if (data->monitorNum == data->requestedMonitor)
-  {
+    if (data->monitorNum == data->requestedMonitor) {
 	data->bMonitorSpecifiedExists = TRUE;
 	data->monitorOffsetX = rect->left;
 	data->monitorOffsetY = rect->top;
@@ -54,7 +54,8 @@ wBOOL CALLBACK getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _d
   return TRUE;
 }
 
-Bool QueryMonitor(int index, struct GetMonitorInfoData *data)
+Bool
+QueryMonitor(int index, struct GetMonitorInfoData *data)
 {
     /* prepare data */
     if (data == NULL)

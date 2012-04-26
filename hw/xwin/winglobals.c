@@ -35,13 +35,13 @@
 #endif
 #include "win.h"
 
-
 /*
  * General global variables
  */
 
 int		g_iNumScreens = 0;
 winScreenInfo * g_ScreenInfo = 0;
+
 #ifdef HAS_DEVWINDOWS
 int		g_fdMessageQueue = WIN_FD_INVALID;
 #endif
@@ -61,6 +61,7 @@ Bool		g_fXdmcpEnabled = FALSE;
 Bool           g_fAuthEnabled = FALSE;
 HICON		g_hIconX = NULL;
 HICON		g_hSmallIconX = NULL;
+
 #ifndef RELOCATE_PROJECTROOT
 const char *	g_pszLogFile = DEFAULT_LOGDIR "/XWin.%s.log";
 #else
@@ -88,7 +89,6 @@ winDispatchProcPtr	winProcEstablishConnectionOrig = NULL;
 winDispatchProcPtr	winProcQueryTreeOrig = NULL;
 winDispatchProcPtr	winProcSetSelectionOwnerOrig = NULL;
 
-
 /*
  * Clipboard variables
  */
@@ -103,7 +103,6 @@ void			*g_pClipboardDisplay = NULL;
 Window			g_iClipboardWindow = None;
 Atom			g_atomLastOwnedSelection = None;
 #endif
-
 
 /*
  * Re-initialize global variables that are invalidated

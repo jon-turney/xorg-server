@@ -46,6 +46,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* from ddxLoad.c */
 extern const char* Win32TempDir(void);
 extern int Win32System(const char *cmdline);
+
 #undef System
 #define System Win32System
 
@@ -78,10 +79,7 @@ static const char *componentDirs[_XkbListNumComponents] = {
 
 static Status
 _AddListComponent(	XkbSrvListInfoPtr	list,
-			int			what,
-			unsigned		flags,
-			char *			str,
-			ClientPtr		client)
+                  int what, unsigned flags, char *str, ClientPtr client)
 {
 int		slen,wlen;
 unsigned char *	wire8;
@@ -105,8 +103,10 @@ char *		tmp;
     wlen= (((slen+1)/2)*2)+4;	/* four bytes for flags and length, pad to */
 				/* 2-byte boundary */
     if ((list->szPool-list->nPool)<wlen) {
-	if (wlen>1024)	list->szPool+= XkbPaddedSize(wlen*2);
-	else		list->szPool+= 1024;
+        if (wlen > 1024)
+            list->szPool += XkbPaddedSize(wlen * 2);
+        else
+            list->szPool += 1024;
 	list->pool= realloc(list->pool, list->szPool * sizeof(char));
 	if (!list->pool)
 	    return BadAlloc;
@@ -129,9 +129,7 @@ char *		tmp;
 /***====================================================================***/
 static Status
 XkbDDXListComponent(	DeviceIntPtr 		dev,
-			int			what,
-			XkbSrvListInfoPtr	list,
-			ClientPtr		client)
+                    int what, XkbSrvListInfoPtr list, ClientPtr client)
 {
 char 	*file,*map,*tmp,*buf=NULL;
 FILE 	*in;
@@ -149,6 +147,7 @@ int	rval;
     map= strrchr(file,'(');
     if (map!=NULL) {
 	char *tmp;
+
 	map++;
 	tmp= strrchr(map,')');
 	if ((tmp==NULL)||(tmp[1]!='\0')) {
@@ -181,8 +180,7 @@ int	rval;
 		 XkbBinDirectory, XkbBaseDirectory, componentDirs[what],
 		 (long) ((xkbDebugFlags < 2) ? 1 :
 			 ((xkbDebugFlags > 10) ? 10 : xkbDebugFlags)),
-		 file W32_tmpfile
-		    ) == -1)
+                 file W32_tmpfile) == -1)
 		buf = NULL;
 	}
     }
@@ -202,8 +200,7 @@ int	rval;
 		 componentDirs[what],
 		 (long)	((xkbDebugFlags < 2) ? 1 :
 			 ((xkbDebugFlags > 10) ? 10 : xkbDebugFlags)),
-		 file W32_tmpfile
-		    ) == -1)
+                 file W32_tmpfile) == -1)
 		buf = NULL;
 	}
     }
@@ -221,8 +218,7 @@ int	rval;
 	    in= fopen(tmpname, "r");
 #endif
     }
-    if (!in)
-    {
+    if (!in) {
 	free(buf);
 #if defined(WIN32) || defined(__CYGWIN__)
 	unlink(tmpname);
@@ -242,6 +238,7 @@ int	rval;
     while ((status==Success)&&((tmp=fgets(buf,PATH_MAX,in))!=NULL)) {
 	unsigned flags;
 	register unsigned int i;
+
 	if (*tmp=='#') /* comment, skip it */
 	    continue;
 	if (!strncmp(tmp, "Warning:", 8) || !strncmp(tmp, "        ", 8))
@@ -253,22 +250,29 @@ int	rval;
 	/* flags and the flags that are specific to the component */
 	/* if they're missing, fail with BadImplementation	  */
 	for (i=0;(i<8)&&(status==Success);i++) { /* read the general flags */
-	   if (isalpha(*tmp))	flags|= (1L<<i);
-	   else if (*tmp!='-')	status= BadImplementation;
+            if (isalpha(*tmp))
+                flags |= (1L << i);
+            else if (*tmp != '-')
+                status = BadImplementation;
 	   tmp++;
 	}
-	if (status != Success)  break;
+        if (status != Success)
+            break;
 	if (!isspace(*tmp)) {
 	     status= BadImplementation;
 	     break;
 	}
-	else tmp++;
+        else
+            tmp++;
 	for (i=0;(i<8)&&(status==Success);i++) { /* read the component flags */
-	   if (isalpha(*tmp))	flags|= (1L<<(i+8));
-	   else if (*tmp!='-')	status= BadImplementation;
+            if (isalpha(*tmp))
+                flags |= (1L << (i + 8));
+            else if (*tmp != '-')
+                status = BadImplementation;
 	   tmp++;
 	}
-	if (status != Success)  break;
+        if (status != Success)
+            break;
 	if (isspace(*tmp)) {
 	    while (isspace(*tmp)) {
 		tmp++;

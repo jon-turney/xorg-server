@@ -44,20 +44,17 @@
 
 extern void winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle);
 
-
 /*
  * Local globals
  */
 
 static UINT_PTR		g_uipMousePollingTimerID = 0;
 
-
 /*
  * Constant defines
  */
 
 #define WIN_MULTIWINDOW_SHAPE		YES
-
 
 /*
  * ConstrainSize - Taken from TWM sources - Respects hints for sizing
@@ -70,45 +67,38 @@ ConstrainSize (WinXSizeHints hints, int *widthp, int *heightp)
   int baseWidth, baseHeight;
   int dwidth = *widthp, dheight = *heightp;
   
-  if (hints.flags & PMinSize)
-    {
+    if (hints.flags & PMinSize) {
       minWidth = hints.min_width;
       minHeight = hints.min_height;
     }
-  else if (hints.flags & PBaseSize)
-    {
+    else if (hints.flags & PBaseSize) {
       minWidth = hints.base_width;
       minHeight = hints.base_height;
     }
   else
     minWidth = minHeight = 1;
   
-  if (hints.flags & PBaseSize)
-    {
+    if (hints.flags & PBaseSize) {
       baseWidth = hints.base_width;
       baseHeight = hints.base_height;
     } 
-  else if (hints.flags & PMinSize)
-    {
+    else if (hints.flags & PMinSize) {
       baseWidth = hints.min_width;
       baseHeight = hints.min_height;
     }
   else
     baseWidth = baseHeight = 0;
 
-  if (hints.flags & PMaxSize)
-    {
+    if (hints.flags & PMaxSize) {
       maxWidth = hints.max_width;
       maxHeight = hints.max_height;
     }
-  else
-    {
+    else {
       maxWidth = MAXINT;
       maxHeight = MAXINT;
     }
 
-  if (hints.flags & PResizeInc)
-    {
+    if (hints.flags & PResizeInc) {
       xinc = hints.width_inc;
       yinc = hints.height_inc;
     }
@@ -153,29 +143,34 @@ ConstrainSize (WinXSizeHints hints, int *widthp, int *heightp)
    * 
    */
   
-  if (hints.flags & PAspect)
-    {
-      if (hints.min_aspect.x * dheight > hints.min_aspect.y * dwidth)
-        {
-	  delta = makemult(hints.min_aspect.x * dheight / hints.min_aspect.y - dwidth, xinc);
+    if (hints.flags & PAspect) {
+        if (hints.min_aspect.x * dheight > hints.min_aspect.y * dwidth) {
+            delta =
+                makemult(hints.min_aspect.x * dheight / hints.min_aspect.y -
+                         dwidth, xinc);
 	  if (dwidth + delta <= maxWidth)
 	    dwidth += delta;
-	  else
-            {
-	      delta = makemult(dheight - dwidth*hints.min_aspect.y/hints.min_aspect.x, yinc);
+            else {
+                delta =
+                    makemult(dheight -
+                             dwidth * hints.min_aspect.y / hints.min_aspect.x,
+                             yinc);
 	      if (dheight - delta >= minHeight)
 		dheight -= delta;
             }
         }
       
-      if (hints.max_aspect.x * dheight < hints.max_aspect.y * dwidth)
-        {
-	  delta = makemult(dwidth * hints.max_aspect.y / hints.max_aspect.x - dheight, yinc);
+        if (hints.max_aspect.x * dheight < hints.max_aspect.y * dwidth) {
+            delta =
+                makemult(dwidth * hints.max_aspect.y / hints.max_aspect.x -
+                         dheight, yinc);
 	  if (dheight + delta <= maxHeight)
 	    dheight += delta;
-	  else
-            {
-	      delta = makemult(dwidth - hints.max_aspect.x*dheight/hints.max_aspect.y, xinc);
+            else {
+                delta =
+                    makemult(dwidth -
+                             hints.max_aspect.x * dheight / hints.max_aspect.y,
+                             xinc);
 	      if (dwidth - delta >= minWidth)
 		dwidth -= delta;
             }
@@ -186,16 +181,14 @@ ConstrainSize (WinXSizeHints hints, int *widthp, int *heightp)
   *widthp = dwidth;
   *heightp = dheight;
 }
+
 #undef makemult
-
-
 
 /*
  * ValidateSizing - Ensures size request respects hints
  */
 static int
-ValidateSizing (HWND hwnd, WindowPtr pWin,
-		WPARAM wParam, LPARAM lParam)
+ValidateSizing(HWND hwnd, WindowPtr pWin, WPARAM wParam, LPARAM lParam)
 {
   WinXSizeHints sizeHints;
   RECT *rect;
@@ -212,10 +205,11 @@ ValidateSizing (HWND hwnd, WindowPtr pWin,
     return FALSE;
   
   /* Avoid divide-by-zero */
-  if (sizeHints.flags & PResizeInc)
-    {
-      if (sizeHints.width_inc == 0) sizeHints.width_inc = 1;
-      if (sizeHints.height_inc == 0) sizeHints.height_inc = 1;
+    if (sizeHints.flags & PResizeInc) {
+        if (sizeHints.width_inc == 0)
+            sizeHints.width_inc = 1;
+        if (sizeHints.height_inc == 0)
+            sizeHints.height_inc = 1;
     }
   
   rect = (RECT*)lParam;
@@ -226,8 +220,10 @@ ValidateSizing (HWND hwnd, WindowPtr pWin,
   /* Now remove size of any borders and title bar */
   GetClientRect(hwnd, &rcClient);
   GetWindowRect(hwnd, &rcWindow);
-  iBorderWidthX = (rcWindow.right - rcWindow.left) - (rcClient.right - rcClient.left);
-  iBorderWidthY = (rcWindow.bottom - rcWindow.top) - (rcClient.bottom - rcClient.top);
+    iBorderWidthX =
+        (rcWindow.right - rcWindow.left) - (rcClient.right - rcClient.left);
+    iBorderWidthY =
+        (rcWindow.bottom - rcWindow.top) - (rcClient.bottom - rcClient.top);
   iWidth -= iBorderWidthX;
   iHeight -= iBorderWidthY;
 
@@ -268,10 +264,10 @@ ValidateSizing (HWND hwnd, WindowPtr pWin,
 
 extern Bool winInDestroyWindowsWindow;
 static Bool winInRaiseWindow = FALSE;
-static void winRaiseWindow(WindowPtr pWin)
-{
-  if (!winInDestroyWindowsWindow && !winInRaiseWindow)
+static void
+winRaiseWindow(WindowPtr pWin)
   {
+    if (!winInDestroyWindowsWindow && !winInRaiseWindow) {
     BOOL oldstate = winInRaiseWindow;
     XID vlist[1] = { 0 };
     winInRaiseWindow = TRUE;
@@ -284,7 +280,8 @@ static void winRaiseWindow(WindowPtr pWin)
 }
 
 static
-void winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
+    void
+winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
 {
   /*
    * Timer to poll mouse position.  This is needed to make
@@ -294,8 +291,7 @@ void winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
   if (g_uipMousePollingTimerID == 0)
     g_uipMousePollingTimerID = SetTimer (s_pScreenPriv->hwndScreen,
 					 WIN_POLLING_MOUSE_TIMER_ID,
-					 MOUSE_POLLING_INTERVAL,
-					 NULL);
+                                            MOUSE_POLLING_INTERVAL, NULL);
 }
 
 /*
@@ -303,8 +299,7 @@ void winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
  */
 
 LRESULT CALLBACK
-winTopLevelWindowProc (HWND hwnd, UINT message, 
-		       WPARAM wParam, LPARAM lParam)
+winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   POINT			ptMouse;
   HDC			hdcUpdate;
@@ -324,12 +319,12 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
   static Bool		hasEnteredSizeMove = FALSE;
 
 #if CYGDEBUG
-  winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam, lParam);
+    winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
+                         lParam);
 #endif
   
   /* Check if the Windows window property for our X window pointer is valid */
-  if ((pWin = GetProp (hwnd, WIN_WINDOW_PROP)) != NULL)
-    {
+    if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL) {
       /* Our X window pointer is valid */
 
       /* Get pointers to the drawable and the screen */
@@ -386,8 +381,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
     }
 
   /* Branch on message type */
-  switch (message)
-    {
+    switch (message) {
     case WM_CREATE:
 
       /* */
@@ -398,7 +392,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* */
       SetProp (hwnd,
 	       WIN_WID_PROP,
-	       (HANDLE)winGetWindowID (((LPCREATESTRUCT) lParam)->lpCreateParams));
+                (HANDLE) winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                        lpCreateParams));
 
       /*
        * Make X windows' Z orders sync with Windows windows because
@@ -411,6 +406,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       {
         RECT rWindow;
         HRGN hRgnWindow;
+
         GetWindowRect(hwnd, &rWindow);
         hRgnWindow = CreateRectRgnIndirect(&rWindow);
         SetWindowRgn (hwnd, hRgnWindow, TRUE);
@@ -432,16 +428,16 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /*
        * Any window menu items go through here
        */
-      if (HandleCustomWM_COMMAND ((unsigned long)hwnd, LOWORD(wParam)))
-      {
+        if (HandleCustomWM_COMMAND((unsigned long) hwnd, LOWORD(wParam))) {
         /* Don't pass customized menus to DefWindowProc */
         return 0;
       }
-      if (wParam == SC_RESTORE || wParam == SC_MAXIMIZE)
-      {
+        if (wParam == SC_RESTORE || wParam == SC_MAXIMIZE) {
         WINDOWPLACEMENT wndpl;
+
 	wndpl.length = sizeof(wndpl);
-	if (GetWindowPlacement(hwnd, &wndpl) && wndpl.showCmd == SW_SHOWMINIMIZED)
+            if (GetWindowPlacement(hwnd, &wndpl) &&
+                wndpl.showCmd == SW_SHOWMINIMIZED)
           needRestack = TRUE;
       }
       break;
@@ -467,15 +463,14 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* BeginPaint gives us an hdc that clips to the invalidated region */
       hdcUpdate = BeginPaint (hwnd, &ps);
       /* Avoid the BitBlt's if the PAINTSTRUCT is bogus */
-      if (ps.rcPaint.right==0 && ps.rcPaint.bottom==0 && ps.rcPaint.left==0 && ps.rcPaint.top==0)
-      {
+        if (ps.rcPaint.right == 0 && ps.rcPaint.bottom == 0 &&
+            ps.rcPaint.left == 0 && ps.rcPaint.top == 0) {
 	EndPaint (hwnd, &ps);
 	return 0;
       }
 
 #ifdef XWIN_GLX_WINDOWS
-      if (pWinPriv->fWglUsed)
-        {
+        if (pWinPriv->fWglUsed) {
           /*
              For regions which are being drawn by GL, the shadow framebuffer doesn't have the
              correct bits, so don't bitblt from the shadow framebuffer
@@ -490,11 +485,11 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* Try to copy from the shadow buffer */
       if (!BitBlt (hdcUpdate,
 		   ps.rcPaint.left, ps.rcPaint.top,
-		   ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top,
+                        ps.rcPaint.right - ps.rcPaint.left,
+                        ps.rcPaint.bottom - ps.rcPaint.top,
 		   s_pScreenPriv->hdcShadow,
-		   ps.rcPaint.left + pWin->drawable.x, ps.rcPaint.top + pWin->drawable.y,
-		   SRCCOPY))
-	{
+                        ps.rcPaint.left + pWin->drawable.x,
+                        ps.rcPaint.top + pWin->drawable.y, SRCCOPY)) {
 	  LPVOID lpMsgBuf;
 	  
 	  /* Display a fancy error message */
@@ -504,8 +499,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 			 NULL,
 			 GetLastError (),
 			 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			 (LPTSTR) &lpMsgBuf,
-			 0, NULL);
+                          (LPTSTR) & lpMsgBuf, 0, NULL);
 
 	  ErrorF ("winTopLevelWindowProc - BitBlt failed: %s\n",
 		  (LPSTR)lpMsgBuf);
@@ -539,8 +533,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 			       ptMouse.y - s_pScreenInfo->dwYOffset);
 
       /* Are we tracking yet? */
-      if (!s_fTracking)
-	{
+        if (!s_fTracking) {
 	  TRACKMOUSEEVENT		tme;
 	  
 	  /* Setup data structure */
@@ -558,16 +551,14 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	}
       
       /* Hide or show the Windows mouse cursor */
-      if (g_fSoftwareCursor && g_fCursor)
-	{
+        if (g_fSoftwareCursor && g_fCursor) {
 	  /* Hide Windows cursor */
 	  g_fCursor = FALSE;
 	  ShowCursor (FALSE);
 	}
 
       /* Kill the timer used to poll mouse events */
-      if (g_uipMousePollingTimerID != 0)
-	{
+        if (g_uipMousePollingTimerID != 0) {
 	  KillTimer (s_pScreenPriv->hwndScreen, WIN_POLLING_MOUSE_TIMER_ID);
 	  g_uipMousePollingTimerID = 0;
 	}
@@ -593,8 +584,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	break;
 
       /* Non-client mouse movement, show Windows cursor */
-      if (g_fSoftwareCursor && !g_fCursor)
-	{
+        if (g_fSoftwareCursor && !g_fCursor) {
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
 	}
@@ -610,8 +600,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       s_fTracking = FALSE;
 
       /* Show the mouse cursor, if necessary */
-      if (g_fSoftwareCursor && !g_fCursor)
-	{
+        if (g_fSoftwareCursor && !g_fCursor) {
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
 	}
@@ -673,23 +662,28 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
 	break;
 	SetCapture(hwnd);
-      return winMouseButtonsHandle (s_pScreen, ButtonPress, HIWORD(wParam) + 5, wParam);
+        return winMouseButtonsHandle(s_pScreen, ButtonPress, HIWORD(wParam) + 5,
+                                     wParam);
 
     case WM_XBUTTONUP:
       if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
 	break;
       ReleaseCapture();
       winStartMousePolling(s_pScreenPriv);
-      return winMouseButtonsHandle (s_pScreen, ButtonRelease, HIWORD(wParam) + 5, wParam);
+        return winMouseButtonsHandle(s_pScreen, ButtonRelease,
+                                     HIWORD(wParam) + 5, wParam);
 
     case WM_MOUSEWHEEL:
-      if (SendMessage(hwnd, WM_NCHITTEST, 0, MAKELONG(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) == HTCLIENT)
-	{
+        if (SendMessage
+            (hwnd, WM_NCHITTEST, 0,
+             MAKELONG(GET_X_LPARAM(lParam),
+                      GET_Y_LPARAM(lParam))) == HTCLIENT) {
 	  /* Pass the message to the root window */
 	  SendMessage (hwndScreen, message, wParam, lParam);
 	  return 0;
 	}
-      else break;
+        else
+            break;
 
     case WM_SETFOCUS:
       if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
@@ -698,7 +692,9 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       {
 	/* Get the parent window for transient handling */
 	HWND hParent = GetParent(hwnd);
-	if (hParent && IsIconic(hParent)) ShowWindow (hParent, SW_RESTORE);
+
+            if (hParent && IsIconic(hParent))
+                ShowWindow(hParent, SW_RESTORE);
       }
 
       winRestoreModeKeyStates ();
@@ -750,8 +746,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	  break;
 
 #if CYGWINDOWING_DEBUG
-      if (wParam == VK_ESCAPE)
-	{
+        if (wParam == VK_ESCAPE) {
 	  /* Place for debug: put any tests and dumps here */
 	  WINDOWPLACEMENT windPlace;
 	  RECT rc;
@@ -766,15 +761,13 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 	  ErrorF ("\twindPlace: (%ld, %ld) - %ldx%ld\n", pRect->left,
 		  pRect->top, pRect->right - pRect->left,
 		  pRect->bottom - pRect->top);
-	  if (GetClientRect (hwnd, &rc))
-	    {
+            if (GetClientRect(hwnd, &rc)) {
 	      pRect = &rc;
 	      ErrorF ("\tClientRect: (%ld, %ld) - %ldx%ld\n", pRect->left,
 		      pRect->top, pRect->right - pRect->left,
 		      pRect->bottom - pRect->top);
 	    }
-	  if (GetWindowRect (hwnd, &rc))
-	    {
+            if (GetWindowRect(hwnd, &rc)) {
 	      pRect = &rc;
 	      ErrorF ("\tWindowRect: (%ld, %ld) - %ldx%ld\n", pRect->left,
 		      pRect->top, pRect->right - pRect->left,
@@ -790,7 +783,6 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
     case WM_SYSKEYUP:
     case WM_KEYUP:
 
-
       /* Pass the message to the root window */
       return winWindowProc(hwndScreen, message, wParam, lParam);
 
@@ -805,8 +797,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       /* Pass the message to the root window */
       SendMessage (hwndScreen, message, wParam, lParam);
 
-      if (LOWORD(wParam) != WA_INACTIVE)
-	{
+        if (LOWORD(wParam) != WA_INACTIVE) {
 	  /* Raise the window to the top in Z order */
           /* ago: Activate does not mean putting it to front! */
           /*
@@ -839,13 +830,11 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       winSetAppID (hwnd, NULL);
 
       /* Branch on if the window was killed in X already */
-      if (pWinPriv->fXKilled)
-        {
+        if (pWinPriv->fXKilled) {
 	  /* Window was killed, go ahead and destroy the window */
 	  DestroyWindow (hwnd);
 	}
-      else
-	{
+        else {
 	  /* Tell our Window Manager thread to kill the window */
 	  wmMsg.msg = WM_WM_KILL;
 	  if (fWMMsgInitialized)
@@ -856,8 +845,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
     case WM_DESTROY:
 
       /* Branch on if the window was killed in X already */
-      if (pWinPriv && !pWinPriv->fXKilled)
-	{
+        if (pWinPriv && !pWinPriv->fXKilled) {
 	  ErrorF ("winTopLevelWindowProc - WM_DESTROY - WM_WM_KILL\n");
 	  
 	  /* Tell our Window Manager thread to kill the window */
@@ -905,35 +893,36 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
           {
             WinXWMHints hints;
-            if (winMultiWindowGetWMHints(pWin, &hints))
-              {
+
+                    if (winMultiWindowGetWMHints(pWin, &hints)) {
                 /*
                   Give the window focus, unless it has an InputHint
                   which is FALSE (this is used by e.g. glean to
                   avoid every test window grabbing the focus)
                 */
-                if (!((hints.flags & InputHint) && (!hints.input)))
-                  {
+                        if (!((hints.flags & InputHint) && (!hints.input))) {
                     SetForegroundWindow (hwnd);
                   }
               }
           }
 	  wmMsg.msg = WM_WM_MAP3;
 	}
-      else /* It is an overridden window so make it top of Z stack */
-	{
+        else {                  /* It is an overridden window so make it top of Z stack */
+
 	  HWND forHwnd = GetForegroundWindow();
+
 #if CYGWINDOWING_DEBUG
 	  ErrorF ("overridden window is shown\n");
 #endif
-	  if (forHwnd != NULL)
-	  {
-	    if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)XMING_SIGNATURE)
-	    {
+            if (forHwnd != NULL) {
+                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
+                    XMING_SIGNATURE) {
 	      if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-		SetWindowPos (hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	      else
-		SetWindowPos (hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	    }
 	  }
 	  wmMsg.msg = WM_WM_MAP2;
@@ -956,26 +945,22 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       {
 	LPWINDOWPOS pWinPos = (LPWINDOWPOS) lParam;
 
-	if (!(pWinPos->flags & SWP_NOZORDER))
-	  {
+        if (!(pWinPos->flags & SWP_NOZORDER)) {
 #if CYGWINDOWING_DEBUG
 	    winDebug ("\twindow z order was changed\n");
 #endif
 	    if (pWinPos->hwndInsertAfter == HWND_TOP
 		||pWinPos->hwndInsertAfter == HWND_TOPMOST
-		||pWinPos->hwndInsertAfter == HWND_NOTOPMOST)
-	      {
+                || pWinPos->hwndInsertAfter == HWND_NOTOPMOST) {
 #if CYGWINDOWING_DEBUG
 		winDebug ("\traise to top\n");
 #endif
 		/* Raise the window to the top in Z order */
 		winRaiseWindow(pWin);
 	      }
-	    else if (pWinPos->hwndInsertAfter == HWND_BOTTOM)
-	      {
+            else if (pWinPos->hwndInsertAfter == HWND_BOTTOM) {
 	      }
-	    else
-	      {
+            else {
 		/* Check if this window is top of X windows. */
 		HWND hWndAbove = NULL;
 		DWORD dwCurrentProcessID = GetCurrentProcessId ();
@@ -983,8 +968,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 
 		for (hWndAbove = pWinPos->hwndInsertAfter;
 		     hWndAbove != NULL;
-		     hWndAbove = GetNextWindow (hWndAbove, GW_HWNDPREV))
-		  {
+                     hWndAbove = GetNextWindow(hWndAbove, GW_HWNDPREV)) {
 		    /* Ignore other XWin process's window */
 		    GetWindowThreadProcessId (hWndAbove, &dwWindowProcessID);
 
@@ -996,8 +980,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 		  }
 		/* If this is top of X windows in Windows stack,
 		   raise it in X stack. */
-		if (hWndAbove == NULL)
-		  {
+                if (hWndAbove == NULL) {
 #if CYGWINDOWING_DEBUG
 		    winDebug ("\traise to top\n");
 #endif
@@ -1027,8 +1010,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
 #if CYGWINDOWING_DEBUG
       {
 	char buf[64];
-	switch (wParam)
-	  {
+
+        switch (wParam) {
 	  case SIZE_MINIMIZED:
 	    strcpy(buf, "SIZE_MINIMIZED");
 	    break;
@@ -1070,7 +1053,8 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
         dwExStyle = GetWindowLongPtr (hwnd, GWL_EXSTYLE);
         dwStyle = GetWindowLongPtr (hwnd, GWL_STYLE);
 
-        winDebug("winTopLevelWindowProc - WM_STYLECHANGING from %08x %08x\n", dwStyle, dwExStyle);
+        winDebug("winTopLevelWindowProc - WM_STYLECHANGING from %08x %08x\n",
+                 dwStyle, dwExStyle);
 
         if (wParam == GWL_EXSTYLE)
           dwExStyle = newStyle;
@@ -1078,19 +1062,29 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
         if (wParam == GWL_STYLE)
           dwStyle = newStyle;
 
-        winDebug("winTopLevelWindowProc - WM_STYLECHANGING to %08x %08x\n", dwStyle, dwExStyle);
+        winDebug("winTopLevelWindowProc - WM_STYLECHANGING to %08x %08x\n",
+                 dwStyle, dwExStyle);
 
         /* Get client rect in screen coordinates */
         wi.cbSize = sizeof(WINDOWINFO);
         GetWindowInfo(hwnd, &wi);
 
-        winDebug("winTopLevelWindowProc - WM_STYLECHANGING client area {%d, %d, %d, %d}, {%d x %d}\n", wi.rcClient.left, wi.rcClient.top, wi.rcClient.right, wi.rcClient.bottom, wi.rcClient.right - wi.rcClient.left, wi.rcClient.bottom - wi.rcClient.top);
+        winDebug
+            ("winTopLevelWindowProc - WM_STYLECHANGING client area {%d, %d, %d, %d}, {%d x %d}\n",
+             wi.rcClient.left, wi.rcClient.top, wi.rcClient.right,
+             wi.rcClient.bottom, wi.rcClient.right - wi.rcClient.left,
+             wi.rcClient.bottom - wi.rcClient.top);
 
         newWinRect = wi.rcClient;
         if (!AdjustWindowRectEx(&newWinRect, dwStyle, FALSE, dwExStyle))
-          winDebug("winTopLevelWindowProc - WM_STYLECHANGING AdjustWindowRectEx failed\n");
+            winDebug
+                ("winTopLevelWindowProc - WM_STYLECHANGING AdjustWindowRectEx failed\n");
 
-        winDebug("winTopLevelWindowProc - WM_STYLECHANGING window area should be {%d, %d, %d, %d}, {%d x %d}\n", newWinRect.left, newWinRect.top, newWinRect.right, newWinRect.bottom, newWinRect.right - newWinRect.left, newWinRect.bottom - newWinRect.top);
+        winDebug
+            ("winTopLevelWindowProc - WM_STYLECHANGING window area should be {%d, %d, %d, %d}, {%d x %d}\n",
+             newWinRect.left, newWinRect.top, newWinRect.right,
+             newWinRect.bottom, newWinRect.right - newWinRect.left,
+             newWinRect.bottom - newWinRect.top);
 
         /*
           Style change hasn't happened yet, so we can't adjust the window size yet, as the winAdjustXWindow()
@@ -1098,14 +1092,17 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
           WM_STYLECHANGED is received...
         */
         pWinPriv->hDwp = BeginDeferWindowPos(1);
-        pWinPriv->hDwp = DeferWindowPos(pWinPriv->hDwp, hwnd, NULL, newWinRect.left, newWinRect.top, newWinRect.right - newWinRect.left, newWinRect.bottom - newWinRect.top, SWP_NOACTIVATE | SWP_NOZORDER);
+        pWinPriv->hDwp =
+            DeferWindowPos(pWinPriv->hDwp, hwnd, NULL, newWinRect.left,
+                           newWinRect.top, newWinRect.right - newWinRect.left,
+                           newWinRect.bottom - newWinRect.top,
+                           SWP_NOACTIVATE | SWP_NOZORDER);
       }
       return 0;
 
     case WM_STYLECHANGED:
       {
-        if (pWinPriv->hDwp)
-          {
+        if (pWinPriv->hDwp) {
             EndDeferWindowPos(pWinPriv->hDwp);
             pWinPriv->hDwp = NULL;
           }
@@ -1116,8 +1113,7 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
     case WM_MOUSEACTIVATE:
 
       /* Check if this window needs to be made active when clicked */
-      if (!GetProp (pWinPriv->hWnd, WIN_NEEDMANAGE_PROP))
-	{
+        if (!GetProp(pWinPriv->hWnd, WIN_NEEDMANAGE_PROP)) {
 #if CYGMULTIWINDOW_DEBUG
 	  ErrorF ("winTopLevelWindowProc - WM_MOUSEACTIVATE - "
 		  "MA_NOACTIVATE\n");
@@ -1129,9 +1125,9 @@ winTopLevelWindowProc (HWND hwnd, UINT message,
       break;
 
     case WM_SETCURSOR:
-      if (LOWORD(lParam) == HTCLIENT)
-	{
-	  if (!g_fSoftwareCursor) SetCursor (s_pScreenPriv->cursor.handle);
+        if (LOWORD(lParam) == HTCLIENT) {
+            if (!g_fSoftwareCursor)
+                SetCursor(s_pScreenPriv->cursor.handle);
 	  return TRUE;
 	}
       break;

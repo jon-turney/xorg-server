@@ -55,7 +55,8 @@ static unsigned int eventMask = 0;
 
 static int WMFreeClient (pointer data, XID id);
 static int WMFreeEvents (pointer data, XID id);
-static void SNotifyEvent(xWindowsWMNotifyEvent *from, xWindowsWMNotifyEvent *to);
+static void SNotifyEvent(xWindowsWMNotifyEvent * from,
+                         xWindowsWMNotifyEvent * to);
 
 typedef struct _WMEvent *WMEventPtr;
 typedef struct _WMEvent {
@@ -69,6 +70,7 @@ static inline BoxRec
 make_box (int x, int y, int w, int h)
 {
   BoxRec r;
+
   r.x1 = x;
   r.y1 = y;
   r.x2 = x + w;
@@ -89,15 +91,13 @@ ProcWindowsWMQueryVersion(ClientPtr client)
   rep.majorVersion = SERVER_WINDOWSWM_MAJOR_VERSION;
   rep.minorVersion = SERVER_WINDOWSWM_MINOR_VERSION;
   rep.patchVersion = SERVER_WINDOWSWM_PATCH_VERSION;
-  if (client->swapped)
-    {
+    if (client->swapped) {
       swaps(&rep.sequenceNumber);
       swapl(&rep.length);
     }
   WriteToClient(client, sizeof(xWindowsWMQueryVersionReply), (char *)&rep);
   return Success;
 }
-
 
 /* events */
 
@@ -111,8 +111,7 @@ updateEventMask (WMEventPtr *pHead)
     eventMask |= pCur->mask;
 }
 
-/*ARGSUSED*/
-static int
+ /*ARGSUSED*/ static int
 WMFreeClient (pointer data, XID id)
 {
   WMEventPtr   pEvent;
@@ -121,13 +120,11 @@ WMFreeClient (pointer data, XID id)
   pEvent = (WMEventPtr) data;
   dixLookupResourceByType((pointer) &pHead, eventResource, eventResourceType,
 				NullClient, DixUnknownAccess);
-  if (pHead)
-    {
+    if (pHead) {
       pPrev = 0;
       for (pCur = *pHead; pCur && pCur != pEvent; pCur=pCur->next)
 	pPrev = pCur;
-      if (pCur)
-	{
+        if (pCur) {
 	  if (pPrev)
 	    pPrev->next = pEvent->next;
 	  else
@@ -139,15 +136,13 @@ WMFreeClient (pointer data, XID id)
   return 1;
 }
 
-/*ARGSUSED*/
-static int
+ /*ARGSUSED*/ static int
 WMFreeEvents (pointer data, XID id)
 {
   WMEventPtr   *pHead, pCur, pNext;
   
   pHead = (WMEventPtr *) data;
-  for (pCur = *pHead; pCur; pCur = pNext)
-    {
+    for (pCur = *pHead; pCur; pCur = pNext) {
       pNext = pCur->next;
       FreeResource (pCur->clientResource, ClientType);
       free((pointer) pCur);
@@ -165,16 +160,13 @@ ProcWindowsWMSelectInput (ClientPtr client)
   XID			clientResource;
 
   REQUEST_SIZE_MATCH (xWindowsWMSelectInputReq);
-  dixLookupResourceByType((pointer) &pHead, eventResource, eventResourceType, client, DixWriteAccess);
-  if (stuff->mask != 0)
-    {
-      if (pHead)
-	{
+    dixLookupResourceByType((pointer) &pHead, eventResource, eventResourceType,
+                            client, DixWriteAccess);
+    if (stuff->mask != 0) {
+        if (pHead) {
 	  /* check for existing entry. */
-	  for (pEvent = *pHead; pEvent; pEvent = pEvent->next)
-	    {
-	      if (pEvent->client == client)
-		{
+            for (pEvent = *pHead; pEvent; pEvent = pEvent->next) {
+                if (pEvent->client == client) {
 		  pEvent->mask = stuff->mask;
 		  updateEventMask (pHead);
 		  return Success;
@@ -203,8 +195,7 @@ ProcWindowsWMSelectInput (ClientPtr client)
        * the list may be arbitrarily rearranged which cannot be
        * done through the resource database.
        */
-      if (!pHead)
-	{
+        if (!pHead) {
 	  pHead = (WMEventPtr *) malloc(sizeof (WMEventPtr));
 	  if (!pHead ||
 	      !AddResource (eventResource, eventResourceType, (pointer)pHead))
@@ -218,20 +209,16 @@ ProcWindowsWMSelectInput (ClientPtr client)
       *pHead = pNewEvent;
       updateEventMask (pHead);
     }
-  else if (stuff->mask == 0)
-    {
+    else if (stuff->mask == 0) {
       /* delete the interest */
-      if (pHead)
-	{
+        if (pHead) {
 	  pNewEvent = 0;
-	  for (pEvent = *pHead; pEvent; pEvent = pEvent->next)
-	    {
+            for (pEvent = *pHead; pEvent; pEvent = pEvent->next) {
 	      if (pEvent->client == client)
 		break;
 	      pNewEvent = pEvent;
 	    }
-	  if (pEvent)
-	    {
+            if (pEvent) {
 	      FreeResource (pEvent->clientResource, ClientType);
 	      if (pNewEvent)
 		pNewEvent->next = pEvent->next;
@@ -242,8 +229,7 @@ ProcWindowsWMSelectInput (ClientPtr client)
 	    }
 	}
     }
-  else
-    {
+    else {
       client->errorValue = stuff->mask;
       return BadValue;
     }
@@ -261,6 +247,7 @@ winWindowsWMSendEvent (int type, unsigned int mask, int which, int arg,
   WMEventPtr		*pHead, pEvent;
   ClientPtr		client;
   xWindowsWMNotifyEvent se;
+
 #if CYGMULTIWINDOW_DEBUG
   ErrorF ("winWindowsWMSendEvent %d %d %d %d,  %d %d - %d %d\n",
 	  type, mask, which, arg, x, y, w, h);
@@ -269,14 +256,12 @@ winWindowsWMSendEvent (int type, unsigned int mask, int which, int arg,
 				NullClient, DixUnknownAccess);
   if (!pHead)
     return;
-  for (pEvent = *pHead; pEvent; pEvent = pEvent->next)
-    {
+    for (pEvent = *pHead; pEvent; pEvent = pEvent->next) {
       client = pEvent->client;
 #if CYGMULTIWINDOW_DEBUG
       ErrorF ("winWindowsWMSendEvent - x%08x\n", (int) client);
 #endif
-      if ((pEvent->mask & mask) == 0)
-	{
+        if ((pEvent->mask & mask) == 0) {
 	  continue;
 	}
 #if CYGMULTIWINDOW_DEBUG 
@@ -317,7 +302,6 @@ ProcWindowsWMReenableUpdate (ClientPtr client)
   return Success;
 }
 
-
 /* window functions */
 
 static int
@@ -330,7 +314,6 @@ ProcWindowsWMSetFrontProcess (ClientPtr client)
   return Success;
 }
 
-
 /* frame functions */
 
 static int
@@ -339,6 +322,7 @@ ProcWindowsWMFrameGetRect (ClientPtr client)
   xWindowsWMFrameGetRectReply rep;
   BoxRec ir;
   RECT rcNew;
+
   REQUEST(xWindowsWMFrameGetRectReq);
 
 #if CYGMULTIWINDOW_DEBUG
@@ -353,8 +337,7 @@ ProcWindowsWMFrameGetRect (ClientPtr client)
 
   ir = make_box (stuff->ix, stuff->iy, stuff->iw, stuff->ih);
 
-  if (stuff->frame_rect != 0)
-    {
+    if (stuff->frame_rect != 0) {
       ErrorF ("ProcWindowsWMFrameGetRect - stuff->frame_rect != 0\n");
       return BadValue;
     }
@@ -372,7 +355,8 @@ ProcWindowsWMFrameGetRect (ClientPtr client)
    * Calculate the required size of the Windows window rectangle,
    * given the size of the Windows window client area.
    */
-  AdjustWindowRectEx (&rcNew, stuff->frame_style, FALSE, stuff->frame_style_ex);
+    AdjustWindowRectEx(&rcNew, stuff->frame_style, FALSE,
+                       stuff->frame_style_ex);
   rep.x = rcNew.left;
   rep.y = rcNew.top;
   rep.w = rcNew.right - rcNew.left;
@@ -385,7 +369,6 @@ ProcWindowsWMFrameGetRect (ClientPtr client)
   WriteToClient(client, sizeof(xWindowsWMFrameGetRectReply), (char *)&rep);
   return Success;
 }
-
 
 static int
 ProcWindowsWMFrameDraw (ClientPtr client)
@@ -410,7 +393,8 @@ ProcWindowsWMFrameDraw (ClientPtr client)
 #endif
 
   pRLWinPriv = (win32RootlessWindowPtr) RootlessFrameForWindow (pWin, TRUE);
-  if (pRLWinPriv == 0) return BadWindow;
+    if (pRLWinPriv == 0)
+        return BadWindow;
 
 #if CYGMULTIWINDOW_DEBUG
   ErrorF ("ProcWindowsWMFrameDraw - HWND 0x%08x 0x%08x 0x%08x\n",
@@ -428,17 +412,16 @@ ProcWindowsWMFrameDraw (ClientPtr client)
    * Calculate the required size of the Windows window rectangle,
    * given the size of the Windows window client area.
    */
-  AdjustWindowRectEx (&rcNew, stuff->frame_style, FALSE, stuff->frame_style_ex);
+    AdjustWindowRectEx(&rcNew, stuff->frame_style, FALSE,
+                       stuff->frame_style_ex);
   
   /* Set the window extended style flags */
-  if (!SetWindowLongPtr (pRLWinPriv->hWnd, GWL_EXSTYLE, stuff->frame_style_ex))
-    {
+    if (!SetWindowLongPtr(pRLWinPriv->hWnd, GWL_EXSTYLE, stuff->frame_style_ex)) {
       return BadValue;
     }
 
   /* Set the window standard style flags */
-  if (!SetWindowLongPtr (pRLWinPriv->hWnd, GWL_STYLE, stuff->frame_style))
-    {
+    if (!SetWindowLongPtr(pRLWinPriv->hWnd, GWL_STYLE, stuff->frame_style)) {
       return BadValue;
     }
 
@@ -446,8 +429,7 @@ ProcWindowsWMFrameDraw (ClientPtr client)
   if (!SetWindowPos (pRLWinPriv->hWnd, NULL,
 		     rcNew.left, rcNew.top,
 		     rcNew.right - rcNew.left, rcNew.bottom - rcNew.top,
-		     SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE))
-    {
+                      SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE)) {
       return BadValue;
     }
   if (!IsWindowVisible(pRLWinPriv->hWnd))
@@ -459,6 +441,7 @@ ProcWindowsWMFrameDraw (ClientPtr client)
 
   if (wBoundingShape(pWin) != NULL)
     {
+
       /* wBoundingShape is relative to *inner* origin of window.
 	 Translate by borderWidth to get the outside-relative position. */
       
@@ -480,6 +463,7 @@ ProcWindowsWMFrameSetTitle(ClientPtr client)
 {
   unsigned int title_length, title_max;
   char *title_bytes;
+
   REQUEST(xWindowsWMFrameSetTitleReq);
   WindowPtr pWin;
   win32RootlessWindowPtr pRLWinPriv;
@@ -514,8 +498,7 @@ ProcWindowsWMFrameSetTitle(ClientPtr client)
 
   pRLWinPriv = (win32RootlessWindowPtr) RootlessFrameForWindow (pWin, FALSE);
 
-  if (pRLWinPriv == 0)
-    {
+    if (pRLWinPriv == 0) {
       free (title_bytes);
       return BadWindow;
     }
@@ -532,7 +515,6 @@ ProcWindowsWMFrameSetTitle(ClientPtr client)
   return Success;
 }
 
-
 /* dispatch */
 
 static int
@@ -540,8 +522,7 @@ ProcWindowsWMDispatch (ClientPtr client)
 {
   REQUEST(xReq);
 
-  switch (stuff->data)
-    {
+    switch (stuff->data) {
     case X_WindowsWMQueryVersion:
       return ProcWindowsWMQueryVersion(client);
     }
@@ -549,8 +530,7 @@ ProcWindowsWMDispatch (ClientPtr client)
   if (!LocalClient(client))
     return WMErrorBase + WindowsWMClientNotLocal;
 
-  switch (stuff->data)
-    {
+    switch (stuff->data) {
     case X_WindowsWMSelectInput:
       return ProcWindowsWMSelectInput(client);
     case X_WindowsWMDisableUpdate:
@@ -585,6 +565,7 @@ static int
 SProcWindowsWMQueryVersion (ClientPtr client)
 {
   int n;
+
   REQUEST(xWindowsWMQueryVersionReq);
   swaps(&stuff->length);
   return ProcWindowsWMQueryVersion(client);
@@ -600,8 +581,7 @@ SProcWindowsWMDispatch (ClientPtr client)
     return WMErrorBase + WindowsWMClientNotLocal;
 
   /* only local clients are allowed WM access */
-  switch (stuff->data)
-    {
+    switch (stuff->data) {
     case X_WindowsWMQueryVersion:
       return SProcWindowsWMQueryVersion(client);
     default:
@@ -624,10 +604,9 @@ winWindowsWMExtensionInit (void)
 			       WindowsWMNumberErrors,
 			       ProcWindowsWMDispatch,
 			       SProcWindowsWMDispatch,
-			       NULL,
-			       StandardMinorOpcode)))
-    {
+                                 NULL, StandardMinorOpcode))) {
       size_t i;
+
       WMReqCode = (unsigned char)extEntry->base;
       WMErrorBase = extEntry->errorBase;
       WMEventBase = extEntry->eventBase;

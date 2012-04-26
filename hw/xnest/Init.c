@@ -74,7 +74,8 @@ InitOutput(ScreenInfo *screenInfo, int argc, char *argv[])
   
   xnestFontPrivateIndex = AllocateFontPrivateIndex();
   
-  if (!xnestNumScreens) xnestNumScreens = 1;
+    if (!xnestNumScreens)
+        xnestNumScreens = 1;
 
   for (i = 0; i < xnestNumScreens; i++)
     AddScreen(xnestOpenScreen, argc, argv);
@@ -88,12 +89,11 @@ void
 InitInput(int argc, char *argv[])
 {
   int rc;
+
   rc = AllocDevicePair(serverClient, "Xnest",
                        &xnestPointerDevice,
                        &xnestKeyboardDevice,
-                       xnestPointerProc,
-                       xnestKeyboardProc,
-                       FALSE);
+                         xnestPointerProc, xnestKeyboardProc, FALSE);
 
   if (rc != Success)
       FatalError("Failed to init Xnest default devices.\n");
@@ -114,14 +114,16 @@ CloseInput(void)
 /*
  * DDX - specific abort routine.  Called by AbortServer().
  */
-void AbortDDX(enum ExitCode error)
+void
+AbortDDX(enum ExitCode error)
 {
   xnestDoFullGeneration = True;
   xnestCloseDisplay();
 }
 
 /* Called by GiveUp(). */
-void ddxGiveUp(enum ExitCode error)
+void
+ddxGiveUp(enum ExitCode error)
 {
   AbortDDX(error);
 }
@@ -133,18 +135,21 @@ DarwinHandleGUI(int argc, char *argv[])
 }
 #endif
 
-void OsVendorInit(void)
+void
+OsVendorInit(void)
 {
     return;
 }
 
-void OsVendorFatalError(void)
+void
+OsVendorFatalError(void)
 {
     return;
 }
 
 #ifdef DDXMAIN
-void ddxMain(void)
+void
+ddxMain(void)
 {
 }
 #endif

@@ -22,7 +22,6 @@ Except as contained in this notice, the name of The Open Group shall not be
 used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
@@ -95,7 +94,6 @@ SOFTWARE.
 #include "globals.h"
 #include "ddxhooks.h"
 
-
 extern Bool noTestExtensions;
 
 #ifdef COMPOSITE
@@ -120,6 +118,7 @@ extern Bool noMITShmExtension;
 extern Bool noRRExtension;
 #endif
 extern Bool noRenderExtension;
+
 #ifdef XCSECURITY
 extern Bool noSecurityExtension;
 #endif
@@ -197,10 +196,12 @@ extern void PanoramiXExtensionInit(INITARGS);
 extern void PseudoramiXExtensionInit(INITARGS);
 #endif
 extern void XInputExtensionInit(INITARGS);
+
 #ifdef XTEST
 extern void XTestExtensionInit(INITARGS);
 #endif
 extern void BigReqExtensionInit(INITARGS);
+
 #ifdef SCREENSAVER
 extern void ScreenSaverExtensionInit (INITARGS);
 #endif
@@ -211,6 +212,7 @@ extern void XvMCExtensionInit(INITARGS);
 extern void SyncExtensionInit(INITARGS);
 extern void XkbExtensionInit(INITARGS);
 extern void XCMiscExtensionInit(INITARGS);
+
 #ifdef XRECORD
 extern void RecordExtensionInit(INITARGS);
 #endif
@@ -245,6 +247,7 @@ extern void XFree86DRIExtensionInit(INITARGS);
 extern void DPMSExtensionInit(INITARGS);
 #endif
 extern void RenderExtensionInit(INITARGS);
+
 #ifdef RANDR
 extern void RRExtensionInit(INITARGS);
 #endif
@@ -273,8 +276,7 @@ typedef struct {
     Bool *disablePtr;
 } ExtensionToggle;
 
-static ExtensionToggle ExtensionToggleList[] =
-{
+static ExtensionToggle ExtensionToggleList[] = {
     /* sort order is extension name string as shown in xdpyinfo */
     { "Generic Events", &noGEExtension },
 #ifdef COMPOSITE
@@ -338,7 +340,8 @@ static ExtensionToggle ExtensionToggleList[] =
     { NULL, NULL }
 };
 
-Bool EnableDisableExtension(const char *name, Bool enable)
+Bool
+EnableDisableExtension(const char *name, Bool enable)
 {
     ExtensionToggle *ext = &ExtensionToggleList[0];
 
@@ -347,7 +350,8 @@ Bool EnableDisableExtension(const char *name, Bool enable)
 	    if (ext->disablePtr != NULL) {
 		*ext->disablePtr = !enable;
 		return TRUE;
-	    } else {
+            }
+            else {
 		/* Extension is always on, impossible to disable */
 		return enable; /* okay if they wanted to enable,
 				  fail if they tried to disable */
@@ -358,7 +362,8 @@ Bool EnableDisableExtension(const char *name, Bool enable)
     return FALSE;
 }
 
-void EnableDisableExtensionError(const char *name, Bool enable)
+void
+EnableDisableExtensionError(const char *name, Bool enable)
 {
     ExtensionToggle *ext = &ExtensionToggleList[0];
     Bool found = FALSE;
@@ -383,29 +388,34 @@ void EnableDisableExtensionError(const char *name, Bool enable)
 
 #ifndef XFree86LOADER
 
-/*ARGSUSED*/
-void
+ /*ARGSUSED*/ void
 InitExtensions(int argc, char *argv[])
 {
-    if (!noGEExtension) GEExtensionInit();
+    if (!noGEExtension)
+        GEExtensionInit();
 
 #ifdef PANORAMIX
-  if (!noPanoramiXExtension) PanoramiXExtensionInit();
+    if (!noPanoramiXExtension)
+        PanoramiXExtensionInit();
 #endif
 #ifdef INXQUARTZ
-    if(!noPseudoramiXExtension) PseudoramiXExtensionInit();
+    if (!noPseudoramiXExtension)
+        PseudoramiXExtensionInit();
 #endif
     ShapeExtensionInit();
 #ifdef MITSHM
-    if (!noMITShmExtension) ShmExtensionInit();
+    if (!noMITShmExtension)
+        ShmExtensionInit();
 #endif
     XInputExtensionInit();
 #ifdef XTEST
-    if (!noTestExtensions) XTestExtensionInit();
+    if (!noTestExtensions)
+        XTestExtensionInit();
 #endif
     BigReqExtensionInit();
 #if defined(SCREENSAVER)
-    if (!noScreenSaverExtension) ScreenSaverExtensionInit ();
+    if (!noScreenSaverExtension)
+        ScreenSaverExtensionInit();
 #endif
 #ifdef XV
     if (!noXvExtension) {
@@ -417,53 +427,68 @@ InitExtensions(int argc, char *argv[])
     XkbExtensionInit();
     XCMiscExtensionInit();
 #ifdef XRECORD
-    if (!noTestExtensions) RecordExtensionInit(); 
+    if (!noTestExtensions)
+        RecordExtensionInit();
 #endif
 #ifdef DBE
-    if (!noDbeExtension) DbeExtensionInit();
+    if (!noDbeExtension)
+        DbeExtensionInit();
 #endif
 #ifdef XCSECURITY
-    if (!noSecurityExtension) SecurityExtensionInit();
+    if (!noSecurityExtension)
+        SecurityExtensionInit();
 #endif
 #ifdef XSELINUX
-    if (!noSELinuxExtension) SELinuxExtensionInit();
+    if (!noSELinuxExtension)
+        SELinuxExtensionInit();
 #endif
 #if defined(DPMSExtension) && !defined(NO_HW_ONLY_EXTS)
-    if (!noDPMSExtension) DPMSExtensionInit();
+    if (!noDPMSExtension)
+        DPMSExtensionInit();
 #endif
 #ifdef XF86BIGFONT
-    if (!noXFree86BigfontExtension) XFree86BigfontExtensionInit();
+    if (!noXFree86BigfontExtension)
+        XFree86BigfontExtensionInit();
 #endif
 #if !defined(NO_HW_ONLY_EXTS)
 #if defined(XF86VIDMODE)
-    if (!noXFree86VidModeExtension) XFree86VidModeExtensionInit();
+    if (!noXFree86VidModeExtension)
+        XFree86VidModeExtensionInit();
 #endif
 #if defined(XFreeXDGA)
-    if (!noXFree86DGAExtension) XFree86DGAExtensionInit();
+    if (!noXFree86DGAExtension)
+        XFree86DGAExtensionInit();
 #endif
 #ifdef XF86DRI
-    if (!noXFree86DRIExtension) XFree86DRIExtensionInit();
+    if (!noXFree86DRIExtension)
+        XFree86DRIExtensionInit();
 #endif
 #endif
 #ifdef XFIXES
     /* must be before Render to layer DisplayCursor correctly */
-    if (!noXFixesExtension) XFixesExtensionInit();
+    if (!noXFixesExtension)
+        XFixesExtensionInit();
 #endif
-    if (!noRenderExtension) RenderExtensionInit();
+    if (!noRenderExtension)
+        RenderExtensionInit();
 #ifdef RANDR
-    if (!noRRExtension) RRExtensionInit();
+    if (!noRRExtension)
+        RRExtensionInit();
 #endif
 #ifdef RES
-    if (!noResExtension) ResExtensionInit();
+    if (!noResExtension)
+        ResExtensionInit();
 #endif
 #ifdef DMXEXT
     DMXExtensionInit(); /* server-specific extension, cannot be disabled */
 #endif
 #ifdef COMPOSITE
-    if (!noCompositeExtension) CompositeExtensionInit();
+    if (!noCompositeExtension)
+        CompositeExtensionInit();
 #endif
 #ifdef DAMAGE
-    if (!noDamageExtension) DamageExtensionInit();
+    if (!noDamageExtension)
+        DamageExtensionInit();
 #endif
 
 #ifdef GLXEXT
@@ -498,17 +523,20 @@ static ExtensionModule staticExtensions[] = {
     { XkbExtensionInit, XkbName, NULL, NULL, NULL },
     { XCMiscExtensionInit, "XC-MISC", NULL, NULL, NULL },
 #ifdef XCSECURITY
-    { SecurityExtensionInit, SECURITY_EXTENSION_NAME, &noSecurityExtension, NULL, NULL },
+    {SecurityExtensionInit, SECURITY_EXTENSION_NAME, &noSecurityExtension, NULL,
+     NULL},
 #endif
 #ifdef PANORAMIX
-    { PanoramiXExtensionInit, PANORAMIX_PROTOCOL_NAME, &noPanoramiXExtension, NULL, NULL },
+    {PanoramiXExtensionInit, PANORAMIX_PROTOCOL_NAME, &noPanoramiXExtension,
+     NULL, NULL},
 #endif
 #ifdef XFIXES
     /* must be before Render to layer DisplayCursor correctly */
     { XFixesExtensionInit, "XFIXES", &noXFixesExtension, NULL, NULL },
 #endif
 #ifdef XF86BIGFONT
-    { XFree86BigfontExtensionInit, XF86BIGFONTNAME, &noXFree86BigfontExtension, NULL, NULL },
+    {XFree86BigfontExtensionInit, XF86BIGFONTNAME, &noXFree86BigfontExtension,
+     NULL, NULL},
 #endif
     { RenderExtensionInit, "RENDER", &noRenderExtension, NULL, NULL },
 #ifdef RANDR
@@ -523,8 +551,7 @@ static ExtensionModule staticExtensions[] = {
     { NULL, NULL, NULL, NULL, NULL }
 };
     
-/*ARGSUSED*/
-void
+ /*ARGSUSED*/ void
 InitExtensions(int argc, char *argv[])
 {
     int i;

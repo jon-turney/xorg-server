@@ -48,10 +48,8 @@
 #define MENU_MAX 128   /* Maximum string length of a menu name or item */
 #define PARAM_MAX (4*PATH_MAX)  /* Maximum length of a parameter to a MENU */
 
-
 /* Supported commands in a MENU {} statement */
-typedef enum MENUCOMMANDTYPE
-{
+typedef enum MENUCOMMANDTYPE {
   CMD_EXEC,         /* /bin/sh -c the parameter            */
   CMD_MENU,         /* Display a popup menu named param    */
   CMD_SEPARATOR,    /* Menu separator                      */
@@ -69,15 +67,13 @@ typedef enum MENUCOMMANDTYPE
 #define STYLE_BOTTOM   (1L<<6) /* Open a window at the bottom of the Z order */
 
 /* Where to place a system menu */
-typedef enum MENUPOSITION
-{
+typedef enum MENUPOSITION {
   AT_START,   /* Place menu at the top of the system menu   */
   AT_END      /* Put it at the bottom of the menu (default) */
 } MENUPOSITION;
 
 /* Menu item definitions */
-typedef struct MENUITEM
-{
+typedef struct MENUITEM {
   char text[MENU_MAX+1];   /* To be displayed in menu */
   MENUCOMMANDTYPE cmd;     /* What should it do? */
   char param[PARAM_MAX+1]; /* Any parameters? */
@@ -85,38 +81,33 @@ typedef struct MENUITEM
 } MENUITEM;
 
 /* A completely read in menu... */
-typedef struct MENUPARSED
-{
+typedef struct MENUPARSED {
   char menuName[MENU_MAX+1]; /* What's it called in the text? */
   MENUITEM *menuItem;        /* Array of items */
   int menuItems;             /* How big's the array? */
 } MENUPARSED;
 
 /* To map between a window and a system menu to add for it */
-typedef struct SYSMENUITEM
-{
+typedef struct SYSMENUITEM {
   char match[MENU_MAX+1];    /* String to look for to apply this sysmenu */
   char menuName[MENU_MAX+1]; /* Which menu to show? Used to set *menu */
   MENUPOSITION menuPos;      /* Where to place it (ignored in root) */
 } SYSMENUITEM;
 
 /* To redefine icons for certain window types */
-typedef struct ICONITEM
-{
+typedef struct ICONITEM {
   char match[MENU_MAX+1];             /* What string to search for? */
   char iconFile[PATH_MAX+NAME_MAX+2]; /* Icon location, WIN32 path */
   HICON hicon;                /* LoadImage() result */
 } ICONITEM;
 
 /* To redefine styles for certain window types */
-typedef struct STYLEITEM
-{
+typedef struct STYLEITEM {
   char match[MENU_MAX+1];    /* What string to search for? */
   unsigned long type;                 /* What should it do? */
 } STYLEITEM;
 
-typedef struct WINPREFS
-{
+typedef struct WINPREFS {
   /* Menu information */
   MENUPARSED *menu; /* Array of created menus */
   int menuItems;      /* How big? */
@@ -154,7 +145,6 @@ typedef struct WINPREFS
 /* The global pref settings structure loaded by the winprefyacc.y parser */
 extern WINPREFS pref;
 
-
 /* Functions */
 void
 LoadPreferences(void);
@@ -166,12 +156,10 @@ void
 SetupSysMenu (unsigned long hwndIn);
 
 void
-HandleCustomWM_INITMENU(unsigned long hwndIn,
-			unsigned long hmenuIn);
+ HandleCustomWM_INITMENU(unsigned long hwndIn, unsigned long hmenuIn);
 
 Bool
-HandleCustomWM_COMMAND (unsigned long hwndIn,
-			int           command);
+ HandleCustomWM_COMMAND(unsigned long hwndIn, int command);
 
 int
 winIconIsOverride (unsigned hiconIn);
@@ -182,9 +170,7 @@ winOverrideIcon (char *res_name, char *res_class, char *wmName);
 unsigned long
 winOverrideStyle (char *res_name, char *res_class, char *wmName);
 
-HICON
-winTaskbarIcon(void);
+HICON winTaskbarIcon(void);
 
-HICON
-winOverrideDefaultIcon(int size);
+HICON winOverrideDefaultIcon(int size);
 #endif

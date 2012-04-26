@@ -24,7 +24,6 @@ not be used in advertising or otherwise to promote the sale, use or
 other dealings in this Software without prior written authorization
 from The Open Group.
 
-
 Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts,
 Copyright 1994 Quarterdeck Office Systems.
 
@@ -76,7 +75,6 @@ OR PERFORMANCE OF THIS SOFTWARE.
  * authorization from the copyright holder(s) and author(s).
  */
 
-
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
@@ -124,7 +122,9 @@ static Bool needBuffer = TRUE;
 #include <AvailabilityMacros.h>
 
 static char __crashreporter_info_buff__[4096] = {0};
-static const char *__crashreporter_info__ __attribute__((__used__)) = &__crashreporter_info_buff__[0];
+
+static const char *__crashreporter_info__ __attribute__ ((__used__)) =
+    &__crashreporter_info_buff__[0];
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 // This is actually a toolchain requirement, but I'm not sure the correct check,        
 // but it should be fine to just only include it for Leopard and later.  This line
@@ -304,7 +304,8 @@ LogVWrite(int verb, const char *f, va_list args)
 		    fsync(fileno(logFile));
 #endif
 	    }
-	} else if (needBuffer) {
+        }
+        else if (needBuffer) {
 	    if (len > bufferUnused) {
 		bufferSize += 1024;
 		bufferUnused += 1024;
@@ -412,7 +413,6 @@ LogMessage(MessageType type, const char *format, ...)
     va_end(ap);
 }
 
-
 void
 LogVHdrMessageVerb(MessageType type, int verb, const char *msg_format,
 		   va_list msg_args, const char *hdr_format, va_list hdr_args)
@@ -468,7 +468,8 @@ LogHdrMessage(MessageType type, const char *msg_format, va_list msg_args,
 }
 
 void
-AbortServer(void) _X_NORETURN;
+AbortServer(void)
+    _X_NORETURN;
 
 void
 AbortServer(void)
@@ -549,7 +550,8 @@ AuditFlush(OsTimerPtr timer, CARD32 now, pointer arg)
 	nrepeat = 0;
 	free(prefix);
 	return AUDIT_TIMEOUT;
-    } else {
+    }
+    else {
 	/* if the timer expires without anything to print, flush the message */
 	oldlen = -1;
 	return 0;
@@ -570,7 +572,8 @@ VAuditF(const char *f, va_list args)
     if (len == oldlen && strcmp(buf, oldbuf) == 0) {
 	/* Message already seen */
 	nrepeat++;
-    } else {
+    }
+    else {
 	/* new message */
 	if (auditTimer != NULL)
 	    TimerForce(auditTimer);
@@ -598,8 +601,10 @@ FatalError(const char *f, ...)
 #ifdef __APPLE__
     {
         va_list args2;
+
         va_copy(args2, args);
-        (void)vsnprintf(__crashreporter_info_buff__, sizeof(__crashreporter_info_buff__), f, args2);
+        (void) vsnprintf(__crashreporter_info_buff__,
+                         sizeof(__crashreporter_info_buff__), f, args2);
         va_end(args2);
     }
 #endif
@@ -611,10 +616,10 @@ FatalError(const char *f, ...)
     if (!beenhere) {
 	beenhere = TRUE;
 	AbortServer();
-    } else
-	OsAbort();
-    /*NOTREACHED*/
 }
+    else
+        OsAbort();
+ /*NOTREACHED*/}
 
 void
 VErrorF(const char *f, va_list args)
@@ -655,4 +660,3 @@ LogPrintMarkers(void)
     LogMessageVerb(X_NOT_IMPLEMENTED, 0, "not implemented, ");
     LogMessageVerb(X_UNKNOWN, 0, "unknown.\n");
 }
-

@@ -91,7 +91,6 @@ OsVendorVErrorF (const char *pszFormat, va_list va_args)
 }
 #endif
 
-
 /*
  * os/log.c:FatalError () calls our vendor ErrorF, so the message
  * from a FatalError will be logged.
@@ -135,7 +134,6 @@ OsVendorFatalError (void)
                  lastError,
                  (g_pszLogFile ? g_pszLogFile : "the logfile"));
 }
-
 
 /*
  * winMessageBoxF - Print a formatted error message in a useful
@@ -181,10 +179,7 @@ winMessageBoxF (const char *pszError, UINT uType, ...)
   }
 
   /* Display the message box string */
-  MessageBox (NULL,
-	      pszMsgBox,
-	      PROJECT_NAME,
-	      MB_OK | uType);
+    MessageBox(NULL, pszMsgBox, PROJECT_NAME, MB_OK | uType);
 
  winMessageBoxF_Cleanup:
   free(pszErrorF);

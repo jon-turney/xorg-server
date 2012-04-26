@@ -50,15 +50,13 @@
 Bool				g_fCursor = TRUE;
 Bool				g_fButton[3] = { FALSE, FALSE, FALSE };
 
-
 /*
  * Called by winWakeupHandler
  * Processes current Windows message
  */
 
 LRESULT CALLBACK
-winWindowProc (HWND hwnd, UINT message, 
-	       WPARAM wParam, LPARAM lParam)
+winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   static winPrivScreenPtr	s_pScreenPriv = NULL;
   static winScreenInfo		*s_pScreenInfo = NULL;
@@ -76,16 +74,14 @@ winWindowProc (HWND hwnd, UINT message,
 #endif
   
   /* Watch for server regeneration */
-  if (g_ulServerGeneration != s_ulServerGeneration)
-    {
+    if (g_ulServerGeneration != s_ulServerGeneration) {
       /* Store new server generation */
       s_ulServerGeneration = g_ulServerGeneration;
     }
 
   /* Only retrieve new privates pointers if window handle is null or changed */
   if ((s_pScreenPriv == NULL || hwnd != s_hwndLastPrivates)
-      && (s_pScreenPriv = GetProp (hwnd, WIN_SCR_PROP)) != NULL)
-    {
+        && (s_pScreenPriv = GetProp(hwnd, WIN_SCR_PROP)) != NULL) {
 #if CYGDEBUG
       winDebug ("winWindowProc - Setting privates handle\n");
 #endif
@@ -93,8 +89,7 @@ winWindowProc (HWND hwnd, UINT message,
       s_pScreen = s_pScreenInfo->pScreen;
       s_hwndLastPrivates = hwnd;
     }
-  else if (s_pScreenPriv == NULL)
-    {
+    else if (s_pScreenPriv == NULL) {
       /* For safety, handle case that should never happen */
       s_pScreenInfo = NULL;
       s_pScreen = NULL;
@@ -102,8 +97,7 @@ winWindowProc (HWND hwnd, UINT message,
     }
 
   /* Branch on message type */
-  switch (message)
-    {
+    switch (message) {
     case WM_TRAYICON:
       return winHandleIconMessage (hwnd, message, wParam, lParam,
 				   s_pScreenPriv);
@@ -131,8 +125,7 @@ winWindowProc (HWND hwnd, UINT message,
       SetProp (hwnd, WIN_SCR_PROP, s_pScreenPriv);
 
       /* Setup tray icon */
-      if (!s_pScreenInfo->fNoTrayIcon)
-	{
+        if (!s_pScreenInfo->fNoTrayIcon) {
 	  /*
 	   * NOTE: The WM_CREATE message is processed before CreateWindowEx
 	   * returns, so s_pScreenPriv->hwndScreen is invalid at this point.
@@ -173,8 +166,7 @@ winWindowProc (HWND hwnd, UINT message,
 #ifdef XWIN_PRIMARYFB
 	      || s_pScreenInfo->dwEngine == WIN_SERVER_PRIMARY_DD
 #endif
-	      ))
-	{
+            )) {
 	  break;
 	}
 
@@ -195,15 +187,14 @@ winWindowProc (HWND hwnd, UINT message,
         XXX: maybe we need to check if GetSystemMetrics(SM_SAMEDISPLAYFORMAT)
         has changed as well...
       */
-      if (s_pScreenInfo->dwBPP != GetDeviceCaps (s_pScreenPriv->hdcScreen, BITSPIXEL))
-        {
-          if ((s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD
-               || s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL
+        if (s_pScreenInfo->dwBPP !=
+            GetDeviceCaps(s_pScreenPriv->hdcScreen, BITSPIXEL)) {
+            if ((s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD ||
+                 s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL
 #ifdef XWIN_PRIMARYFB
                || s_pScreenInfo->dwEngine == WIN_SERVER_PRIMARY_DD
 #endif
-               ))
-            {
+                )) {
               /* Cannot display the visual until the depth is restored */
               ErrorF ("winWindowProc - Disruptive change in depth\n");
 
@@ -216,14 +207,13 @@ winWindowProc (HWND hwnd, UINT message,
               /* Minimize the display window */
               ShowWindow (hwnd, SW_MINIMIZE);
             }
-          else
-            {
+            else {
               /* For GDI, performance may suffer until original depth is restored */
-              ErrorF ("winWindowProc - Performance may be non-optimal after change in depth\n");
+                ErrorF
+                    ("winWindowProc - Performance may be non-optimal after change in depth\n");
             }
         }
-      else
-        {
+        else {
           /* Flag that we have a valid screen depth */
           s_pScreenPriv->fBadDepth = FALSE;
         }
@@ -241,33 +231,34 @@ winWindowProc (HWND hwnd, UINT message,
              use RandR to resize the X screen
           */
           if ((!s_pScreenInfo->fUserGaveHeightAndWidth) &&
-              (s_pScreenInfo->iResizeMode == resizeWithRandr) &&
-              (FALSE
+                (s_pScreenInfo->iResizeMode == resizeWithRandr) && (FALSE
 #ifdef XWIN_MULTIWINDOWEXTWM
-               || s_pScreenInfo->fMWExtWM
+                                                                    ||
+                                                                    s_pScreenInfo->
+                                                                    fMWExtWM
 #endif
-               || s_pScreenInfo->fRootless
+                                                                    ||
+                                                                    s_pScreenInfo->
+                                                                    fRootless
 #ifdef XWIN_MULTIWINDOW
-               || s_pScreenInfo->fMultiWindow
+                                                                    ||
+                                                                    s_pScreenInfo->
+                                                                    fMultiWindow
 #endif
-               ))
-	    {
+                )) {
               DWORD dwWidth, dwHeight;
 
-              if (s_pScreenInfo->fMultipleMonitors)
-                {
+                if (s_pScreenInfo->fMultipleMonitors) {
                   /* resize to new virtual desktop size */
                   dwWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
                   dwHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
                 }
-              else
-                {
+                else {
                   /* resize to new size of specified monitor */
                   struct GetMonitorInfoData data;
-                  if (QueryMonitor(s_pScreenInfo->iMonitor, &data))
-                    {
-                      if (data.bMonitorSpecifiedExists == TRUE)
-                        {
+
+                    if (QueryMonitor(s_pScreenInfo->iMonitor, &data)) {
+                        if (data.bMonitorSpecifiedExists == TRUE) {
                           dwWidth = data.monitorWidth;
                           dwHeight = data.monitorHeight;
                           /*
@@ -275,9 +266,9 @@ winWindowProc (HWND hwnd, UINT message,
                              so we might need to update xinerama data
                           */
                         }
-                      else
-                        {
-                          ErrorF ("Monitor number %d no longer exists!\n", s_pScreenInfo->iMonitor);
+                        else {
+                            ErrorF("Monitor number %d no longer exists!\n",
+                                   s_pScreenInfo->iMonitor);
                         }
                     }
                 }
@@ -292,17 +283,17 @@ winWindowProc (HWND hwnd, UINT message,
 
               /* Set screen size to match new size, if it is different to current */
               if ((s_pScreenInfo->dwWidth != dwWidth) ||
-                  (s_pScreenInfo->dwHeight != dwHeight))
-                {
+                    (s_pScreenInfo->dwHeight != dwHeight)) {
                   winDoRandRScreenSetSize(s_pScreen,
                                           dwWidth,
                                           dwHeight,
-                                          (dwWidth * 25.4) / monitorResolution,
-                                          (dwHeight * 25.4) / monitorResolution);
+                                            (dwWidth * 25.4) /
+                                            monitorResolution,
+                                            (dwHeight * 25.4) /
+                                            monitorResolution);
                 }
 	    }
-          else
-            {
+            else {
               /*
                * We can simply recreate the same-sized primary surface when
                * the display dimensions change.
@@ -316,7 +307,8 @@ winWindowProc (HWND hwnd, UINT message,
                * relevant to the current engine (e.g., Shadow GDI).
                */
 
-              winDebug ("winWindowProc - WM_DISPLAYCHANGE - Releasing and recreating primary surface\n");
+                winDebug
+                    ("winWindowProc - WM_DISPLAYCHANGE - Releasing and recreating primary surface\n");
 
               /* Release the old primary surface */
               (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
@@ -358,8 +350,7 @@ winWindowProc (HWND hwnd, UINT message,
         ErrorF ("winWindowProc - WM_SIZE - new client area w: %d h: %d\n",
                 LOWORD (lParam), HIWORD (lParam));
 
-        if (s_pScreenInfo->iResizeMode == resizeWithRandr)
-          {
+        if (s_pScreenInfo->iResizeMode == resizeWithRandr) {
             /* Actual resizing is done on WM_EXITSIZEMOVE */
             return 0;
           }
@@ -396,8 +387,7 @@ winWindowProc (HWND hwnd, UINT message,
 
 	/* Is the naked client area large enough to show the whole visual? */
 	if (iWidth < s_pScreenInfo->dwWidth
-	    || iHeight < s_pScreenInfo->dwHeight)
-	  {
+            || iHeight < s_pScreenInfo->dwHeight) {
 	    /* Client area too small to display visual, use scrollbars */
 	    iWidth -= GetSystemMetrics (SM_CXVSCROLL);
 	    iHeight -= GetSystemMetrics (SM_CYHSCROLL);
@@ -451,8 +441,7 @@ winWindowProc (HWND hwnd, UINT message,
     case WM_EXITSIZEMOVE:
       ErrorF("winWindowProc - WM_EXITSIZEMOVE\n");
 
-      if (s_pScreenInfo->iResizeMode == resizeWithRandr)
-        {
+        if (s_pScreenInfo->iResizeMode == resizeWithRandr) {
           /* Set screen size to match new client area, if it is different to current */
           RECT rcClient;
           DWORD dwWidth, dwHeight;
@@ -462,8 +451,7 @@ winWindowProc (HWND hwnd, UINT message,
           dwHeight = rcClient.bottom - rcClient.top;
 
           if ((s_pScreenInfo->dwWidth != dwWidth) ||
-              (s_pScreenInfo->dwHeight != dwHeight))
-            {
+                (s_pScreenInfo->dwHeight != dwHeight)) {
               /* mm = dots * (25.4 mm / inch) / (dots / inch) */
               winDoRandRScreenSetSize(s_pScreen,
                                       dwWidth,
@@ -496,8 +484,7 @@ winWindowProc (HWND hwnd, UINT message,
 	 * Don't forget:
 	 * moving the scrollbar to the DOWN, scroll the content UP
 	 */
-	switch (LOWORD(wParam))
-	  {
+        switch (LOWORD(wParam)) {
 	  case SB_TOP:
 	    si.nPos = si.nMin;
 	    break;
@@ -539,8 +526,7 @@ winWindowProc (HWND hwnd, UINT message,
 	GetScrollInfo (hwnd, SB_VERT, &si);
       
 	/* Scroll the window if the position has changed */
-	if (si.nPos != iVertPos)
-	  {
+        if (si.nPos != iVertPos) {
 	    /* Save the new offset for bit block transfers, etc. */
 	    s_pScreenInfo->dwYOffset = -si.nPos;
 
@@ -548,11 +534,7 @@ winWindowProc (HWND hwnd, UINT message,
 	    ScrollWindowEx (hwnd,
 			    0,
 			    iVertPos - si.nPos,
-			    NULL,
-			    NULL,
-			    NULL,
-			    NULL,
-			    SW_INVALIDATE);
+                           NULL, NULL, NULL, NULL, SW_INVALIDATE);
 	  
 	    /* Redraw the window contents */
 	    UpdateWindow (hwnd);
@@ -581,8 +563,7 @@ winWindowProc (HWND hwnd, UINT message,
 	 * Don't forget:
 	 * moving the scrollbar to the RIGHT, scroll the content LEFT
 	 */
-	switch (LOWORD(wParam))
-	  {
+        switch (LOWORD(wParam)) {
 	  case SB_LEFT:
 	    si.nPos = si.nMin;
 	    break;
@@ -624,20 +605,14 @@ winWindowProc (HWND hwnd, UINT message,
 	GetScrollInfo (hwnd, SB_HORZ, &si);
       
 	/* Scroll the window if the position has changed */
-	if (si.nPos != iHorzPos)
-	  {
+        if (si.nPos != iHorzPos) {
 	    /* Save the new offset for bit block transfers, etc. */
 	    s_pScreenInfo->dwXOffset = -si.nPos;
 
 	    /* Change displayed region in the window */
 	    ScrollWindowEx (hwnd,
 			    iHorzPos - si.nPos,
-			    0,
-			    NULL,
-			    NULL,
-			    NULL,
-			    NULL,
-			    SW_INVALIDATE);
+                           0, NULL, NULL, NULL, NULL, SW_INVALIDATE);
 	  
 	    /* Redraw the window contents */
 	    UpdateWindow (hwnd);
@@ -659,8 +634,7 @@ winWindowProc (HWND hwnd, UINT message,
 	/* Can't do anything without screen info */
 	if (s_pScreenInfo == NULL
 	    || (s_pScreenInfo->iResizeMode != resizeWithScrollbars)
-	    || s_pScreenInfo->fFullScreen
-	    || !s_pScreenInfo->fDecoration
+            || s_pScreenInfo->fFullScreen || !s_pScreenInfo->fDecoration
 #ifdef XWIN_MULTIWINDOWEXTWM
 	    || s_pScreenInfo->fMWExtWM
 #endif
@@ -689,8 +663,7 @@ winWindowProc (HWND hwnd, UINT message,
 	iBorderHeight = 2 * GetSystemMetrics (SM_CYSIZEFRAME);
 	
 	/* Allow the full visual to be displayed */
-	pMinMaxInfo->ptMaxTrackSize.x
-	  = s_pScreenInfo->dwWidth + iBorderWidth;
+        pMinMaxInfo->ptMaxTrackSize.x = s_pScreenInfo->dwWidth + iBorderWidth;
 	pMinMaxInfo->ptMaxTrackSize.y
 	  = s_pScreenInfo->dwHeight + iBorderHeight + iCaptionHeight;
       }
@@ -715,8 +688,7 @@ winWindowProc (HWND hwnd, UINT message,
       if (s_pScreenPriv == NULL
 	  || !s_pScreenPriv->fEnabled
 	  || (s_pScreenInfo->fFullScreen && !s_pScreenPriv->fActive)
-	  || s_pScreenPriv->fBadDepth)
-	{
+            || s_pScreenPriv->fBadDepth) {
 	  /* We don't want to paint */
 	  break;
 	}
@@ -744,8 +716,7 @@ winWindowProc (HWND hwnd, UINT message,
 	  break;
 
 	/* Return if we caused the palette to change */
-	if ((HWND) wParam == hwnd)
-	  {
+        if ((HWND) wParam == hwnd) {
 	    /* Redraw the screen */
 	    (*s_pScreenPriv->pwinRedrawScreen) (s_pScreen);
 	    return 0;
@@ -775,8 +746,7 @@ winWindowProc (HWND hwnd, UINT message,
 			       GET_Y_LPARAM(lParam)-s_pScreenInfo->dwYOffset);
 
       /* Are we tracking yet? */
-      if (!s_fTracking)
-	{
+        if (!s_fTracking) {
 	  TRACKMOUSEEVENT		tme;
 	  
 	  /* Setup data structure */
@@ -794,15 +764,14 @@ winWindowProc (HWND hwnd, UINT message,
 	}
 
       /* Hide or show the Windows mouse cursor */
-      if (g_fSoftwareCursor && g_fCursor && (s_pScreenPriv->fActive || s_pScreenInfo->fLessPointer))
-	{
+        if (g_fSoftwareCursor && g_fCursor &&
+            (s_pScreenPriv->fActive || s_pScreenInfo->fLessPointer)) {
 	  /* Hide Windows cursor */
 	  g_fCursor = FALSE;
 	  ShowCursor (FALSE);
 	}
       else if (g_fSoftwareCursor && !g_fCursor && !s_pScreenPriv->fActive
-	       && !s_pScreenInfo->fLessPointer)
-	{
+                 && !s_pScreenInfo->fLessPointer) {
 	  /* Show Windows cursor */
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
@@ -828,8 +797,7 @@ winWindowProc (HWND hwnd, UINT message,
 	break;
       
       /* Non-client mouse movement, show Windows cursor */
-      if (g_fSoftwareCursor && !g_fCursor)
-	{
+        if (g_fSoftwareCursor && !g_fCursor) {
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
 	}
@@ -842,8 +810,7 @@ winWindowProc (HWND hwnd, UINT message,
       s_fTracking = FALSE;
 
       /* Show the mouse cursor, if necessary */
-      if (g_fSoftwareCursor && !g_fCursor)
-	{
+        if (g_fSoftwareCursor && !g_fCursor) {
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
 	}
@@ -928,7 +895,8 @@ winWindowProc (HWND hwnd, UINT message,
 #endif
 	  )
 	SetCapture (hwnd);
-      return winMouseButtonsHandle (s_pScreen, ButtonPress, HIWORD(wParam) + 5, wParam);
+        return winMouseButtonsHandle(s_pScreen, ButtonPress, HIWORD(wParam) + 5,
+                                     wParam);
     case WM_XBUTTONUP:
       if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
 	break;
@@ -938,15 +906,15 @@ winWindowProc (HWND hwnd, UINT message,
 #endif
 	  )
 	ReleaseCapture ();
-      return winMouseButtonsHandle (s_pScreen, ButtonRelease, HIWORD(wParam) + 5, wParam);
+        return winMouseButtonsHandle(s_pScreen, ButtonRelease,
+                                     HIWORD(wParam) + 5, wParam);
 
     case WM_TIMER:
       if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
 	break;
 
       /* Branch on the timer id */
-      switch (wParam)
-	{
+        switch (wParam) {
 	case WIN_E3B_TIMER_ID:
 	  /* Send delayed button press */
 	  winMouseButtonsSendEvent (ButtonPress,
@@ -1048,8 +1016,7 @@ winWindowProc (HWND hwnd, UINT message,
 	   && (GetKeyState (VK_MENU) & 0x8000))
 	  || (s_pScreenInfo->fUseUnixKillKey && wParam == VK_BACK
 	      && (GetKeyState (VK_MENU) & 0x8000)
-	      && (GetKeyState (VK_CONTROL) & 0x8000)))
-	{
+                && (GetKeyState(VK_CONTROL) & 0x8000))) {
 	  /*
 	   * Better leave this message here, just in case some unsuspecting
 	   * user enters Alt + F4 and is surprised when the application
@@ -1077,10 +1044,8 @@ winWindowProc (HWND hwnd, UINT message,
       /* 
        * Discard presses generated from Windows auto-repeat
        */
-      if (lParam & (1<<30))
-      {
-        switch (wParam)
-        {
+        if (lParam & (1 << 30)) {
+            switch (wParam) {
           /* ago: Pressing LControl while RControl is pressed is 
            * Indicated as repeat. Fix this!
            */
@@ -1141,13 +1106,11 @@ winWindowProc (HWND hwnd, UINT message,
       return 0;
 
     case WM_ACTIVATE:
-      if (s_pScreenPriv == NULL
-	  || s_pScreenInfo->fIgnoreInput)
+        if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
 	break;
 
       /* TODO: Override display of window when we have a bad depth */
-      if (LOWORD(wParam) != WA_INACTIVE && s_pScreenPriv->fBadDepth)
-	{
+        if (LOWORD(wParam) != WA_INACTIVE && s_pScreenPriv->fBadDepth) {
 	  ErrorF ("winWindowProc - WM_ACTIVATE - Bad depth, trying "
 		  "to override window activation\n");
 
@@ -1155,13 +1118,11 @@ winWindowProc (HWND hwnd, UINT message,
 	  ShowWindow (hwnd, SW_MINIMIZE);
 
 	  /* Display dialog box */
-	  if (g_hDlgDepthChange != NULL)
-	    {
+            if (g_hDlgDepthChange != NULL) {
 	      /* Make the existing dialog box active */
 	      SetActiveWindow (g_hDlgDepthChange);
 	    }
-	  else
-	    {
+            else {
 	      /* TODO: Recreate the dialog box and bring to the top */
 	      ShowWindow (g_hDlgDepthChange, SW_SHOWDEFAULT);
 	    }
@@ -1184,9 +1145,7 @@ winWindowProc (HWND hwnd, UINT message,
       s_pScreenPriv->iDeltaZ = 0;
 
       /* Reshow the Windows mouse cursor if we are being deactivated */
-      if (g_fSoftwareCursor && LOWORD(wParam) == WA_INACTIVE
-	  && !g_fCursor)
-	{
+        if (g_fSoftwareCursor && LOWORD(wParam) == WA_INACTIVE && !g_fCursor) {
 	  /* Show Windows cursor */
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
@@ -1194,8 +1153,7 @@ winWindowProc (HWND hwnd, UINT message,
       return 0;
 
     case WM_ACTIVATEAPP:
-      if (s_pScreenPriv == NULL
-	  || s_pScreenInfo->fIgnoreInput)
+        if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
 	break;
 
 #if CYGDEBUG || TRUE
@@ -1206,9 +1164,7 @@ winWindowProc (HWND hwnd, UINT message,
       s_pScreenPriv->fActive = wParam;
 
       /* Reshow the Windows mouse cursor if we are being deactivated */
-      if (g_fSoftwareCursor && !s_pScreenPriv->fActive
-	  && !g_fCursor)
-	{
+        if (g_fSoftwareCursor && !s_pScreenPriv->fActive && !g_fCursor) {
 	  /* Show Windows cursor */
 	  g_fCursor = TRUE;
 	  ShowCursor (TRUE);
@@ -1223,8 +1179,7 @@ winWindowProc (HWND hwnd, UINT message,
       (*s_pScreenPriv->pwinActivateApp) (s_pScreen);
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-      if (s_pScreenPriv->fActive)
-	{
+        if (s_pScreenPriv->fActive) {
 	  /* Restack all window unless using built-in wm. */
 	  if (s_pScreenInfo->fInternalWM && s_pScreenInfo->fAnotherWMRunning)
 	    winMWExtWMRestackWindows (s_pScreen);
@@ -1234,8 +1189,7 @@ winWindowProc (HWND hwnd, UINT message,
       return 0;
 
     case WM_COMMAND:
-      switch (LOWORD (wParam))
-	{
+        switch (LOWORD(wParam)) {
 	case ID_APP_EXIT:
 	  /* Display Exit dialog */
 	  winDisplayExitDialog (s_pScreenPriv);
@@ -1278,9 +1232,9 @@ winWindowProc (HWND hwnd, UINT message,
       return 0;
 
     case WM_SETCURSOR:
-      if (LOWORD(lParam) == HTCLIENT)
-	{
-	  if (!g_fSoftwareCursor) SetCursor (s_pScreenPriv->cursor.handle);
+        if (LOWORD(lParam) == HTCLIENT) {
+            if (!g_fSoftwareCursor)
+                SetCursor(s_pScreenPriv->cursor.handle);
 	  return TRUE;
 	}
       break;
@@ -1290,8 +1244,7 @@ winWindowProc (HWND hwnd, UINT message,
       ErrorF ("winWindowProc - WM_MANAGE\n");
       s_pScreenInfo->fAnotherWMRunning = FALSE;
 
-      if (s_pScreenInfo->fInternalWM)
-	{
+        if (s_pScreenInfo->fInternalWM) {
 	  EnumThreadWindows (g_dwCurrentThreadID, winMWExtWMDecorateWindow, 0);
 	  //RootlessRepositionWindows (s_pScreen);
 	}
@@ -1301,8 +1254,7 @@ winWindowProc (HWND hwnd, UINT message,
       ErrorF ("winWindowProc - WM_UNMANAGE\n");
       s_pScreenInfo->fAnotherWMRunning = TRUE;
 
-      if (s_pScreenInfo->fInternalWM)
-	{
+        if (s_pScreenInfo->fInternalWM) {
 	  EnumThreadWindows (g_dwCurrentThreadID, winMWExtWMDecorateWindow, 0);
 	  winMWExtWMRestackWindows (s_pScreen);
 	}
@@ -1310,8 +1262,7 @@ winWindowProc (HWND hwnd, UINT message,
 #endif
 
     default:
-      if(message == s_uTaskbarRestart)
-	{
+        if (message == s_uTaskbarRestart) {
 	  winInitNotifyIcon (s_pScreenPriv);
 	}
       break;
