@@ -530,9 +530,9 @@ winXIconToHICON (Display *pDisplay, Window id, int iconSize)
 
                   if (xImageMask)
                     XDestroyImage(xImageMask);
-                }
 
-              XDestroyImage(xImageIcon);
+                  XDestroyImage(xImageIcon);
+                }
             }
           XFree(hints);
         }
