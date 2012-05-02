@@ -30,6 +30,13 @@
 #include <errno.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+
 #ifdef HAVE_BACKTRACE
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -129,8 +136,13 @@ static int xorg_backtrace_frame(uintptr_t pc, int signo, void *arg)
 }
 # endif /* HAVE_WALKCONTEXT */
 
-# ifdef HAVE_PSTACK
-static int xorg_backtrace_pstack(void) {
+/*
+  fork/exec a program to create a backtrace
+  Returns 0 if successful.
+*/
+static int
+xorg_backtrace_exec_wrapper(const char *path)
+{
     pid_t kidpid;
     int pipefd[2];
 
@@ -138,52 +150,71 @@ static int xorg_backtrace_pstack(void) {
 	return -1;
     }
 
-    kidpid = fork1();
+    kidpid = fork();
 
     if (kidpid == -1) {
-	/* ERROR */
-	return -1;
-    } else if (kidpid == 0) {
-	/* CHILD */
-	char parent[16];
-	
-	seteuid(0);
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	dup2(pipefd[1],STDOUT_FILENO);
-	closefrom(STDERR_FILENO);
+        /* ERROR */
+        return -1;
+    }
+    else if (kidpid == 0) {
+        /* CHILD */
+        char parent[16];
 
-	snprintf(parent, sizeof(parent), "%d", getppid());
-	execle("/usr/bin/pstack", "pstack", parent, NULL);
-	exit(1);
-    } else {
-	/* PARENT */
-	char btline[256];
-	int kidstat;
-	int bytesread;
-	int done = 0;
-	
-	close(pipefd[1]);
+        seteuid(0);
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        dup2(pipefd[1], STDOUT_FILENO);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[1]);
 
-	while (!done) {
-	    bytesread = read(pipefd[0], btline, sizeof(btline) - 1);
+        snprintf(parent, sizeof(parent), "%d", getppid());
+        execle(path, path, parent, NULL, NULL);
+        exit(1);
+    }
+    else {
+        /* PARENT */
+        char btline[256];
+        int kidstat;
+        int bytesread;
+        int done = 0;
 
-	    if (bytesread > 0) {
-		btline[bytesread] = 0;
-		ErrorF("%s", btline);
-	    }
-	    else if ((bytesread < 0) ||
-		     ((errno != EINTR) && (errno != EAGAIN)))
-		done = 1;
-	}
-	close(pipefd[0]);
-	waitpid(kidpid, &kidstat, 0);
-	if (kidstat != 0)
-	    return -1;
+        close(pipefd[1]);
+
+        while (!done) {
+            bytesread = read(pipefd[0], btline, sizeof(btline) - 1);
+
+            if (bytesread > 0) {
+                btline[bytesread] = 0;
+                ErrorF("%s", btline);
+            }
+            else if ((bytesread == 0) || ((errno != EINTR) && (errno != EAGAIN)))
+                done = 1;
+        }
+        close(pipefd[0]);
+        waitpid(kidpid, &kidstat, 0);
+        if (!(WIFEXITED(kidstat) && WEXITSTATUS(kidstat) == 0)) {
+            ErrorF("%s failed with returncode %d\n", path,
+                   WEXITSTATUS(kidstat));
+            return -1;
+        }
     }
     return 0;
 }
-# endif /* HAVE_PSTACK */
+
+#ifdef HAVE_PSTACK
+static int
+xorg_backtrace_pstack(void)
+{
+    return xorg_backtrace_exec_wrapper("/usr/bin/pstack");
+}
+#endif
+
+static int
+xorg_backtrace_script(void)
+{
+    return xorg_backtrace_exec_wrapper(BINDIR "/xorg-backtrace");
+}
 
 
 # if defined(HAVE_PSTACK) || defined(HAVE_WALKCONTEXT)
@@ -216,7 +247,12 @@ void xorg_backtrace(void) {
 # else
 
 /* Default fallback if we can't find any way to get a backtrace */
-void xorg_backtrace(void) { return; }
+void
+xorg_backtrace(void)
+{
+    if (xorg_backtrace_script() == 0)
+        return;
+}
 
 # endif
 #endif
