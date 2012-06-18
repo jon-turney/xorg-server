@@ -42,7 +42,7 @@
 #include "winmsg.h"
 #include "inputstr.h"
 
-extern void winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle);
+extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -894,7 +894,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                       WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
                                      & ~WS_CAPTION & ~WS_SIZEBOX);
 
-                winUpdateWindowPosition(hwnd, FALSE, &zstyle);
+                winUpdateWindowPosition(hwnd, &zstyle);
 
                 {
                     WinXWMHints hints;
