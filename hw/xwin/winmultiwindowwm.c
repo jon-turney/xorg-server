@@ -213,7 +213,7 @@ static void
 winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle);
 
 void
-winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle);
+winUpdateWindowPosition (HWND hWnd, HWND *zstyle);
 
 /*
  * Local globals
@@ -667,6 +667,46 @@ UpdateIcon (WMInfoPtr pWMInfo, Window iWindow)
   winUpdateIcon (hWnd, pWMInfo->pDisplay, iWindow, hIconNew);
 }
 
+/*
+ * Updates the style of a HWND according to its X style properties
+ */
+
+static void
+UpdateStyle (WMInfoPtr pWMInfo, Window iWindow)
+{
+  HWND hWnd;
+  HWND zstyle = HWND_NOTOPMOST;
+  UINT flags;
+  Bool onTaskbar;
+
+  hWnd = getHwnd (pWMInfo, iWindow);
+  if (!hWnd) return;
+
+  /* Determine the Window style, which determines borders and clipping region... */
+  winApplyHints (pWMInfo->pDisplay, iWindow, hWnd, &zstyle);
+  winUpdateWindowPosition (hWnd, &zstyle);
+
+  /* Apply the updated window style, without changing it's show or activation state */
+  flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
+  if (zstyle == HWND_NOTOPMOST) flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
+  SetWindowPos(hWnd, NULL, 0, 0, 0, 0, flags);
+
+  /*
+    Use the WS_EX_TOOLWINDOW style to remove window from Alt-Tab window switcher
+
+    According to MSDN, this is supposed to remove the window from the taskbar as well,
+    if we SW_HIDE before changing the style followed by SW_SHOW afterwards.
+
+    But that doesn't seem to work reliably, so also use iTaskbarList interface to
+    tell the taskbar to show or hide this window.
+  */
+  onTaskbar = GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_APPWINDOW;
+  wintaskbar(hWnd, onTaskbar);
+
+  /* Check urgency hint */
+  winApplyUrgency(pWMInfo->pDisplay, iWindow, hWnd);
+}
+
 #if 0
 /*
  * Fix up any differences between the X11 and Win32 window stacks
@@ -824,21 +864,24 @@ winMultiWindowWMProc (void *pArg)
 	  ErrorF ("\tWM_WM_MAP3\n");
 #endif
 	  /* Put a note as to the HWND associated with this Window */
-	  XChangeProperty (pWMInfo->pDisplay,
-			   pNode->msg.iWindow,
-			   pWMInfo->atmPrivMap,
-			   XA_INTEGER,//pWMInfo->atmPrivMap,
+          XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
 			   32,
 			   PropModeReplace,
-			   (unsigned char *) &(pNode->msg.hwndWindow),
-			   1);
+                          (unsigned char *) &(pNode->msg.hwndWindow), 1);
 	  UpdateName (pWMInfo, pNode->msg.iWindow);
 	  UpdateIcon (pWMInfo, pNode->msg.iWindow);
-	  {
-	    HWND zstyle = HWND_NOTOPMOST;
-	    winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
-	    winUpdateWindowPosition (pNode->msg.hwndWindow, TRUE, &zstyle);
-	  }
+	  UpdateStyle (pWMInfo, pNode->msg.iWindow);
+
+          /* Reshape */
+          {
+            WindowPtr pWin = GetProp(pNode->msg.hwndWindow, WIN_WINDOW_PROP);
+            if (pWin)
+              {
+                winReshapeMultiWindow(pWin);
+                winUpdateRgnMultiWindow(pWin);
+              }
+          }
+
 	  break;
 
 	case WM_WM_UNMAP:
@@ -905,9 +948,6 @@ winMultiWindowWMProc (void *pArg)
 
 	case WM_WM_HINTS_EVENT:
           {
-            HWND zstyle = HWND_NOTOPMOST;
-            UINT flags;
-            Bool onTaskbar;
             XWindowAttributes attr;
 
             /* Don't do anything if this is an override-redirect window */
@@ -915,31 +955,7 @@ winMultiWindowWMProc (void *pArg)
             if (attr.override_redirect)
               break;
 
-            pNode->msg.hwndWindow = getHwnd(pWMInfo, pNode->msg.iWindow);
-
-            /* Determine the Window style, which determines borders and clipping region... */
-            winApplyHints (pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow, &zstyle);
-            winUpdateWindowPosition (pNode->msg.hwndWindow, FALSE, &zstyle);
-
-            /* Apply the updated window style, without changing it's show or activation state */
-            flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
-            if (zstyle == HWND_NOTOPMOST) flags |= SWP_NOZORDER | SWP_NOOWNERZORDER;
-            SetWindowPos(pNode->msg.hwndWindow, NULL, 0, 0, 0, 0, flags);
-
-            /*
-              Use the WS_EX_TOOLWINDOW style to remove window from Alt-Tab window switcher
-
-              According to MSDN, this is supposed to remove the window from the taskbar as well,
-              if we SW_HIDE before changing the style followed by SW_SHOW afterwards.
-
-              But that doesn't seem to work reliably, so also use iTaskbarList interface to
-              tell the taskbar to show or hide this window.
-            */
-            onTaskbar = GetWindowLongPtr(pNode->msg.hwndWindow, GWL_EXSTYLE) & WS_EX_APPWINDOW;
-            wintaskbar(pNode->msg.hwndWindow, onTaskbar);
-
-            /* Check urgency hint */
-            winApplyUrgency(pWMInfo->pDisplay, pNode->msg.iWindow, pNode->msg.hwndWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow);
           }
 	  break;
 
@@ -1978,7 +1994,7 @@ winApplyHints (Display *pDisplay, Window iWindow, HWND hWnd, HWND *zstyle)
 }
 
 void
-winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle)
+winUpdateWindowPosition (HWND hWnd, HWND *zstyle)
 {
   int iX, iY, iWidth, iHeight;
   int	iDx, iDy;
@@ -2028,14 +2044,7 @@ winUpdateWindowPosition (HWND hWnd, Bool reshape, HWND *zstyle)
 
   /* Position the Windows window */
   SetWindowPos (hWnd, *zstyle, rcNew.left, rcNew.top,
-	rcNew.right - rcNew.left, rcNew.bottom - rcNew.top,
-	0);
-
-  if (reshape)
-  {
-    winReshapeMultiWindow(pWin);
-    winUpdateRgnMultiWindow(pWin);
-  }
+                 rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
 }
 
 void
