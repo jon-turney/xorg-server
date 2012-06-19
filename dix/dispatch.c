@@ -214,9 +214,9 @@ UpdateCurrentTimeIf(void)
     systime.months = currentTime.months;
     systime.milliseconds = GetTimeInMillis();
     if (systime.milliseconds < currentTime.milliseconds)
-	systime.months++;
-    if (*checkForInput[0] == *checkForInput[1])
-	currentTime = systime;
+        systime.months++;
+    if (CompareTimeStamps(systime, currentTime) == LATER)
+        currentTime = systime;
 }
 
 #undef SMART_DEBUG
@@ -391,14 +391,17 @@ Dispatch(void)
 		FlushIfCriticalOutputPending();
 		if (!SmartScheduleDisable && 
                     (SmartScheduleTime - start_tick) >= SmartScheduleSlice) {
-		    /* Penalize clients which consume ticks */
-		    if (client->smart_priority > SMART_MIN_PRIORITY)
-			client->smart_priority--;
-		    break;
-		}
-		/* now, finally, deal with client requests */
+                    /* Penalize clients which consume ticks */
+                    if (client->smart_priority > SMART_MIN_PRIORITY)
+                        client->smart_priority--;
+                    break;
+                }
+                /* now, finally, deal with client requests */
 
-	        result = ReadRequestFromClient(client);
+                /* Update currentTime so request time checks, such as for input
+                 * device grabs, are calculated correctly */
+                UpdateCurrentTimeIf();
+                result = ReadRequestFromClient(client);
                 if (result <= 0) {
 		    if (result < 0)
 			CloseDownClient(client);
@@ -415,11 +418,11 @@ Dispatch(void)
 			client->minorOp = ext->MinorOpcode(client);
 		}
 #ifdef XSERVER_DTRACE
-		if (XSERVER_REQUEST_START_ENABLED())
-		    XSERVER_REQUEST_START(LookupMajorName(client->majorOp),
-					  client->majorOp,
-                                          ((xReq *) client->requestBuffer)->
-                                          length, client->index,
+                if (XSERVER_REQUEST_START_ENABLED())
+                    XSERVER_REQUEST_START(LookupMajorName(client->majorOp),
+                                          client->majorOp,
+                                          ((xReq *) client->requestBuffer)->length,
+                                          client->index,
                                           client->requestBuffer);
 #endif
 		if (result > (maxBigRequestSize << 2))
