@@ -84,7 +84,7 @@ winGetWindowInfo(WindowPtr pWin)
 
             if (pWinPriv->hWnd == NULL) {
 		ErrorF("winGetWindowInfo: forcing window to exist\n");
-                winCreateWindowsWindow(pWin);
+                winCreateWindowsWindowHierarchy(pWin);
             }
 
             if (pWinPriv->hWnd != NULL) {
