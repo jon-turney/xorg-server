@@ -86,6 +86,7 @@
 
 #include <winpriv.h>
 #include <wgl_ext_api.h>
+#include <winglobals.h>
 
 #define NUM_ELEMENTS(x) (sizeof(x)/ sizeof(x[1]))
 
@@ -341,6 +342,11 @@ swap_method_name(int mthd)
 static void
 fbConfigsDump(unsigned int n, __GLXconfig *c)
 {
+  LogMessage(X_INFO, "%d fbConfigs\n", n);
+
+  if (g_iLogVerbose < 3)
+    return;
+
   ErrorF("%d fbConfigs\n", n);
     ErrorF
         ("pxf vis  fb                      render         Ste                     aux    accum        MS    drawable             Group/\n");
@@ -592,11 +598,14 @@ glxWinScreenProbe(ScreenPtr pScreen)
     gl_renderer = (const char *)glGetStringWrapperNonstatic(GL_RENDERER);
     ErrorF("GL_RENDERER:    %s\n", gl_renderer);
     gl_extensions = (const char *)glGetStringWrapperNonstatic(GL_EXTENSIONS);
-    glxLogExtensions("GL_EXTENSIONS:  ", gl_extensions);
     wgl_extensions = wglGetExtensionsStringARBWrapper(hdc);
-    if (!wgl_extensions)
-        wgl_extensions = "";
-    glxLogExtensions("WGL_EXTENSIONS: ", wgl_extensions);
+    if (!wgl_extensions) wgl_extensions = "";
+
+    if (g_iLogVerbose >= 3)
+      {
+        glxLogExtensions("GL_EXTENSIONS:  ", gl_extensions);
+        glxLogExtensions("WGL_EXTENSIONS: ", wgl_extensions);
+      }
 
     if (strcasecmp(gl_renderer, "GDI Generic") == 0)
        {
@@ -1807,10 +1816,8 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen *screen)
   screen->base.fbconfigs = NULL;
 
   // get the number of pixelformats
-    numConfigs =
-        DescribePixelFormat(hdc, 1, sizeof(PIXELFORMATDESCRIPTOR), NULL);
-    GLWIN_DEBUG_MSG("DescribePixelFormat says %d possible pixel formats",
-                    numConfigs);
+  numConfigs = DescribePixelFormat(hdc, 1, sizeof(PIXELFORMATDESCRIPTOR), NULL);
+  LogMessage(X_INFO, "%d pixel formats reported by DescribePixelFormat\n", numConfigs);
 
   /* alloc */
   result = malloc(sizeof(GLXWinConfig) * numConfigs);
@@ -2055,9 +2062,7 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen *screen)
       return;
     }
 
-    GLWIN_DEBUG_MSG
-        ("wglGetPixelFormatAttribivARB says %d possible pixel formats",
-         numConfigs);
+  LogMessage(X_INFO, "%d pixel formats reported by wglGetPixelFormatAttribivARB\n", numConfigs);
 
   /* alloc */
   result = malloc(sizeof(GLXWinConfig) * numConfigs);

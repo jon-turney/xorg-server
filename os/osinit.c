@@ -81,6 +81,7 @@ int limitStackSpace = -1;
 #ifdef RLIMIT_NOFILE
 int limitNoFile = -1;
 #endif
+extern Bool install_os_signal_handler;
 
 static OsSigWrapperPtr OsSigWrapper = NULL;
 
@@ -120,8 +121,7 @@ OsSigHandler(int signo)
       }
   }
 
-  /* log, cleanup, and abort */
-  xorg_backtrace();
+  ErrorF("Fatal signal received in thread 0x%x\n", pthread_self());
 
 #ifdef SA_SIGINFO
   if (sip->si_code == SI_USER) {
@@ -139,6 +139,9 @@ OsSigHandler(int signo)
   }
 #endif
 
+  /* log, cleanup, and abort */
+  xorg_backtrace();
+
   FatalError("Caught signal %d (%s). Server aborting\n",
 	     signo, strsignal(signo));
 }
@@ -151,32 +154,34 @@ OsInit(void)
     char fname[PATH_MAX];
 
     if (!been_here) {
-	struct sigaction act, oact;
-	int i;
-
-	int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
-			  SIGSYS,
-			  SIGXCPU,
-			  SIGXFSZ,
+      if (install_os_signal_handler)
+        {
+          struct sigaction act, oact;
+          int i;
+          int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
+                            SIGSYS,
+                            SIGXCPU,
+                            SIGXFSZ,
 #ifdef SIGEMT
-			  SIGEMT,
+                            SIGEMT,
 #endif
-            0 /* must be last */
-        };
-	sigemptyset(&act.sa_mask);
+                            0 /* must be last */ };
+          sigemptyset(&act.sa_mask);
 #ifdef SA_SIGINFO
-	act.sa_sigaction = OsSigHandler;
-	act.sa_flags = SA_SIGINFO;
+          act.sa_sigaction = OsSigHandler;
+          act.sa_flags = SA_SIGINFO;
 #else
-        act.sa_handler = OsSigHandler;
-        act.sa_flags = 0;
+          act.sa_handler = OsSigHandler;
+          act.sa_flags = 0;
 #endif
-	for (i = 0; siglist[i] != 0; i++) {
+          for (i = 0; siglist[i] != 0; i++) {
 	    if (sigaction(siglist[i], &act, &oact)) {
-		ErrorF("failed to install signal handler for signal %d: %s\n",
-		       siglist[i], strerror(errno));
+              ErrorF("failed to install signal handler for signal %d: %s\n",
+                     siglist[i], strerror(errno));
 	    }
-	}
+          }
+        }
+
 #ifdef HAVE_BACKTRACE
 	/*
 	 * initialize the backtracer, since the ctor calls dlopen(), which
