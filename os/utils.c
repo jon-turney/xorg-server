@@ -123,6 +123,8 @@ __stdcall unsigned long GetTickCount(void);
 
 #include "picture.h"
 
+Bool install_os_signal_handler = TRUE;
+
 Bool noTestExtensions;
 
 #ifdef COMPOSITE
@@ -554,6 +556,7 @@ UseMsg(void)
 #ifdef RLIMIT_STACK
     ErrorF("-ls int                limit stack space to N Kb\n");
 #endif
+    ErrorF("-notrapsignals         disable catching of fatal signals\n");
 #ifdef LOCK_SERVER
     ErrorF("-nolock                disable the locking mechanism\n");
 #endif
@@ -851,6 +854,9 @@ ProcessCommandLine(int argc, char *argv[])
                 UseMsg();
         }
 #endif
+        else if (strcmp(argv[i], "-notrapsignals") == 0) {
+            install_os_signal_handler = FALSE;
+        }
 #ifdef LOCK_SERVER
         else if (strcmp(argv[i], "-nolock") == 0) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
