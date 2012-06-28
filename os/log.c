@@ -590,9 +590,9 @@ FatalError(const char *f, ...)
     static Bool beenhere = FALSE;
 
     if (beenhere)
-	ErrorF("\nFatalError re-entered, aborting\n");
+	ErrorF("FatalError re-entered, aborting\n");
     else
-	ErrorF("\nFatal server error:\n");
+	ErrorF("Fatal server error: ");
 
     va_start(args, f);
 #ifdef __APPLE__
@@ -605,7 +605,8 @@ FatalError(const char *f, ...)
 #endif
     VErrorF(f, args);
     va_end(args);
-    ErrorF("\n");
+    if (f[strlen(f)-1] != '\n')
+      ErrorF("\n");
     if (!beenhere)
 	OsVendorFatalError();
     if (!beenhere) {
