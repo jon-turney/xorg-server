@@ -895,9 +895,9 @@ FatalError(const char *f, ...)
     static Bool beenhere = FALSE;
 
     if (beenhere)
-        ErrorFSigSafe("\nFatalError re-entered, aborting\n");
+        ErrorFSigSafe("FatalError re-entered, aborting\n");
     else
-        ErrorFSigSafe("\nFatal server error:\n");
+        ErrorFSigSafe("Fatal server error:\n");
 
     va_start(args, f);
 
@@ -916,7 +916,8 @@ FatalError(const char *f, ...)
 #endif
     VErrorFSigSafe(f, args);
     va_end(args);
-    ErrorFSigSafe("\n");
+    if (f[strlen(f) - 1] != '\n')
+        ErrorFSigSafe("\n");
     if (!beenhere)
         OsVendorFatalError(f, args2);
     va_end(args2);
