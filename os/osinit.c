@@ -70,6 +70,12 @@ SOFTWARE.
 #if !defined(SYSV) && !defined(WIN32)
 #include <sys/resource.h>
 #endif
+#include <pthread.h>
+
+#if defined(WIN32) || defined(__CYGWIN__)
+#define WIN32_LEAN_AND_MEAN
+#include <X11/Xwindows.h>
+#endif
 
 #ifdef RLIMIT_DATA
 int limitDataSpace = -1;
@@ -80,6 +86,7 @@ int limitStackSpace = -1;
 #ifdef RLIMIT_NOFILE
 int limitNoFile = -1;
 #endif
+extern Bool install_os_signal_handler;
 
 /* The actual user defined max number of clients */
 int LimitClients = LIMITCLIENTS;
@@ -127,8 +134,9 @@ OsSigHandler(int signo)
         }
     }
 
-    /* log, cleanup, and abort */
-    xorg_backtrace();
+#if defined(WIN32) || defined(__CYGWIN__)
+    ErrorFSigSafe("Fatal signal received in thread %p [0x%x]\n", pthread_self(), (unsigned int)GetCurrentThreadId());
+#endif
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {
@@ -149,6 +157,9 @@ OsSigHandler(int signo)
     if (signo != SIGQUIT)
         CoreDump = TRUE;
 
+    /* log, cleanup, and abort */
+    xorg_backtrace();
+
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));
 }
@@ -167,31 +178,34 @@ OsInit(void)
 
     if (!been_here) {
 #if !defined(WIN32) || defined(__CYGWIN__)
-        struct sigaction act, oact;
-        int i;
+        if (install_os_signal_handler) {
+            struct sigaction act, oact;
+            int i;
 
-        int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
+            int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
             SIGABRT,
-            SIGSYS,
-            SIGXCPU,
-            SIGXFSZ,
+                SIGSYS,
+                SIGXCPU,
+                SIGXFSZ,
 #ifdef SIGEMT
-            SIGEMT,
+                SIGEMT,
 #endif
-            0 /* must be last */
-        };
-        sigemptyset(&act.sa_mask);
+                0               /* must be last */
+            };
+            sigemptyset(&act.sa_mask);
 #ifdef SA_SIGINFO
-        act.sa_sigaction = OsSigHandler;
-        act.sa_flags = SA_SIGINFO;
+            act.sa_sigaction = OsSigHandler;
+            act.sa_flags = SA_SIGINFO;
 #else
-        act.sa_handler = OsSigHandler;
-        act.sa_flags = 0;
+            act.sa_handler = OsSigHandler;
+            act.sa_flags = 0;
 #endif
-        for (i = 0; siglist[i] != 0; i++) {
-            if (sigaction(siglist[i], &act, &oact)) {
-                ErrorF("failed to install signal handler for signal %d: %s\n",
-                       siglist[i], strerror(errno));
+            for (i = 0; siglist[i] != 0; i++) {
+                if (sigaction(siglist[i], &act, &oact)) {
+                    ErrorF
+                        ("failed to install signal handler for signal %d: %s\n",
+                         siglist[i], strerror(errno));
+                }
             }
         }
 #endif /* !WIN32 || __CYGWIN__ */
