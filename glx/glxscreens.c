@@ -163,18 +163,6 @@ static const char GLServerExtensions[] =
 static char GLXServerVendorName[] = "SGI";
 unsigned glxMajorVersion = SERVER_GLX_MAJOR_VERSION;
 unsigned glxMinorVersion = SERVER_GLX_MINOR_VERSION;
-static char GLXServerExtensions[] =
-    "GLX_ARB_multisample "
-    "GLX_EXT_visual_info "
-    "GLX_EXT_visual_rating "
-    "GLX_EXT_import_context "
-    "GLX_EXT_texture_from_pixmap "
-    "GLX_OML_swap_method " "GLX_SGI_make_current_read "
-#ifndef __APPLE__
-    "GLX_SGIS_multisample "
-#endif
-    "GLX_SGIX_fbconfig "
-    "GLX_SGIX_pbuffer " "GLX_MESA_copy_sub_buffer " "GLX_INTEL_swap_event";
 
 static Bool
 glxCloseScreen(int index, ScreenPtr pScreen)
@@ -328,7 +316,7 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
     pGlxScreen->pScreen = pScreen;
     pGlxScreen->GLextensions = strdup(GLServerExtensions);
     pGlxScreen->GLXvendor = strdup(GLXServerVendorName);
-    pGlxScreen->GLXextensions = strdup(GLXServerExtensions);
+    pGlxScreen->GLXextensions = strdup("");
 
     /* All GLX providers must support all of the functionality required for at
      * least GLX 1.2.  If the provider supports a higher version, the GLXminor
