@@ -68,6 +68,8 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
  * References to external symbols
  */
 
+extern Bool noRRXineramaExtension;
+
 /*
  * Function prototypes
  */
@@ -989,14 +991,16 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     }
 
   /*
-     Unless full xinerama has been explicitly enabled, register all native screens with pseduoramiX
+     Unless full xinerama has been explicitly enabled, register all native screens with pseudoramiX
   */
   if (!noPanoramiXExtension)
-    noPseudoramiXExtension = TRUE;
+      noPseudoramiXExtension = TRUE;
 
   if ((g_ScreenInfo[0].fMultipleMonitors) && !noPseudoramiXExtension)
     {
       int pass;
+
+      noRRXineramaExtension = TRUE;
 
       PseudoramiXExtensionInit();
 
