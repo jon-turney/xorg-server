@@ -68,6 +68,8 @@ extern HWND g_hwndClipboard;
 extern Bool g_fClipboard;
 #endif
 
+extern Bool noRRXineramaExtension;
+
 /*
  * Function prototypes
  */
@@ -1021,14 +1023,16 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     }
 
   /*
-     Unless full xinerama has been explicitly enabled, register all native screens with pseduoramiX
+     Unless full xinerama has been explicitly enabled, register all native screens with pseudoramiX
   */
   if (!noPanoramiXExtension)
-    noPseudoramiXExtension = TRUE;
+      noPseudoramiXExtension = TRUE;
 
   if ((g_ScreenInfo[0].fMultipleMonitors) && !noPseudoramiXExtension)
     {
       int pass;
+
+      noRRXineramaExtension = TRUE;
 
       PseudoramiXExtensionInit(argc, argv);
 
