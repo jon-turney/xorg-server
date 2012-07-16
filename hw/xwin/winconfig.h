@@ -159,6 +159,7 @@ typedef struct {
 #ifdef XWIN_XF86CONFIG
     char *keyboard;
 #endif
+    Bool customDPI;
     char *xkbRules;
     char *xkbModel;
     char *xkbLayout;
