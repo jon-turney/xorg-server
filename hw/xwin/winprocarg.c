@@ -942,6 +942,14 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
+     * Look for the '-dpi' argument
+     */
+    if (IS_OPTION("-dpi")) {
+        g_cmdline.customDPI = TRUE;
+        return 0;               /* Let DIX parse this again */
+    }
+
+    /*
      * Look for the '-config' argument
      */
     if (IS_OPTION("-config")
