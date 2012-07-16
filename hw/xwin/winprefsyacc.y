@@ -39,6 +39,8 @@
 #include <stdlib.h>
 #define _STDLIB_H 1 /* bison checks this to know if stdlib has been included */
 #include <string.h>
+#include "globals.h"
+#include "winconfig.h"
 #include "winprefs.h"
 
 /* The following give better error messages in bison at the cost of a few KB */
@@ -56,6 +58,8 @@ static MENUPARSED menu;
 
 /* Functions for parsing the tokens into out structure */
 /* Defined at the end section of this file */
+
+static void SetDPI (char *dpi);
 
 static void SetIconDirectory (char *path);
 static void SetDefaultIcon (char *fname);
@@ -120,6 +124,7 @@ extern int yylex(void);
 %token TRAYICON
 %token FORCEEXIT
 %token SILENTEXIT
+%token DPI
 
 %token <sVal> STRING
 %type <uVal>  group1
@@ -154,6 +159,10 @@ command:	defaulticon
 	| trayicon
 	| forceexit
 	| silentexit
+	| dpi
+	;
+
+dpi:		DPI STRING NEWLINE { SetDPI($2); free($2); }
 	;
 
 trayicon:	TRAYICON STRING NEWLINE { SetTrayIcon($2); free($2); }
@@ -258,6 +267,13 @@ yyerror (char *s)
 
   ErrorF("LoadPreferences: %s line %d\n", s, yylineno);
   return 1;
+}
+
+static void
+SetDPI (char *dpi)
+{
+  if (!g_cmdline.customDPI)
+    monitorResolution = atoi (dpi);
 }
 
 /* Miscellaneous functions to store TOKENs into the structure */
