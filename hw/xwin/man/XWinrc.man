@@ -54,6 +54,11 @@ There are four kinds of instructions: miscellaneous, menu, icon and style.
 
 .SH Miscellaneous instruction
 .TP 8
+.B DPI \fIresolution\fP
+Sets the resolution for all screens, in dots per inch.  To be used when
+the server cannot determine the screen size(s) from the hardware.
+
+.TP 8
 .B DEBUG \fIString\fP
 The \fIString\fP is printed to the XWin log file.
 
