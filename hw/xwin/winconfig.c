@@ -70,6 +70,7 @@ WinCmdlineRec g_cmdline = {
 #ifdef XWIN_XF86CONFIG
   NULL,				/* keyboard */
 #endif
+  FALSE,            /* customDPI */
   NULL,             /* xkbRules */
   NULL,             /* xkbModel */
   NULL,             /* xkbLayout */
