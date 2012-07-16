@@ -92,6 +92,7 @@ DEBUG                   { return DEBUGOUTPUT; }
 RELOAD                  { return RELOAD; }
 TRAYICON                { return TRAYICON; }
 SILENTEXIT		{ return SILENTEXIT; }
+DPI                     { return DPI; }
 "{"                     { return LB; }
 "}"                     { return RB; }
 "\""[^\"\r\n]+"\""      { yylval.sVal = makestr(yytext+1); \
