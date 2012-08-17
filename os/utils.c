@@ -1245,6 +1245,7 @@ OsBlockSIGIO(void)
         return 1;
 #endif
 #endif
+    return 0;
 }
 
 void
