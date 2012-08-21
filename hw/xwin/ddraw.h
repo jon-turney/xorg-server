@@ -3,7 +3,11 @@
 
 #include <winnt.h>
 #include <wingdi.h>
+#pragma push_macro("Status")
+#undef Status
+#define Status wStatus
 #include <objbase.h>
+#pragma pop_macro("Status")
 
 #if defined(NONAMELESSUNION) && !defined(DUMMYUNIONNAME1)
 #define DUMMYUNIONNAME1 u1

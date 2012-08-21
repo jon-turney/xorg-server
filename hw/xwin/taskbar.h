@@ -31,6 +31,13 @@
 
 #include <windows.h>
 
+#ifdef __MINGW64_VERSION_MAJOR
+/* If we are using headers from mingw-w64 project, it provides the PSDK headers this needs ... */
+#include <propkey.h>
+#include <propsys.h>
+#else /*  !__MINGW64_VERSION_MAJOR */
+/* ... otherwise, we need to define all this stuff ourselves */
+
 typedef struct _tagpropertykey {
     GUID fmtid;
     DWORD pid;
@@ -71,8 +78,11 @@ DEFINE_GUID(IID_IPropertyStore, 0x886d8eeb, 0x8cf2, 0x4446, 0x8d, 0x02, 0xcd,
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_ID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0,
                    0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 5);
 
+#endif /* !__MINGW64_VERSION_MAJOR */
+
 typedef HRESULT(__stdcall * SHGETPROPERTYSTOREFORWINDOWPROC) (HWND, REFIID,
                                                               void **);
 typedef HRESULT(__stdcall * PROPVARIANTCLEARPROC) (PROPVARIANT *);
+
 
 #endif
