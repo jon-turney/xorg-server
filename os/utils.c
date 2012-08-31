@@ -763,10 +763,10 @@ ProcessCommandLine(int argc, char *argv[])
 	    nolock = TRUE;
 	}
         else if (strcmp(argv[i], "-nolisten") == 0) {
-            if(++i < argc) {
-		if (_XSERVTransNoListen(argv[i])) 
-		    FatalError ("Failed to disable listen for %s transport",
-				argv[i]);
+            if (++i < argc) {
+                if (_XSERVTransNoListen(argv[i]))
+                    ErrorF("Failed to disable listen for %s transport",
+                           argv[i]);
             }
             else
 		UseMsg();

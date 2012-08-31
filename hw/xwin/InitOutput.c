@@ -1025,7 +1025,7 @@ InitOutput (ScreenInfo *screenInfo, int argc, char *argv[])
 
       noRRXineramaExtension = TRUE;
 
-      PseudoramiXExtensionInit(argc, argv);
+      PseudoramiXExtensionInit();
 
       /* Add primary monitor on pass 0, other monitors on pass 1, to ensure
        the primary monitor is first in XINERAMA list */

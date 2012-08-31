@@ -2310,8 +2310,8 @@ __glXDisp_QueryExtensionsString(__GLXclientState * cl, GLbyte * pc)
     reply.length = length;
     reply.n = n;
 
-    /* Allocate buffer to make sure it's a multiple of 4 bytes big.*/
-    buf = (char *) malloc(length << 2);
+    /* Allocate buffer to make sure it's a multiple of 4 bytes big. */
+    buf = calloc(length, 4);
     if (buf == NULL)
         return BadAlloc;
     memcpy(buf, pGlxScreen->GLXextensions, n);
@@ -2372,7 +2372,7 @@ __glXDisp_QueryServerString(__GLXclientState * cl, GLbyte * pc)
     reply.length = length;
     reply.n = n;
 
-    buf = (char *) malloc(length << 2);
+    buf = calloc(length, 4);
     if (buf == NULL) {
         return BadAlloc;
     }

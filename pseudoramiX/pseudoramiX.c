@@ -145,7 +145,7 @@ PseudoramiXAddScreen(int x, int y, int w, int h)
 // Initialize PseudoramiX.
 // Copied from PanoramiXExtensionInit
 void
-PseudoramiXExtensionInit(int argc, char *argv[])
+PseudoramiXExtensionInit(void)
 {
     Bool	     	success = FALSE;
     ExtensionEntry 	*extEntry;
@@ -276,12 +276,15 @@ static int
 ProcPseudoramiXGetScreenSize(ClientPtr client)
 {
     REQUEST(xPanoramiXGetScreenSizeReq);
-    WindowPtr			pWin;
-    xPanoramiXGetScreenSizeReply	rep;
-    register int			n, rc;
+    WindowPtr pWin;
+    xPanoramiXGetScreenSizeReply rep;
+    register int rc;
 
     TRACE;
     
+    if (stuff->screen >= pseudoramiXNumScreens)
+      return BadMatch;
+
     if (stuff->screen >= pseudoramiXNumScreens)
       return BadMatch;
 
