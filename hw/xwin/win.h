@@ -1249,6 +1249,8 @@ int
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 #endif
 
 /*
