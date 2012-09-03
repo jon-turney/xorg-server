@@ -182,6 +182,12 @@ ddxBeforeReset(void)
 }
 #endif
 
+int
+main(int argc, char *argv[], char *envp[])
+{
+    return dix_main(argc, argv, envp);
+}
+
 /* See Porting Layer Definition - p. 57 */
 void
 ddxGiveUp(enum ExitCode error)
