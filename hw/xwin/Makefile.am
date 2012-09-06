@@ -103,6 +103,7 @@ SRCS =	InitInput.c \
 	winshadddnl.c \
 	winshadgdi.c \
 	wintaskbar.c \
+	taskbar.h \
 	wintrayicon.c \
 	winvalargs.c \
 	winwakeup.c \
