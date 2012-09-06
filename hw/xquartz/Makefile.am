@@ -43,7 +43,6 @@ EXTRA_DIST = \
 	darwinfb.h \
 	darwinEvents.h \
 	keysym2ucs.h \
-	pseudoramiX.h \
 	quartz.h \
 	quartzCommon.h \
 	quartzKeyboard.h \
