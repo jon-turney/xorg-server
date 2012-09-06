@@ -76,6 +76,9 @@ preceeding \fB\-screen\fP parameter.
 .B \-[no]multimonitors or \-[no]multiplemonitors
 Create a screen 0 that covers all monitors [the primary monitor] on a system with
 multiple monitors.
+Fake XINERAMA data is created describing the individual monitors,
+(This is similar to the 'merged framebuffer' or 'pseudo-xinerama' mode provided by
+some drivers for the xorg X server).
 This option is currently enabled by default in \fB\-multiwindow\fP mode.
 .TP 8
 .B "\-screen \fIscreen_number\fP [\fIW\fP \fIH\fP [\fIX\fP \fIY\fP] | [[\fIW\fPx\fIH\fP[+\fIX\fP+\fIY\fP]][@\fIM\fP]] ] "
@@ -121,13 +124,15 @@ Alternative name for \fB\-resize=scrollbars\fP.
 .SH OPTIONS CONTROLLING RESIZE BEHAVIOUR
 .TP 8
 .B \-resize[=none|scrollbars|randr]
-Select the resize mode of an X screen.
+Select the resize mode of an X screen. The default is randr.
 
 .RS
 .IP \fB\-resize=none\fP 8
-(default). The screen is not resizable.
+The screen is not resizable.
 
 In windowed mode, if the window has decorations, a fixed frame is used.
+
+Alternative name is \fB\-noresize\fP.
 
 .IP \fB\-resize=scrollbars\fP 8
 The screen window is resizeable, but the screen is not resizable.
@@ -159,9 +164,15 @@ of the X screen using the RANDR extension is not permitted.
 
 The maximum dimensions of the screen are the dimensions of the \fIWindows\fP virtual desktop.
 
-.IP \fB\--resize\fP 8
-on its own is equivalent to \fB\--resize=randr\fP
+.IP \fB\-resize\fP 8
+on its own is equivalent to \fB\-resize=randr\fP
 .RE
+
+.SH OPTIONS FOR MULTIWINDOW MODE
+.TP 8
+.B \-hostintitle
+Add the host name to the window title for X applications which are running
+on remote hosts, when that information is available and it's useful to do so.
 
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
@@ -211,7 +222,7 @@ is disabled by default.
 .TP 8
 .B \-[no]wgl
 Enable [disable] the GLX extension to use the native Windows WGL interface
-for hardware accelerated OpenGL (AIGLX). (Experimental)
+for hardware accelerated OpenGL (AIGLX). The default is enabled.
 .TP 8
 .B \-[no]winkill
 Enable or disable the \fIAlt-F4\fP key combination as a signal to exit the

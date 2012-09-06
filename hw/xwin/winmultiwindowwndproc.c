@@ -42,7 +42,7 @@
 #include "winmsg.h"
 #include "inputstr.h"
 
-extern void winUpdateWindowPosition(HWND hWnd, Bool reshape, HWND * zstyle);
+extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -316,6 +316,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
+    static Bool hasEnteredSizeMove = FALSE;
 
 #if CYGDEBUG
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
@@ -825,6 +826,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_CLOSE:
+        /* Remove property AppUserModelID */
+        winSetAppID(hwnd, NULL);
         /* Branch on if the window was killed in X already */
         if (pWinPriv->fXKilled) {
             /* Window was killed, go ahead and destroy the window */
@@ -858,7 +861,9 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove)
+            winAdjustXWindow(pWin, hwnd);
+        /* else: Wait for WM_EXITSIZEMOVE */
         return 0;
 
     case WM_SHOWWINDOW:
@@ -868,41 +873,36 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* */
         if (!pWin->overrideRedirect) {
+            HWND zstyle = HWND_NOTOPMOST;
+
             /* Flag that this window needs to be made active when clicked */
             SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
 
-            if (!(GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_APPWINDOW)) {
-                HWND zstyle = HWND_NOTOPMOST;
+            /* Set the transient style flags */
+            if (GetParent(hwnd))
+                SetWindowLongPtr(hwnd, GWL_STYLE,
+                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
+                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+            /* Set the window standard style flags */
+            else
+                SetWindowLongPtr(hwnd, GWL_STYLE,
+                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
+                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
+                                 & ~WS_CAPTION & ~WS_SIZEBOX);
 
-                /* Set the window extended style flags */
-                SetWindowLongPtr(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+            winUpdateWindowPosition(hwnd, &zstyle);
 
-                /* Set the transient style flags */
-                if (GetParent(hwnd))
-                    SetWindowLongPtr(hwnd, GWL_STYLE,
-                                     WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                     WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-                /* Set the window standard style flags */
-                else
-                    SetWindowLongPtr(hwnd, GWL_STYLE,
-                                     (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                      WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                     & ~WS_CAPTION & ~WS_SIZEBOX);
+            {
+                WinXWMHints hints;
 
-                winUpdateWindowPosition(hwnd, FALSE, &zstyle);
-
-                {
-                    WinXWMHints hints;
-
-                    if (winMultiWindowGetWMHints(pWin, &hints)) {
-                        /*
-                           Give the window focus, unless it has an InputHint
-                           which is FALSE (this is used by e.g. glean to
-                           avoid every test window grabbing the focus)
-                         */
-                        if (!((hints.flags & InputHint) && (!hints.input))) {
-                            SetForegroundWindow(hwnd);
-                        }
+                if (winMultiWindowGetWMHints(pWin, &hints)) {
+                    /*
+                       Give the window focus, unless it has an InputHint
+                       which is FALSE (this is used by e.g. glean to
+                       avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input))) {
+                        SetForegroundWindow(hwnd);
                     }
                 }
             }
@@ -996,6 +996,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          */
         break;
 
+    case WM_ENTERSIZEMOVE:
+        hasEnteredSizeMove = TRUE;
+        return 0;
+
+    case WM_EXITSIZEMOVE:
+        /* Adjust the X Window to the moved Windows window */
+        hasEnteredSizeMove = FALSE;
+        winAdjustXWindow(pWin, hwnd);
+        return 0;
+
     case WM_SIZE:
         /* see dix/window.c */
 #if CYGWINDOWING_DEBUG
@@ -1020,8 +1030,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                (int) (GetTickCount()));
     }
 #endif
-        /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove) {
+            /* Adjust the X Window to the moved Windows window */
+            winAdjustXWindow(pWin, hwnd);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
+        }
+        /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
 
     case WM_STYLECHANGING:
@@ -1130,4 +1145,42 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (needRestack)
         winReorderWindowsMultiWindow();
     return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+#if CYGDEBUG
+    winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+    switch (message) {
+    case WM_ERASEBKGND:
+        return TRUE;
+
+    case WM_PAINT:
+        /*
+           We don't have the bits to draw into the window, they went straight into the OpenGL
+           surface
+
+           XXX: For now, just leave it alone, but ideally we want to send an expose event to
+           the window so it really redraws the affected region...
+         */
+    {
+        PAINTSTRUCT ps;
+        HDC hdcUpdate;
+
+        hdcUpdate = BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+        /* XXX: this is exactly what DefWindowProc does? */
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }

@@ -53,6 +53,12 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define W32_tmplen 0
 #endif
 
+#if defined(WIN32)
+#define PATHSEPARATOR "\\"
+#else
+#define PATHSEPARATOR "/"
+#endif
+
 /***====================================================================***/
 
 static const char *componentDirs[_XkbListNumComponents] = {
@@ -120,7 +126,7 @@ XkbDDXListComponent(DeviceIntPtr dev,
     Status status;
     Bool haveDir;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     char tmpname[PATH_MAX];
 #else
     int rval;
@@ -143,9 +149,9 @@ XkbDDXListComponent(DeviceIntPtr dev,
 
     in = NULL;
     haveDir = TRUE;
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     strcpy(tmpname, Win32TempDir());
-    strcat(tmpname, "\\xkb_XXXXXX");
+    strcat(tmpname, PATHSEPARATOR "xkb_XXXXXX");
     (void) mktemp(tmpname);
 #endif
     if (XkbBaseDirectory != NULL) {
@@ -191,7 +197,7 @@ XkbDDXListComponent(DeviceIntPtr dev,
     }
     status = Success;
     if (!haveDir) {
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
         in = Popen(buf, "r");
 #else
         if (xkbDebugFlags)
@@ -204,7 +210,7 @@ XkbDDXListComponent(DeviceIntPtr dev,
     }
     if (!in) {
         free(buf);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
         unlink(tmpname);
 #endif
         return BadImplementation;
@@ -214,7 +220,7 @@ XkbDDXListComponent(DeviceIntPtr dev,
     buf = malloc(PATH_MAX * sizeof(char));
     if (!buf) {
         fclose(in);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
         unlink(tmpname);
 #endif
         return BadAlloc;
@@ -268,7 +274,7 @@ XkbDDXListComponent(DeviceIntPtr dev,
         }
         status = _AddListComponent(list, what, flags, tmp, client);
     }
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
     if (haveDir)
         fclose(in);
     else if ((rval = Pclose(in)) != 0) {

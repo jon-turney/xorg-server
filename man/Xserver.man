@@ -130,7 +130,7 @@ causes the server to generate a core dump on fatal errors.
 .B \-displayfd \fIfd\fP
 specifies a file descriptor in the launching process.  Rather than specify
 a display number, the X server will attempt to listen on successively higher
-display numbers, and upon finding a free one, will write the port number back
+display numbers, and upon finding a free one, will write the display number back
 on this file descriptor as a newline-terminated string.  The \-pn option is
 ignored when using \-displayfd.
 .TP 8
@@ -562,9 +562,6 @@ Outline font directories
 .TP 30
 .I /tmp/.X11-unix/X\fBn\fP
 Unix domain socket for display number \fBn\fP
-.TP 30
-.I /usr/adm/X\fBn\fPmsgs
-Error log file for display number \fBn\fP if run from \fIinit\fP(__adminmansuffix__)
 .TP 30
 .I __projectroot__/lib/X11/xdm/xdm-errors
 Default error log file if the server is run from \fIxdm\fP(1)

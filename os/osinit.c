@@ -70,10 +70,6 @@ SOFTWARE.
 #include <sys/resource.h>
 #endif
 
-#ifndef ADMPATH
-#define ADMPATH "/usr/adm/X%smsgs"
-#endif
-
 extern char *display;
 
 #ifdef RLIMIT_DATA
@@ -85,6 +81,7 @@ int limitStackSpace = -1;
 #ifdef RLIMIT_NOFILE
 int limitNoFile = -1;
 #endif
+extern Bool install_os_signal_handler;
 
 static OsSigWrapperPtr OsSigWrapper = NULL;
 
@@ -124,8 +121,7 @@ OsSigHandler(int signo)
         }
     }
 
-    /* log, cleanup, and abort */
-    xorg_backtrace();
+    ErrorF("Fatal signal received in thread 0x%x\n", pthread_self());
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {
@@ -143,6 +139,9 @@ OsSigHandler(int signo)
     }
 #endif
 
+    /* log, cleanup, and abort */
+    xorg_backtrace();
+
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));
 }
@@ -155,30 +154,33 @@ OsInit(void)
     char fname[PATH_MAX];
 
     if (!been_here) {
-        struct sigaction act, oact;
-        int i;
+        if (install_os_signal_handler) {
+            struct sigaction act, oact;
+            int i;
 
-        int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
-            SIGSYS,
-            SIGXCPU,
-            SIGXFSZ,
+            int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
+                SIGSYS,
+                SIGXCPU,
+                SIGXFSZ,
 #ifdef SIGEMT
-            SIGEMT,
+                SIGEMT,
 #endif
-            0 /* must be last */
-        };
-        sigemptyset(&act.sa_mask);
+                0               /* must be last */
+            };
+            sigemptyset(&act.sa_mask);
 #ifdef SA_SIGINFO
-        act.sa_sigaction = OsSigHandler;
-        act.sa_flags = SA_SIGINFO;
+            act.sa_sigaction = OsSigHandler;
+            act.sa_flags = SA_SIGINFO;
 #else
-        act.sa_handler = OsSigHandler;
-        act.sa_flags = 0;
+            act.sa_handler = OsSigHandler;
+            act.sa_flags = 0;
 #endif
-        for (i = 0; siglist[i] != 0; i++) {
-            if (sigaction(siglist[i], &act, &oact)) {
-                ErrorF("failed to install signal handler for signal %d: %s\n",
-                       siglist[i], strerror(errno));
+            for (i = 0; siglist[i] != 0; i++) {
+                if (sigaction(siglist[i], &act, &oact)) {
+                    ErrorF
+                        ("failed to install signal handler for signal %d: %s\n",
+                         siglist[i], strerror(errno));
+                }
             }
         }
 #ifdef HAVE_BACKTRACE
@@ -207,39 +209,6 @@ OsInit(void)
         fclose(stdin);
         fclose(stdout);
 #endif
-        /* 
-         * If a write of zero bytes to stderr returns non-zero, i.e. -1, 
-         * then writing to stderr failed, and we'll write somewhere else 
-         * instead. (Apparently this never happens in the Real World.)
-         */
-        if (write(2, fname, 0) == -1) {
-            FILE *err;
-
-            if (strlen(display) + strlen(ADMPATH) + 1 < sizeof fname)
-                snprintf(fname, sizeof(fname), ADMPATH, display);
-            else
-                strcpy(fname, devnull);
-            /*
-             * uses stdio to avoid os dependencies here,
-             * a real os would use
-             *  open (fname, O_WRONLY|O_APPEND|O_CREAT, 0666)
-             */
-            if (!(err = fopen(fname, "a+")))
-                err = fopen(devnull, "w");
-            if (err && (fileno(err) != 2)) {
-                dup2(fileno(err), 2);
-                fclose(err);
-            }
-#if defined(SYSV) || defined(SVR4) || defined(WIN32) || defined(__CYGWIN__)
-            {
-                static char buf[BUFSIZ];
-
-                setvbuf(stderr, buf, _IOLBF, BUFSIZ);
-            }
-#else
-            setlinebuf(stderr);
-#endif
-        }
 
         if (getpgrp() == 0)
             setpgid(0, 0);

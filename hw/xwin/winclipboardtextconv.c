@@ -48,10 +48,13 @@ void
  */
 
 void
-winClipboardDOStoUNIX(char *pszSrc, int iLength)
+winClipboardDOStoUNIX(char *pszData, int iLength)
 {
+    char *pszSrc = pszData;
     char *pszDest = pszSrc;
     char *pszEnd = pszSrc + iLength;
+
+    winDebug("DOXtoUNIX() - Original data:'%s'\n", pszData);
 
     /* Loop until the last character */
     while (pszSrc < pszEnd) {
@@ -68,6 +71,8 @@ winClipboardDOStoUNIX(char *pszSrc, int iLength)
 
     /* Move the terminating null */
     *pszDest = '\0';
+
+    winDebug("DOStoUNIX() - Final string:'%s'\n", pszData);
 }
 
 /*
@@ -101,8 +106,10 @@ winClipboardUNIXtoDOS(unsigned char **ppszData, int iLength)
     }
 
     /* Return if no naked \n's */
-    if (iNewlineCount == 0)
+    if (iNewlineCount == 0) {
+        winDebug("UNIXtoDOS () - no conversion necessary\n");
         return;
+    }
 
     /* Allocate a new string */
     pszDestBegin = pszDest = malloc(iLength + iNewlineCount + 1);

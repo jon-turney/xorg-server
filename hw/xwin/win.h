@@ -1249,6 +1249,8 @@ int
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 #endif
 
 /*
@@ -1413,6 +1415,18 @@ void
 winDoRandRScreenSetSize(ScreenPtr pScreen,
                         CARD16 width,
                         CARD16 height, CARD32 mmWidth, CARD32 mmHeight);
+/*
+ * windisplay.c
+ */
+
+void
+winGetDisplayName(char *szDisplay, unsigned int screen);
+
+/*
+ * winmsgwindow.c
+ */
+Bool
+winCreateMsgWindowThread(void);
 
 /*
  * END DDX and DIX Function Prototypes

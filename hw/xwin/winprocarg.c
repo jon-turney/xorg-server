@@ -31,6 +31,10 @@ from The Open Group.
 #include <xwin-config.h>
 #endif
 
+#ifdef HAVE_SYS_UTSNAME_H
+#include <sys/utsname.h>
+#endif
+
 #include <../xfree86/common/xorgVersion.h>
 #include "win.h"
 #include "winconfig.h"
@@ -146,7 +150,7 @@ winInitializeScreenDefaults(void)
 #endif
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
-    defaultScreenInfo.iResizeMode = notAllowed;
+    defaultScreenInfo.iResizeMode = resizeWithRandr;
     defaultScreenInfo.fNoTrayIcon = FALSE;
     defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
     defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -942,6 +946,14 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
+     * Look for the '-dpi' argument
+     */
+    if (IS_OPTION("-dpi")) {
+        g_cmdline.customDPI = TRUE;
+        return 0;               /* Let DIX parse this again */
+    }
+
+    /*
      * Look for the '-config' argument
      */
     if (IS_OPTION("-config")
@@ -1078,6 +1090,11 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
+    if (IS_OPTION("-hostintitle")) {
+        g_fHostInTitle = TRUE;
+        return 1;
+    }
+
     return 0;
 }
 
@@ -1149,6 +1166,100 @@ winLogCommandLine(int argc, char *argv[])
 }
 
 /*
+ * Detect the OS
+ */
+
+typedef BOOL(WINAPI * LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
+
+static void
+winOS(void)
+{
+    OSVERSIONINFOEX osvi = { 0 };
+    char *windowstype = "Unknown";
+    char *prodName = "Unknown";
+    char *isWow = "Unknown";
+    LPFN_ISWOW64PROCESS fnIsWow64Process;
+
+    /* Get operating system version information */
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    GetVersionEx((LPOSVERSIONINFO) & osvi);
+
+    /* Branch on platform ID */
+    switch (osvi.dwPlatformId) {
+    case VER_PLATFORM_WIN32_NT:
+        windowstype = "Windows NT";
+
+        if (osvi.dwMajorVersion <= 4)
+            prodName = "Windows NT";
+        else if (osvi.dwMajorVersion == 6) {
+            if (osvi.dwMinorVersion == 2) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 8";
+                else
+                    prodName = "Windows Server 2012";
+            }
+            else if (osvi.dwMinorVersion == 1) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 7";
+                else
+                    prodName = "Windows Server 2008 R2";
+            }
+            else if (osvi.dwMinorVersion == 0) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows Vista";
+                else
+                    prodName = "Windows Server 2008";
+            }
+        }
+        else if (osvi.dwMajorVersion == 5) {
+            if (osvi.dwMinorVersion == 2) {
+                if (GetSystemMetrics(SM_SERVERR2))
+                    prodName = "Windows Server 2003 R2";
+                else
+                    prodName = "Windows Server 2003";
+            }
+            else if (osvi.dwMinorVersion == 1)
+                prodName = "Windows XP";
+            else if (osvi.dwMinorVersion == 0) {
+                prodName = "Windows 2000";
+                break;
+            }
+        }
+
+        break;
+
+    case VER_PLATFORM_WIN32_WINDOWS:
+        windowstype = "Windows";
+        break;
+    }
+
+    /* Check if we are running under WoW64 */
+    fnIsWow64Process =
+        (LPFN_ISWOW64PROCESS) GetProcAddress(GetModuleHandle("kernel32"),
+                                             "IsWow64Process");
+    if (NULL != fnIsWow64Process) {
+        wBOOL bIsWow64 = FALSE;
+
+        if (fnIsWow64Process(GetCurrentProcess(), &bIsWow64)) {
+            isWow = bIsWow64 ? " (WoW64)" : " (Win32)";
+        }
+        else {
+            /* IsWow64Process() failed */
+            isWow = " (WoWUnknown)";
+        }
+    }
+    else {
+        /* OS doesn't support IsWow64Process() */
+        isWow = "";
+    }
+
+    ErrorF("OS: %s %s [%s %ld.%ld build %ld]%s\n",
+           prodName, osvi.szCSDVersion,
+           windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion,
+           osvi.dwBuildNumber, isWow);
+}
+
+/*
  * winLogVersionInfo - Log version information
  */
 
@@ -1165,6 +1276,18 @@ winLogVersionInfo(void)
     ErrorF("Vendor: %s\n", XVENDORNAME);
     ErrorF("Release: %d.%d.%d.%d\n", XORG_VERSION_MAJOR,
            XORG_VERSION_MINOR, XORG_VERSION_PATCH, XORG_VERSION_SNAP);
-    ErrorF("%s\n\n", BUILDERSTRING);
-    ErrorF("Contact: %s\n", BUILDERADDR);
+#ifdef HAVE_SYS_UTSNAME_H
+    {
+        struct utsname name;
+
+        if (uname(&name) >= 0) {
+            ErrorF("OS: %s %s %s %s %s\n", name.sysname, name.nodename,
+                   name.release, name.version, name.machine);
+        }
+    }
+#endif
+    winOS();
+    if (strlen(BUILDERSTRING))
+        ErrorF("%s\n", BUILDERSTRING);
+    ErrorF("\n");
 }

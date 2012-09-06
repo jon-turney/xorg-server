@@ -75,6 +75,8 @@ struct __GLXDRIscreen {
     const __DRIcopySubBufferExtension *copySubBuffer;
     const __DRItexBufferExtension *texBuffer;
     const __DRIconfig **driConfigs;
+
+    unsigned char glx_enable_bits[__GLX_EXT_BYTES];
 };
 
 struct __GLXDRIcontext {
@@ -410,12 +412,27 @@ initializeExtensions(__GLXDRIscreen * screen)
 
     extensions = screen->core->getExtensions(screen->driScreen);
 
+    /* GLX_MESA_copy_sub_buffer is always enabled. */
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
+
     for (i = 0; extensions[i]; i++) {
+#ifdef __DRI_READ_DRAWABLE
+        if (strcmp(extensions[i]->name, __DRI_READ_DRAWABLE) == 0) {
+            __glXEnableExtension(screen->glx_enable_bits,
+                                 "GLX_SGI_make_current_read");
+
+            LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_make_current_read\n");
+        }
+#endif
+
 #ifdef __DRI_COPY_SUB_BUFFER
         if (strcmp(extensions[i]->name, __DRI_COPY_SUB_BUFFER) == 0) {
             screen->copySubBuffer =
                 (const __DRIcopySubBufferExtension *) extensions[i];
-            /* GLX_MESA_copy_sub_buffer is always enabled. */
+            __glXEnableExtension(screen->glx_enable_bits,
+                                 "GLX_MESA_copy_sub_buffer");
+
+            LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
         }
 #endif
 
@@ -423,6 +440,7 @@ initializeExtensions(__GLXDRIscreen * screen)
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
             screen->texBuffer = (const __DRItexBufferExtension *) extensions[i];
             /* GLX_EXT_texture_from_pixmap is always enabled. */
+            LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_texture_from_pixmap\n");
         }
 #endif
         /* Ignore unknown extensions */
@@ -434,6 +452,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 {
     const char *driverName = "swrast";
     __GLXDRIscreen *screen;
+    size_t buffer_size;
 
     screen = calloc(1, sizeof *screen);
     if (screen == NULL)
@@ -444,6 +463,8 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     screen->base.createDrawable = __glXDRIscreenCreateDrawable;
     screen->base.swapInterval = NULL;
     screen->base.pScreen = pScreen;
+
+    __glXInitExtensionEnableBits(screen->glx_enable_bits);
 
     screen->driver = glxProbeDriver(driverName,
                                     (void **) &screen->core,
@@ -472,6 +493,19 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
                                                GLX_PBUFFER_BIT);
 
     __glXScreenInit(&screen->base, pScreen);
+
+    /* The first call simply determines the length of the extension string.
+     * This allows us to allocate some memory to hold the extension string,
+     * but it requires that we call __glXGetExtensionString a second time.
+     */
+    buffer_size = __glXGetExtensionString(screen->glx_enable_bits, NULL);
+    if (buffer_size > 0) {
+        free(screen->base.GLXextensions);
+
+        screen->base.GLXextensions = xnfalloc(buffer_size);
+        (void) __glXGetExtensionString(screen->glx_enable_bits,
+                                       screen->base.GLXextensions);
+    }
 
     screen->base.GLXmajor = 1;
     screen->base.GLXminor = 4;

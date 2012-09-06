@@ -139,6 +139,7 @@ DrawableGone(__GLXdrawable * glxPriv, XID xid)
     for (c = glxAllContexts; c; c = next) {
         next = c->next;
         if (c->isCurrent && (c->drawPriv == glxPriv || c->readPriv == glxPriv)) {
+            FlushContext(c);
             (*c->loseCurrent) (c);
             c->isCurrent = GL_FALSE;
             if (c == __glXLastContext)

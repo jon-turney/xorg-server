@@ -40,6 +40,7 @@
 #include "winmsg.h"
 
 #include "xkbsrv.h"
+#include "dixgrabs.h"
 
 static Bool g_winKeyState[NUM_KEYCODES];
 
@@ -264,6 +265,30 @@ winRestoreModeKeyStates(void)
      * a bitwise operator, not a logical operator.  C does not
      * have a logical XOR operator, so we use a macro instead.
      */
+
+    {
+        /* consider modifer keys */
+
+        BOOL ctrl = (GetAsyncKeyState(VK_CONTROL) < 0);
+        BOOL shift = (GetAsyncKeyState(VK_SHIFT) < 0);
+        BOOL alt = (GetAsyncKeyState(VK_LMENU) < 0);
+        BOOL altgr = (GetAsyncKeyState(VK_RMENU) < 0);
+
+        if (ctrl && altgr)
+            ctrl = FALSE;
+
+        if (WIN_XOR(internalKeyStates & ControlMask, ctrl))
+            winSendKeyEvent(KEY_LCtrl, ctrl);
+
+        if (WIN_XOR(internalKeyStates & ShiftMask, shift))
+            winSendKeyEvent(KEY_ShiftL, shift);
+
+        if (WIN_XOR(internalKeyStates & Mod1Mask, alt))
+            winSendKeyEvent(KEY_Alt, alt);
+
+        if (WIN_XOR(internalKeyStates & Mod5Mask, altgr))
+            winSendKeyEvent(KEY_AltLang, altgr);
+    }
 
     /* Has the key state changed? */
     dwKeyState = GetKeyState(VK_NUMLOCK) & 0x0001;
@@ -501,4 +526,35 @@ winFixShiftKeys(int iScanCode)
         winSendKeyEvent(KEY_ShiftR, FALSE);
     if (iScanCode == KEY_ShiftR && g_winKeyState[KEY_ShiftL])
         winSendKeyEvent(KEY_ShiftL, FALSE);
+}
+
+/*
+ */
+int
+XkbDDXPrivate(DeviceIntPtr dev,KeyCode key,XkbAction *act)
+{
+    XkbAnyAction *xf86act = &(act->any);
+    char msgbuf[XkbAnyActionDataSize+1];
+
+    if (xf86act->type == XkbSA_XFree86Private)
+      {
+        memcpy(msgbuf, xf86act->data, XkbAnyActionDataSize);
+        msgbuf[XkbAnyActionDataSize]= '\0';
+        if (strcasecmp(msgbuf, "prgrbs")==0) {
+            DeviceIntPtr tmp;
+            winMsg(X_INFO, "Printing all currently active device grabs:\n");
+            for (tmp = inputInfo.devices; tmp; tmp = tmp->next)
+                if (tmp->deviceGrab.grab)
+                    PrintDeviceGrabInfo(tmp);
+            winMsg(X_INFO, "End list of active device grabs\n");
+        }
+        else if (strcasecmp(msgbuf, "ungrab")==0)
+            UngrabAllDevices(FALSE);
+        else if (strcasecmp(msgbuf, "clsgrb")==0)
+            UngrabAllDevices(TRUE);
+        else if (strcasecmp(msgbuf, "prwins")==0)
+            PrintWindowTree();
+    }
+
+    return 0;
 }

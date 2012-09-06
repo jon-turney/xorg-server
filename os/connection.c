@@ -269,6 +269,21 @@ lookup_trans_conn(int fd)
     return NULL;
 }
 
+int
+TransIsListening(char *protocol)
+{
+    /* look for this transport in the list of listeners */
+    int i;
+
+    for (i = 0; i < ListenTransCount; i++) {
+        if (!strcmp(protocol, ListenTransConns[i]->transptr->TransName)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* Set MaxClients and lastfdesc, and allocate ConnectionTranslation */
 
 void
@@ -415,6 +430,7 @@ CreateWellKnownSockets(void)
     else { /* -displayfd */
         Bool found = 0;
         for (i = 0; i < 65535 - X_TCP_PORT; i++) {
+            ErrorF("Trying to create socket for display number %d\n", i);
             if (TryCreateSocket(i, &partial) && !partial) {
                 found = 1;
                 break;
