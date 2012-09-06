@@ -94,6 +94,7 @@ SRCS =	InitInput.c \
 	winmsg.c \
 	winmsgwindow.c \
 	winmultiwindowclass.c \
+	winmultiwindowclass.h \
 	winmultiwindowicons.c \
 	winmultiwindowicons.h \
 	winprefs.c \
@@ -122,7 +123,6 @@ SRCS =	InitInput.c \
 	winmessages.h \
 	winmsg.h \
 	winms.h \
-	winmultiwindowclass.h \
 	winprefs.h \
 	winresource.h \
 	winwindow.h \
