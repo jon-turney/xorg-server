@@ -84,15 +84,18 @@ SRCS =	InitInput.c \
 	winengine.c \
 	winerror.c \
 	winglobals.c \
+	winglobals.h \
 	winkeybd.c \
 	winkeyhook.c \
 	winmisc.c \
 	winmonitors.c \
+	winmonitors.h \
 	winmouse.c \
 	winmsg.c \
 	winmsgwindow.c \
 	winmultiwindowclass.c \
 	winmultiwindowicons.c \
+	winmultiwindowicons.h \
 	winprefs.c \
 	winprefsyacc.y \
 	winprefslex.l \
