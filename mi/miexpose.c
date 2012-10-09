@@ -98,6 +98,11 @@ Equipment Corporation.
 #include "panoramiXsrv.h"
 #endif
 
+#ifdef ROOTLESS
+#include "../miext/rootless/rootless.h"
+Bool (*rootlessPaintWindowHook)(DrawablePtr drawable, WindowPtr pWin, RegionPtr prgn, int what) = 0;
+#endif
+
 /*
     machine-independent graphics exposure code.  any device that uses
 the region package can call this.
@@ -483,14 +488,6 @@ miWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr other_exposed)
         RegionDestroy(exposures);
 }
 
-#ifdef ROOTLESS
-/* Ugly, ugly, but we lost our hooks into miPaintWindow... =/ */
-void RootlessSetPixmapOfAncestors(WindowPtr pWin);
-void RootlessStartDrawing(WindowPtr pWin);
-void RootlessDamageRegion(WindowPtr pWin, RegionPtr prgn);
-Bool IsFramedWindow(WindowPtr pWin);
-#endif
-
 void
 miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
 {
@@ -519,19 +516,13 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
     DrawablePtr drawable = &pWin->drawable;
 
 #ifdef ROOTLESS
-    if (!drawable || drawable->type == UNDRAWABLE_WINDOW)
+    /*
+       If the DDX is linked with the rootless extension, do the
+       work that rootless needs done here
+    */
+    if (rootlessPaintWindowHook)
+      if (rootlessPaintWindowHook(drawable, pWin, prgn, what))
         return;
-
-    if (IsFramedWindow(pWin)) {
-        RootlessStartDrawing(pWin);
-        RootlessDamageRegion(pWin, prgn);
-
-        if (pWin->backgroundState == ParentRelative) {
-            if ((what == PW_BACKGROUND) ||
-                (what == PW_BORDER && !pWin->borderIsPixel))
-                RootlessSetPixmapOfAncestors(pWin);
-        }
-    }
 #endif
 
     if (what == PW_BACKGROUND) {

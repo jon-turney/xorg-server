@@ -92,6 +92,9 @@ enum rl_gravity_enum {
     RL_GRAVITY_SOUTH_WEST = 4,  /* anchor to bottom-left corner */
 };
 
+/* XXX: */
+extern Bool (*rootlessPaintWindowHook)(DrawablePtr drawable, WindowPtr pWin, RegionPtr prgn, int what);
+
 /*------------------------------------------
    Rootless Implementation Functions
   ------------------------------------------*/
@@ -360,4 +363,10 @@ void RootlessRepositionWindows(ScreenPtr pScreen);
  * Bring all windows to the front of the native stack
  */
 void RootlessOrderAllWindows(Bool include_unhitable);
+
+/*
+ * Paint window hook
+ */
+Bool RootlessPaintWindow(DrawablePtr drawable, WindowPtr pWin, RegionPtr prgn, int what);
+
 #endif                          /* _ROOTLESS_H */

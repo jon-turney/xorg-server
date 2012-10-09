@@ -56,6 +56,8 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #endif
 
 #include "glx_extinit.h"
+#include "rootless.h"
+
 /*
  * References to external symbols
  */
@@ -900,6 +902,10 @@ void
 InitOutput(ScreenInfo * screenInfo, int argc, char *argv[])
 {
     int i;
+
+    // XXX: Xquartz will need to do this as well...
+    // XXX: we actually could only install this hook if we are in rootless mode as an optimisation...
+    rootlessPaintWindowHook = RootlessPaintWindow;
 
     XwinExtensionInit();
 
