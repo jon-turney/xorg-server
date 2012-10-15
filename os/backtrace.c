@@ -31,7 +31,9 @@
 #include <string.h>
 
 #include <sys/types.h>
+#if !defined(__WIN32__) || defined(__CYGWIN__)
 #include <sys/wait.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -160,6 +162,10 @@ xorg_backtrace_frame(uintptr_t pc, int signo, void *arg)
 static int
 xorg_backtrace_exec_wrapper(const char *path)
 {
+#if defined(WIN32) && !defined(__CYGWIN__)
+    ErrorFSigSafe("Backtrace not implemented on Windows");
+    return -1;
+#else
     pid_t kidpid;
     int pipefd[2];
 
@@ -218,6 +224,7 @@ xorg_backtrace_exec_wrapper(const char *path)
         }
     }
     return 0;
+#endif
 }
 
 #ifdef HAVE_PSTACK
