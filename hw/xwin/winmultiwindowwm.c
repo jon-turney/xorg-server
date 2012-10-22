@@ -82,6 +82,10 @@
 #define WINDOWSWM_NATIVE_HWND "_WINDOWSWM_NATIVE_HWND"
 #endif
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
