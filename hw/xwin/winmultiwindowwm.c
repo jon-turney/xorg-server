@@ -1737,15 +1737,15 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
             unsigned long i;
 
             for (i = 0; i < nitems; i++) {
-                if (*pAtom == skiptaskbarState)
+                if (pAtom[i] == skiptaskbarState)
                     hint |= HINT_SKIPTASKBAR;
-                if (*pAtom == hiddenState)
+                if (pAtom[i] == hiddenState)
                     maxmin |= HINT_MIN;
-                else if (*pAtom == fullscreenState)
+                else if (pAtom[i] == fullscreenState)
                     maxmin |= HINT_MAX;
-                if (*pAtom == belowState)
+                if (pAtom[i] == belowState)
                     *zstyle = HWND_BOTTOM;
-                else if (*pAtom == aboveState)
+                else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
             }
 
