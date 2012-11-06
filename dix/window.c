@@ -122,7 +122,6 @@ Equipment Corporation.
 #endif
 #include "dixevents.h"
 #include "globals.h"
-#include "mi.h"                 /* miPaintWindow */
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
@@ -1466,7 +1465,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
 
         RegionNull(&exposed);
         RegionSubtract(&exposed, &pWin->borderClip, &pWin->winSize);
-        miPaintWindow(pWin, &exposed, PW_BORDER);
+        (*pWin->drawable.pScreen->PaintWindow)(pWin, &exposed, PW_BORDER);
         RegionUninit(&exposed);
     }
     return error;
