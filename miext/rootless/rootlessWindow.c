@@ -1636,3 +1636,38 @@ RootlessSetPixmapOfAncestors(WindowPtr pWin)
         pScreen->SetWindowPixmap(pWin, topWinRec->pixmap);
     }
 }
+
+/*
+ * RootlessPaintWindow
+ *
+ * Wrapper for miPaintWindow
+ *
+ * Returns directly if there is nothing more for miPaintWindow() to do
+ *
+ */
+void
+RootlessPaintWindow(WindowPtr pWin, RegionPtr pRegion, int what)
+{
+    DrawablePtr drawable = &pWin->drawable;
+
+    if (!drawable || drawable->type == UNDRAWABLE_WINDOW)
+        return;
+
+    if (IsFramedWindow(pWin)) {
+        RootlessStartDrawing(pWin);
+        RootlessDamageRegion(pWin, pRegion);
+
+        // For ParentRelative windows, if painting background, or with
+        // tiled borders, we have to make sure the window pixmap is
+        // set correctly all the way up the ancestor chain.
+        if (pWin->backgroundState == ParentRelative) {
+            if ((what == PW_BACKGROUND) ||
+                (what == PW_BORDER && !pWin->borderIsPixel))
+                RootlessSetPixmapOfAncestors(pWin);
+        }
+    }
+
+    SCREEN_UNWRAP(pWin->drawable.pScreen, PaintWindow);
+    pWin->drawable.pScreen->PaintWindow(pWin, pRegion, what);
+    SCREEN_WRAP(pWin->drawable.pScreen, PaintWindow);
+}

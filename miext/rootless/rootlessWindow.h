@@ -53,6 +53,7 @@ void RootlessMoveWindow(WindowPtr pWin, int x, int y, WindowPtr pSib,
 void RootlessResizeWindow(WindowPtr pWin, int x, int y, unsigned int w,
                           unsigned int h, WindowPtr pSib);
 void RootlessReparentWindow(WindowPtr pWin, WindowPtr pPriorParent);
+void RootlessPaintWindow(WindowPtr pWin, RegionPtr pRegion, int what);
 void RootlessChangeBorderWidth(WindowPtr pWin, unsigned int width);
 
 #ifdef __APPLE__
