@@ -844,8 +844,8 @@ miOverlayHandleExposures(WindowPtr pWin)
             if ((mival = pTree->valdata)) {
                 if (!((*pPriv->InOverlay) (pTree->pWin))) {
                     if (RegionNotEmpty(&mival->borderExposed)) {
-                        miPaintWindow(pTree->pWin, &mival->borderExposed,
-                                      PW_BORDER);
+                        (*pTree->pWin->drawable.pScreen->PaintWindow)(pTree->pWin, &mival->borderExposed,
+                                                                      PW_BORDER);
                     }
                     RegionUninit(&mival->borderExposed);
 
@@ -884,7 +884,7 @@ miOverlayHandleExposures(WindowPtr pWin)
             }
             else {
                 if (RegionNotEmpty(&val->after.borderExposed)) {
-                    miPaintWindow(pChild, &val->after.borderExposed, PW_BORDER);
+                    (*pChild->drawable.pScreen->PaintWindow)(pChild, &val->after.borderExposed, PW_BORDER);
                 }
                 (*WindowExposures) (pChild, &val->after.exposed, NullRegion);
             }
@@ -984,6 +984,7 @@ miOverlayWindowExposures(WindowPtr pWin,
                          RegionPtr prgn, RegionPtr other_exposed)
 {
     RegionPtr exposures = prgn;
+    ScreenPtr pScreen = pWin->drawable.pScreen;
 
     if ((prgn && !RegionNil(prgn)) ||
         (exposures && !RegionNil(exposures)) || other_exposed) {
@@ -1002,7 +1003,6 @@ miOverlayWindowExposures(WindowPtr pWin,
         }
         if (clientInterested && exposures &&
             (RegionNumRects(exposures) > RECTLIMIT)) {
-            ScreenPtr pScreen = pWin->drawable.pScreen;
             miOverlayScreenPtr pPriv = MIOVERLAY_GET_SCREEN_PRIVATE(pScreen);
             BoxRec box;
 
@@ -1028,7 +1028,7 @@ miOverlayWindowExposures(WindowPtr pWin,
                 RegionIntersect(prgn, prgn, &pWin->clipList);
         }
         if (prgn && !RegionNil(prgn))
-            miPaintWindow(pWin, prgn, PW_BACKGROUND);
+            (*pScreen->PaintWindow)(pWin, prgn, PW_BACKGROUND);
         if (clientInterested && exposures && !RegionNil(exposures))
             miSendExposures(pWin, exposures,
                             pWin->drawable.x, pWin->drawable.y);
@@ -1638,7 +1638,7 @@ miOverlayClearToBackground(WindowPtr pWin,
     if (generateExposures)
         (*pScreen->WindowExposures) (pWin, &reg, pBSReg);
     else if (pWin->backgroundState != None)
-        miPaintWindow(pWin, &reg, PW_BACKGROUND);
+        (*pScreen->PaintWindow)(pWin, &reg, PW_BACKGROUND);
     RegionUninit(&reg);
     if (pBSReg)
         RegionDestroy(pBSReg);
