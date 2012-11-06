@@ -271,7 +271,7 @@ miHandleExposures(DrawablePtr pSrcDrawable, DrawablePtr pDstDrawable,
             /* miPaintWindow doesn't clip, so we have to */
             RegionIntersect(&rgnExposed, &rgnExposed, &pWin->clipList);
         }
-        miPaintWindow((WindowPtr) pDstDrawable, &rgnExposed, PW_BACKGROUND);
+        (*pWin->drawable.pScreen->PaintWindow)(pWin, &rgnExposed, PW_BACKGROUND);
 
         if (extents) {
             RegionReset(&rgnExposed, &expBox);
@@ -392,7 +392,7 @@ miWindowExposures(WindowPtr pWin, RegionPtr prgn)
             /* miPaintWindow doesn't clip, so we have to */
             RegionIntersect(prgn, prgn, &pWin->clipList);
         }
-        miPaintWindow(pWin, prgn, PW_BACKGROUND);
+        (*pWin->drawable.pScreen->PaintWindow)(pWin, prgn, PW_BACKGROUND);
         if (clientInterested)
             miSendExposures(pWin, exposures,
                             pWin->drawable.x, pWin->drawable.y);
@@ -401,14 +401,6 @@ miWindowExposures(WindowPtr pWin, RegionPtr prgn)
         RegionEmpty(prgn);
     }
 }
-
-#ifdef ROOTLESS
-/* Ugly, ugly, but we lost our hooks into miPaintWindow... =/ */
-void RootlessSetPixmapOfAncestors(WindowPtr pWin);
-void RootlessStartDrawing(WindowPtr pWin);
-void RootlessDamageRegion(WindowPtr pWin, RegionPtr prgn);
-Bool IsFramedWindow(WindowPtr pWin);
-#endif
 
 void
 miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
@@ -436,22 +428,6 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
     PixUnion fill;
     Bool solid = TRUE;
     DrawablePtr drawable = &pWin->drawable;
-
-#ifdef ROOTLESS
-    if (!drawable || drawable->type == UNDRAWABLE_WINDOW)
-        return;
-
-    if (IsFramedWindow(pWin)) {
-        RootlessStartDrawing(pWin);
-        RootlessDamageRegion(pWin, prgn);
-
-        if (pWin->backgroundState == ParentRelative) {
-            if ((what == PW_BACKGROUND) ||
-                (what == PW_BORDER && !pWin->borderIsPixel))
-                RootlessSetPixmapOfAncestors(pWin);
-        }
-    }
-#endif
 
     if (what == PW_BACKGROUND) {
         while (pWin->backgroundState == ParentRelative)
