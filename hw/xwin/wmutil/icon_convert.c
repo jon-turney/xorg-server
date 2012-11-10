@@ -80,8 +80,8 @@ winScaleXImageToWindowsIcon(int iconSize,
 
     xStride = pixmap->stride;
     if (stride == 0 || xStride == 0) {
-        ErrorF("winScaleXBitmapToWindows - stride or xStride is zero.  "
-               "Bailing.\n");
+        winError("winScaleXBitmapToWindows - stride or xStride is zero.  "
+                 "Bailing.\n");
         return;
     }
 
@@ -352,8 +352,8 @@ NetWMToWinIcon(int bpp, uint32_t * icon)
                               dwlConditionMask);
         versionChecked = TRUE;
 
-        ErrorF("OS has icon alpha channel support: %s\n",
-               hasIconAlphaChannel ? "yes" : "no");
+        winError("OS has icon alpha channel support: %s\n",
+                 hasIconAlphaChannel ? "yes" : "no");
     }
 
     if (hasIconAlphaChannel && (bpp == 32))
