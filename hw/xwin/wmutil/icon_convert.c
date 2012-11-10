@@ -36,12 +36,16 @@
 #define WINVER 0x0500
 #endif
 
-#include <X11/Xwindows.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h> // for XWMHints type
-#include <X11/Xmd.h>   // to provide a BYTE type, since the Windows one is eclipsed
+#include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
+#include <xcb/xcb_image.h>
+
+#include <windows.h>
 
 #include <limits.h>
+#include <stdbool.h>
+
+#include "icon_convert.h"
 
 /*
  * global variables
@@ -55,7 +59,7 @@ extern int serverGeneration;
 static void
 winScaleXImageToWindowsIcon(int iconSize,
                             int effBPP,
-                            int stride, XImage * pixmap, unsigned char *image)
+                            int stride, xcb_image_t* pixmap, unsigned char *image)
 {
     int row, column, effXBPP, effXDepth;
     unsigned char *outPtr;
@@ -67,15 +71,15 @@ winScaleXImageToWindowsIcon(int iconSize,
     unsigned int zero;
     unsigned int color;
 
-    effXBPP = pixmap->bits_per_pixel;
-    if (pixmap->bits_per_pixel == 15)
+    effXBPP = pixmap->bpp;
+    if (pixmap->bpp == 15)
         effXBPP = 16;
 
     effXDepth = pixmap->depth;
     if (pixmap->depth == 15)
         effXDepth = 16;
 
-    xStride = pixmap->bytes_per_line;
+    xStride = pixmap->stride;
     if (stride == 0 || xStride == 0) {
         ErrorF("winScaleXBitmapToWindows - stride or xStride is zero.  "
                "Bailing.\n");
@@ -324,8 +328,8 @@ NetWMToWinIconThreshold(uint32_t * icon)
 static HICON
 NetWMToWinIcon(int bpp, uint32_t * icon)
 {
-    static Bool hasIconAlphaChannel = FALSE;
-    static Bool versionChecked = FALSE;
+    static bool hasIconAlphaChannel = FALSE;
+    static bool versionChecked = FALSE;
 
     if (!versionChecked) {
         OSVERSIONINFOEX osvi = { 0 };
@@ -360,7 +364,7 @@ NetWMToWinIcon(int bpp, uint32_t * icon)
  */
 
 HICON
-winXIconToHICON(Display * pDisplay, Window id, int iconSize)
+winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
 {
     unsigned char *mask, *image = NULL, *imageMask;
     unsigned char *dst, *src;
@@ -368,11 +372,11 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
     int biggest_size = 0;
     HDC hDC;
     ICONINFO ii;
-    XWMHints *hints;
+    xcb_icccm_wm_hints_t hints;
     HICON hIcon = NULL;
     uint32_t *biggest_icon = NULL;
 
-    static Atom _XA_NET_WM_ICON;
+    static xcb_atom_t _XA_NET_WM_ICON;
     static int generation;
     uint32_t *icon, *icon_data = NULL;
     unsigned long int size;
@@ -388,14 +392,27 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
     /* Always prefer _NET_WM_ICON icons */
     if (generation != serverGeneration) {
         generation = serverGeneration;
-        _XA_NET_WM_ICON = XInternAtom(pDisplay, "_NET_WM_ICON", FALSE);
+
+        xcb_intern_atom_reply_t *atom_reply;
+        xcb_intern_atom_cookie_t atom_cookie;
+        const char *atomName = "_NET_WM_ICON";
+
+        _XA_NET_WM_ICON = XCB_NONE;
+
+        atom_cookie = xcb_intern_atom(conn, 0, strlen(atomName), atomName);
+        atom_reply = xcb_intern_atom_reply(conn, atom_cookie, NULL);
+        if (atom_reply) {
+          _XA_NET_WM_ICON = atom_reply->atom;
+          free(atom_reply);
+        }
     }
 
-    if ((XGetWindowProperty(pDisplay, id, _XA_NET_WM_ICON,
-                            0, INT_MAX, FALSE,
-                            AnyPropertyType, &type, &format, &size, &left,
-                            (unsigned char **) &icon_data) == Success) &&
-        (icon_data != NULL)) {
+    xcb_get_property_cookie_t cookie = xcb_get_property(conn, FALSE, id, _XA_NET_WM_ICON, XCB_ATOM_CARDINAL, 0L, INT_MAX);
+    xcb_get_property_reply_t *reply =  xcb_get_property_reply(conn, cookie, NULL);
+
+    if (reply &&
+        ((icon_data = xcb_get_property_value(reply)) != NULL)) {
+        size = xcb_get_property_value_length(reply)/sizeof(uint32_t);
         for (icon = icon_data; icon < &icon_data[size] && *icon;
              icon = &icon[icon[0] * icon[1] + 2]) {
             /* Find an exact match to the size we require...  */
@@ -420,46 +437,49 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
             hIcon = NetWMToWinIcon(bpp, biggest_icon);
         }
 
-        XFree(icon_data);
+        free(reply);
     }
 
     if (!hIcon) {
         winDebug("winXIconToHICON: no suitable NetIcon\n");
 
-        hints = XGetWMHints(pDisplay, id);
-        if (hints) {
+        xcb_get_property_cookie_t wm_hints_cookie = xcb_icccm_get_wm_hints(conn, id);
+        if (xcb_icccm_get_wm_hints_reply(conn, wm_hints_cookie, &hints, NULL)) {
             winDebug("winXIconToHICON: id 0x%x icon_pixmap hint %x\n", id,
-                     hints->icon_pixmap);
+                     hints.icon_pixmap);
 
-            if (hints->icon_pixmap) {
-                Window root;
-                int x, y;
-                unsigned int width, height, border_width, depth;
-                XImage *xImageIcon;
-                XImage *xImageMask = NULL;
+            if (hints.icon_pixmap) {
+                unsigned int width, height;
+                xcb_image_t *xImageIcon;
+                xcb_image_t *xImageMask = NULL;
 
-                XGetGeometry(pDisplay, hints->icon_pixmap, &root, &x, &y,
-                             &width, &height, &border_width, &depth);
+                xcb_get_geometry_cookie_t geom_cookie = xcb_get_geometry(conn, hints.icon_pixmap);
+                xcb_get_geometry_reply_t *geom_reply = xcb_get_geometry_reply(conn, geom_cookie, NULL);
 
-                xImageIcon =
-                    XGetImage(pDisplay, hints->icon_pixmap, 0, 0, width, height,
-                              0xFFFFFFFF, ZPixmap);
-                winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%x\n", id,
-                         xImageIcon);
+                if (geom_reply) {
+                  width = geom_reply->width;
+                  height = geom_reply->height;
 
-                if (hints->icon_mask)
-                    xImageMask =
-                        XGetImage(pDisplay, hints->icon_mask, 0, 0, width,
-                                  height, 0xFFFFFFFF, ZPixmap);
+                  xImageIcon = xcb_image_get(conn, hints.icon_pixmap,
+                                             0, 0, width, height,
+                                             0xFFFFFF, XCB_IMAGE_FORMAT_Z_PIXMAP);
 
-                if (xImageIcon) {
+                  winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%x\n", id,
+                           xImageIcon);
+
+                  if (hints.icon_mask)
+                    xImageMask = xcb_image_get(conn, hints.icon_mask,
+                                               0, 0, width, height,
+                                               0xFFFFFFFF, XCB_IMAGE_FORMAT_Z_PIXMAP);
+
+                  if (xImageIcon) {
                     int effBPP, stride, maskStride;
 
                     /* 15 BPP is really 16BPP as far as we care */
                     if (bpp == 15)
-                        effBPP = 16;
+                      effBPP = 16;
                     else
-                        effBPP = bpp;
+                      effBPP = bpp;
 
                     /* Need 16-bit aligned rows for DDBitmaps */
                     stride = ((iconSize * effBPP + 15) & (~15)) / 8;
@@ -479,10 +499,10 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
                                                 xImageIcon, image);
 
                     if (xImageMask) {
-                        winScaleXImageToWindowsIcon(iconSize, 1, maskStride,
-                                                    xImageMask, mask);
-                        winScaleXImageToWindowsIcon(iconSize, effBPP, stride,
-                                                    xImageMask, imageMask);
+                      winScaleXImageToWindowsIcon(iconSize, 1, maskStride,
+                                                  xImageMask, mask);
+                      winScaleXImageToWindowsIcon(iconSize, effBPP, stride,
+                                                  xImageMask, imageMask);
                     }
 
                     /* Now we need to set all bits of the icon which are not masked */
@@ -491,10 +511,10 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
                     src = imageMask;
 
                     for (i = 0; i < (stride * iconSize); i++)
-                        if ((*(src++)))
-                            *(dst++) = 0;
-                        else
-                            dst++;
+                      if ((*(src++)))
+                        *(dst++) = 0;
+                      else
+                        dst++;
 
                     ii.fIcon = TRUE;
                     ii.xHotspot = 0;    /* ignored */
@@ -502,11 +522,11 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
 
                     /* Create Win32 mask from pixmap shape */
                     ii.hbmMask =
-                        CreateBitmap(iconSize, iconSize, planes, 1, mask);
+                      CreateBitmap(iconSize, iconSize, planes, 1, mask);
 
                     /* Create Win32 bitmap from pixmap */
                     ii.hbmColor =
-                        CreateBitmap(iconSize, iconSize, planes, bpp, image);
+                      CreateBitmap(iconSize, iconSize, planes, bpp, image);
 
                     /* Merge Win32 mask and bitmap into icon */
                     hIcon = CreateIconIndirect(&ii);
@@ -521,12 +541,12 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
                     free(imageMask);
 
                     if (xImageMask)
-                        XDestroyImage(xImageMask);
+                      xcb_image_destroy(xImageMask);
 
-                    XDestroyImage(xImageIcon);
+                    xcb_image_destroy(xImageIcon);
+                  }
                 }
             }
-            XFree(hints);
         }
     }
     return hIcon;
