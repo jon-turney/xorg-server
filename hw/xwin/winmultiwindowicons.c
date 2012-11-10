@@ -34,6 +34,7 @@
 
 #include <X11/Xwindows.h>
 #include <X11/Xlib.h>
+#include <X11/Xlib-xcb.h>
 
 #include "winresource.h"
 #include "winprefs.h"
@@ -56,16 +57,20 @@ winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew)
 {
     HICON hIcon, hIconSmall = NULL, hIconOld;
 
-    /* Start with the icon from preferences, if any */
-    hIcon = hIconNew;
-    hIconSmall = hIconNew;
+    if (hIconNew)
+      {
+        /* Start with the icon from preferences, if any */
+        hIcon = hIconNew;
+        hIconSmall = hIconNew;
+      }
+    else
+      {
+        /* If we still need an icon, try and get the icon from WM_HINTS */
+        xcb_connection_t *conn = XGetXCBConnection(pDisplay);
 
-    /* If we still need an icon, try and get the icon from WM_HINTS */
-    if (!hIcon)
-        hIcon = winXIconToHICON(pDisplay, id, GetSystemMetrics(SM_CXICON));
-    if (!hIconSmall)
-        hIconSmall =
-            winXIconToHICON(pDisplay, id, GetSystemMetrics(SM_CXSMICON));
+        hIcon = winXIconToHICON(conn, id, GetSystemMetrics(SM_CXICON));
+        hIconSmall = winXIconToHICON(conn, id, GetSystemMetrics(SM_CXSMICON));
+      }
 
     /* If we got the small, but not the large one swap them */
     if (!hIcon && hIconSmall) {
