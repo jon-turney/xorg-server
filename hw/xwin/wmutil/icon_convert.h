@@ -26,8 +26,9 @@
 #ifndef WMUTILS_ICONS_H
 #define WMUTILS_ICONS_H
 
+#include <xcb/xcb.h>
+
 HICON
-winXIconToHICON(Display *pDisplay, Window id, int iconSize);
+winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize);
 
 #endif /* WMUTILS_ICONS_H */
-
