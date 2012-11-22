@@ -134,7 +134,24 @@ winCrossScreen(ScreenPtr pScreen, Bool fEntering)
 static HCURSOR
 winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
 {
-    return winXCursorToHCURSOR(pScreen, pCursor, screen);
+    WMUTIL_CURSOR cursor;
+
+    cursor.width = pCursor->bits->width;
+    cursor.height = pCursor->bits->height;
+    cursor.xhot = pCursor->bits->xhot;
+    cursor.yhot = pCursor->bits->yhot;
+    cursor.argb = (uint32_t *)pCursor->bits->argb;
+    cursor.source = pCursor->bits->source;
+    cursor.mask = pCursor->bits->mask;
+    cursor.emptyMask = pCursor->bits->emptyMask;
+    cursor.foreRed = pCursor->foreRed;
+    cursor.foreGreen = pCursor->foreGreen;
+    cursor.foreBlue = pCursor->foreBlue;
+    cursor.backRed = pCursor->backRed;
+    cursor.backGreen = pCursor->backGreen;
+    cursor.backBlue = pCursor->backBlue;
+
+    return winXCursorToHCURSOR(&cursor);
 }
 
 /*
