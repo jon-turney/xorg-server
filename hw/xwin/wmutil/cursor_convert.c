@@ -45,7 +45,7 @@
 
 #define BRIGHTNESS(x) (x##Red * 0.299 + x##Green * 0.587 + x##Blue * 0.114)
 
-#if 0
+#if 1
 #define WIN_DEBUG_MSG winDebug
 #else
 #define WIN_DEBUG_MSG(...)
@@ -68,9 +68,8 @@ reverse(unsigned char c)
  * FIXME: Perhaps there are more smart code
  */
 HCURSOR
-winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
+winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
 {
-    winScreenPriv(pScreen);
     HCURSOR hCursor = NULL;
     unsigned char *pAnd;
     unsigned char *pXor;
@@ -88,10 +87,13 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     BITMAPINFO *pbmi;
     unsigned long *lpBits;
 
-    WIN_DEBUG_MSG("winLoadCursor: Win32: %dx%d X11: %dx%d hotspot: %d,%d\n",
-                  pScreenPriv->cursor.sm_cx, pScreenPriv->cursor.sm_cy,
-                  pCursor->bits->width, pCursor->bits->height,
-                  pCursor->bits->xhot, pCursor->bits->yhot);
+    int sm_cx = GetSystemMetrics(SM_CXCURSOR);
+    int sm_cy = GetSystemMetrics(SM_CYCURSOR);
+
+    WIN_DEBUG_MSG("winXCursorToHCURSOR: Win32 size: %dx%d X11 size: %dx%d hotspot: %d,%d\n",
+                  sm_cx, sm_cy,
+                  pCursor->width, pCursor->height,
+                  pCursor->xhot, pCursor->yhot);
 
     /* We can use only White and Black, so calc brightness of color 
      * Also check if the cursor is inverted */
@@ -99,78 +101,41 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     dBackY = BRIGHTNESS(pCursor->back);
     fReverse = dForeY < dBackY;
 
-    /* Check wether the X11 cursor is bigger than the win32 cursor */
-    if (pScreenPriv->cursor.sm_cx < pCursor->bits->width ||
-        pScreenPriv->cursor.sm_cy < pCursor->bits->height) {
-        winErrorFVerb(3,
-                      "winLoadCursor - Windows requires %dx%d cursor but X requires %dx%d\n",
-                      pScreenPriv->cursor.sm_cx, pScreenPriv->cursor.sm_cy,
-                      pCursor->bits->width, pCursor->bits->height);
+    /* Check whether the X11 cursor is bigger than the win32 cursor */
+    if (sm_cx < pCursor->width ||
+        sm_cy < pCursor->height) {
+        winError("winXCursorToHCURSOR - Windows requires %dx%d cursor but X requires %dx%d\n",
+                 sm_cx, sm_cy,
+                 pCursor->width, pCursor->height);
     }
 
     /* Get the number of bytes required to store the whole cursor image 
      * This is roughly (sm_cx * sm_cy) / 8 
      * round up to 8 pixel boundary so we can convert whole bytes */
     nBytes =
-        bits_to_bytes(pScreenPriv->cursor.sm_cx) * pScreenPriv->cursor.sm_cy;
+        bits_to_bytes(sm_cx) * sm_cy;
 
     /* Get the effective width and height */
-    nCX = min(pScreenPriv->cursor.sm_cx, pCursor->bits->width);
-    nCY = min(pScreenPriv->cursor.sm_cy, pCursor->bits->height);
+    nCX = min(sm_cx, pCursor->width);
+    nCY = min(sm_cy, pCursor->height);
 
     /* Allocate memory for the bitmaps */
     pAnd = malloc(nBytes);
     memset(pAnd, 0xFF, nBytes);
     pXor = calloc(1, nBytes);
-
-    /* Convert the X11 bitmap to a win32 bitmap 
-     * The first is for an empty mask */
-    if (pCursor->bits->emptyMask) {
-        int x, y, xmax = bits_to_bytes(nCX);
-
-        for (y = 0; y < nCY; ++y)
-            for (x = 0; x < xmax; ++x) {
-                int nWinPix = bits_to_bytes(pScreenPriv->cursor.sm_cx) * y + x;
-                int nXPix = BitmapBytePad(pCursor->bits->width) * y + x;
-
-                pAnd[nWinPix] = 0;
-                if (fReverse)
-                    pXor[nWinPix] = reverse(~pCursor->bits->source[nXPix]);
-                else
-                    pXor[nWinPix] = reverse(pCursor->bits->source[nXPix]);
-            }
-    }
-    else {
-        int x, y, xmax = bits_to_bytes(nCX);
-
-        for (y = 0; y < nCY; ++y)
-            for (x = 0; x < xmax; ++x) {
-                int nWinPix = bits_to_bytes(pScreenPriv->cursor.sm_cx) * y + x;
-                int nXPix = BitmapBytePad(pCursor->bits->width) * y + x;
-
-                unsigned char mask = pCursor->bits->mask[nXPix];
-
-                pAnd[nWinPix] = reverse(~mask);
-                if (fReverse)
-                    pXor[nWinPix] =
-                        reverse(~pCursor->bits->source[nXPix] & mask);
-                else
-                    pXor[nWinPix] =
-                        reverse(pCursor->bits->source[nXPix] & mask);
-            }
-    }
+    memset(pXor, 0x00, nBytes);
 
     /* prepare the pointers */
     hCursor = NULL;
     lpBits = NULL;
 
     /* We have a truecolor alpha-blended cursor and can use it! */
-    if (pCursor->bits->argb) {
-        WIN_DEBUG_MSG("winLoadCursor: Trying truecolor alphablended cursor\n");
+    if (pCursor->argb) {
+        WIN_DEBUG_MSG("winXCursorToHCURSOR: Trying truecolor alphablended cursor\n");
         memset(&bi, 0, sizeof(BITMAPV4HEADER));
         bi.bV4Size = sizeof(BITMAPV4HEADER);
-        bi.bV4Width = pScreenPriv->cursor.sm_cx;
-        bi.bV4Height = -(pScreenPriv->cursor.sm_cy);    /* right-side up */
+        bi.bV4Width = sm_cx;
+        bi.bV4Height = -(sm_cy);    /* right-side up */
         bi.bV4Planes = 1;
         bi.bV4BitCount = 32;
         bi.bV4V4Compression = BI_BITFIELDS;
@@ -180,29 +145,68 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
         bi.bV4AlphaMask = 0xFF000000;
 
         lpBits =
-            (unsigned long *) calloc(pScreenPriv->cursor.sm_cx *
-                                     pScreenPriv->cursor.sm_cy,
+            (unsigned long *) calloc(sm_cx *
+                                     sm_cy,
                                      sizeof(unsigned long));
 
         if (lpBits) {
             for (y = 0; y < nCY; y++) {
                 unsigned long *src, *dst;
 
-                src = &(pCursor->bits->argb[y * pCursor->bits->width]);
-                dst = &(lpBits[y * pScreenPriv->cursor.sm_cx]);
+                src = &(pCursor->argb[y * pCursor->width]);
+                dst = &(lpBits[y * sm_cx]);
                 memcpy(dst, src, 4 * nCX);
             }
         }
     }                           /* End if-truecolor-icon */
+    else
+    {
+        /* Convert the X11 bitmap to a win32 bitmap
+         * The first is for an empty mask */
+        if (pCursor->emptyMask) {
+          int x, y, xmax = bits_to_bytes(nCX);
+
+          for (y = 0; y < nCY; ++y)
+            for (x = 0; x < xmax; ++x) {
+              int nWinPix = bits_to_bytes(sm_cx) * y + x;
+              int nXPix = BitmapBytePad(pCursor->width) * y + x;
+
+              pAnd[nWinPix] = 0;
+              if (fReverse)
+                pXor[nWinPix] = reverse(~pCursor->source[nXPix]);
+              else
+                pXor[nWinPix] = reverse(pCursor->source[nXPix]);
+            }
+        }
+        else {
+          int x, y, xmax = bits_to_bytes(nCX);
+
+          for (y = 0; y < nCY; ++y)
+            for (x = 0; x < xmax; ++x) {
+              int nWinPix = bits_to_bytes(sm_cx) * y + x;
+              int nXPix = BitmapBytePad(pCursor->width) * y + x;
+
+              unsigned char mask = pCursor->mask[nXPix];
+
+              pAnd[nWinPix] = reverse(~mask);
+              if (fReverse)
+                pXor[nWinPix] =
+                  reverse(~pCursor->source[nXPix] & mask);
+              else
+                pXor[nWinPix] =
+                  reverse(pCursor->source[nXPix] & mask);
+            }
+        }
+    }
 
     if (!lpBits) {
         /* Bicolor, use a palettized DIB */
-        WIN_DEBUG_MSG("winLoadCursor: Trying two color cursor\n");
+        WIN_DEBUG_MSG("winXCursorToHCURSOR: Trying two color cursor\n");
         pbmi = (BITMAPINFO *) & bi;
         memset(pbmi, 0, sizeof(BITMAPINFOHEADER));
         pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        pbmi->bmiHeader.biWidth = pScreenPriv->cursor.sm_cx;
-        pbmi->bmiHeader.biHeight = -abs(pScreenPriv->cursor.sm_cy);     /* right-side up */
+        pbmi->bmiHeader.biWidth = sm_cx;
+        pbmi->bmiHeader.biHeight = -abs(sm_cy);     /* right-side up */
         pbmi->bmiHeader.biPlanes = 1;
         pbmi->bmiHeader.biBitCount = 8;
         pbmi->bmiHeader.biCompression = BI_RGB;
@@ -223,30 +227,30 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
         pbmi->bmiColors[2].rgbReserved = 0;
 
         lpBits =
-            (unsigned long *) calloc(pScreenPriv->cursor.sm_cx *
-                                     pScreenPriv->cursor.sm_cy, sizeof(char));
+            (unsigned long *) calloc(sm_cx *
+                                     sm_cy, sizeof(char));
 
         pCur = (unsigned char *) lpBits;
         if (lpBits) {
-            for (y = 0; y < pScreenPriv->cursor.sm_cy; y++) {
-                for (x = 0; x < pScreenPriv->cursor.sm_cx; x++) {
+            for (y = 0; y < sm_cy; y++) {
+                for (x = 0; x < sm_cx; x++) {
                     if (x >= nCX || y >= nCY)   /* Outside of X11 icon bounds */
                         (*pCur++) = 0;
                     else {      /* Within X11 icon bounds */
 
                         int nWinPix =
-                            bits_to_bytes(pScreenPriv->cursor.sm_cx) * y +
+                            bits_to_bytes(sm_cx) * y +
                             (x / 8);
 
                         bit = pAnd[nWinPix];
                         bit = bit & (1 << (7 - (x & 7)));
                         if (!bit) {     /* Within the cursor mask? */
                             int nXPix =
-                                BitmapBytePad(pCursor->bits->width) * y +
+                                BitmapBytePad(pCursor->width) * y +
                                 (x / 8);
                             bit =
-                                ~reverse(~pCursor->bits->
-                                         source[nXPix] & pCursor->bits->
+                                ~reverse(~pCursor->
+                                         source[nXPix] & pCursor->
                                          mask[nXPix]);
                             bit = bit & (1 << (7 - (x & 7)));
                             if (bit)    /* Draw foreground */
@@ -264,22 +268,21 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
 
     /* If one of the previous two methods gave us the bitmap we need, make a cursor */
     if (lpBits) {
-        WIN_DEBUG_MSG("winLoadCursor: Creating bitmap cursor: hotspot %d,%d\n",
-                      pCursor->bits->xhot, pCursor->bits->yhot);
+        WIN_DEBUG_MSG("winXCursorToHCURSOR: Creating bitmap cursor\n");
 
         hAnd = NULL;
         hXor = NULL;
 
         hAnd =
-            CreateBitmap(pScreenPriv->cursor.sm_cx, pScreenPriv->cursor.sm_cy,
+            CreateBitmap(sm_cx, sm_cy,
                          1, 1, pAnd);
 
         hDC = GetDC(NULL);
         if (hDC) {
             hXor =
-                CreateCompatibleBitmap(hDC, pScreenPriv->cursor.sm_cx,
-                                       pScreenPriv->cursor.sm_cy);
-            SetDIBits(hDC, hXor, 0, pScreenPriv->cursor.sm_cy, lpBits,
+                CreateCompatibleBitmap(hDC, sm_cx,
+                                       sm_cy);
+            SetDIBits(hDC, hXor, 0, sm_cy, lpBits,
                       (BITMAPINFO *) & bi, DIB_RGB_COLORS);
             ReleaseDC(NULL, hDC);
         }
@@ -287,30 +290,34 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
 
         if (hAnd && hXor) {
             ii.fIcon = FALSE;
-            ii.xHotspot = pCursor->bits->xhot;
-            ii.yHotspot = pCursor->bits->yhot;
+            ii.xHotspot = pCursor->xhot;
+            ii.yHotspot = pCursor->yhot;
             ii.hbmMask = hAnd;
             ii.hbmColor = hXor;
             hCursor = (HCURSOR) CreateIconIndirect(&ii);
 
             if (hCursor == NULL)
-                winW32Error(2, "winLoadCursor - CreateIconIndirect failed:");
+                winError("winXCursorToHCURSOR - CreateIconIndirect failed: %x", GetLastError());
             else {
+                /*
+                   Apparently, CreateIconIndirect() sometimes creates an Icon instead of a Cursor.
+                   This breaks the hotspot and makes the cursor unusable. Discard the broken cursor
+                   and revert to simple b&w cursor. (Seen on W2K in 2004...)
+                */
                 if (GetIconInfo(hCursor, &ii)) {
                     if (ii.fIcon) {
-                        WIN_DEBUG_MSG
-                            ("winLoadCursor: CreateIconIndirect returned  no cursor. Trying again.\n");
+                        winError
+                            ("winXCursorToHCURSOR: CreateIconIndirect made an icon, not a cursor. Trying again.\n");
 
                         DestroyCursor(hCursor);
 
                         ii.fIcon = FALSE;
-                        ii.xHotspot = pCursor->bits->xhot;
-                        ii.yHotspot = pCursor->bits->yhot;
+                        ii.xHotspot = pCursor->xhot;
+                        ii.yHotspot = pCursor->yhot;
                         hCursor = (HCURSOR) CreateIconIndirect(&ii);
 
                         if (hCursor == NULL)
-                            winW32Error(2,
-                                        "winLoadCursor - CreateIconIndirect failed:");
+                            winError("winXCursorToHCURSOR - CreateIconIndirect failed: %x", GetLastError());
                     }
                     /* GetIconInfo creates new bitmaps. Destroy them again */
                     if (ii.hbmMask)
@@ -328,14 +335,15 @@ winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     }
 
     if (!hCursor) {
+        WIN_DEBUG_MSG("winXCursorToHCURSOR: Creating b&w cursor\n");
         /* We couldn't make a color cursor for this screen, use
            black and white instead */
-        hCursor = CreateCursor(g_hInstance,
-                               pCursor->bits->xhot, pCursor->bits->yhot,
-                               pScreenPriv->cursor.sm_cx,
-                               pScreenPriv->cursor.sm_cy, pAnd, pXor);
+        hCursor = CreateCursor(GetModuleHandle(NULL),
+                               pCursor->xhot, pCursor->yhot,
+                               sm_cx,
+                               sm_cy, pAnd, pXor);
         if (hCursor == NULL)
-            winW32Error(2, "winLoadCursor - CreateCursor failed:");
+            winError("winXCursorToHCURSOR - CreateCursor failed: %x", GetLastError());
     }
     free(pAnd);
     free(pXor);
