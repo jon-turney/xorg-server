@@ -26,7 +26,29 @@
 #ifndef WMUTILS_CURSOR_H
 #define WMUTILS_CURSOR_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
+typedef struct _WMUTIL_CURSOR
+{
+  // this is the data for cursor created with RENDER CreateCusor or read
+  // with XFIXES GetCursorImage
+  int width;
+  int height;
+  int xhot;
+  int yhot;
+  uint32_t *argb;
+
+  // for a core CreateCursor, we might need the following...
+  unsigned char *source;
+  unsigned char *mask;
+  bool emptyMask;
+  unsigned short foreRed, foreGreen, foreBlue;
+  unsigned short backRed, backGreen, backBlue;
+
+} WMUTIL_CURSOR;
+
 HCURSOR
-winXCursorToHCURSOR(ScreenPtr pScreen, CursorPtr pCursor, int screen);
+winXCursorToHCURSOR(WMUTIL_CURSOR *cursordata);
 
 #endif /* WMUTILS_CURSOR_H */
