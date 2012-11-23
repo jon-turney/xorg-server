@@ -986,13 +986,6 @@ int
  winMouseProc(DeviceIntPtr pDeviceInt, int iState);
 
 int
- winMouseWheel(ScreenPtr pScreen, int iDeltaZ);
-
-void
- winMouseButtonsSendEvent(int iEventType, int iButton);
-
-int
-
 winMouseButtonsHandle(ScreenPtr pScreen,
                       int iEventType, int iButton, WPARAM wParam);
 

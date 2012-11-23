@@ -41,6 +41,8 @@
 #include "xserver-properties.h"
 #include "inpututils.h"
 
+#include "wmutil/mouse.h"
+
 /* Peek the internal button mapping */
 static CARD8 const *g_winMouseButtonMap = NULL;
 
@@ -138,9 +140,15 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
  */
 
 void
-winMouseButtonsSendEvent(int iEventType, int iButton)
+winMouseButtonsSendEvent(bool bPress, int iButton)
 {
     ValuatorMask mask;
+    int iEventType;
+
+    if (bPress)
+      iEventType = ButtonPress;
+    else
+      iEventType = ButtonRelease;
 
     if (g_winMouseButtonMap)
         iButton = g_winMouseButtonMap[iButton];
@@ -169,7 +177,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
     /* Send button events right away if emulate 3 buttons is off */
     if (pScreenInfo->iE3BTimeout == WIN_E3B_OFF) {
         /* Emulate 3 buttons is off, send the button event */
-        winMouseButtonsSendEvent(iEventType, iButton);
+        winMouseButtonsSendEvent((iEventType == ButtonPress), iButton);
         return 0;
     }
 
@@ -206,7 +214,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->iE3BCachedPress = 0;
 
         /* Send fake middle button */
-        winMouseButtonsSendEvent(ButtonPress, Button2);
+        winMouseButtonsSendEvent(TRUE, Button2);
 
         /* Indicate that a fake middle button event was sent */
         pScreenPriv->fE3BFakeButton2Sent = TRUE;
@@ -221,8 +229,8 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->iE3BCachedPress = 0;
 
         /* Send cached press, then send release */
-        winMouseButtonsSendEvent(ButtonPress, iButton);
-        winMouseButtonsSendEvent(ButtonRelease, iButton);
+        winMouseButtonsSendEvent(TRUE, iButton);
+        winMouseButtonsSendEvent(FALSE, iButton);
     }
     else if (iEventType == ButtonRelease
              && pScreenPriv->fE3BFakeButton2Sent && !(wParam & MK_LBUTTON)
@@ -233,7 +241,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->fE3BFakeButton2Sent = FALSE;
 
         /* Send middle mouse button release */
-        winMouseButtonsSendEvent(ButtonRelease, Button2);
+        winMouseButtonsSendEvent(TRUE, Button2);
     }
     else if (iEventType == ButtonRelease
              && pScreenPriv->iE3BCachedPress == 0
@@ -242,7 +250,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
          * Button was release, no button is cached,
          * and there is no fake button 2 release is pending.
          */
-        winMouseButtonsSendEvent(ButtonRelease, iButton);
+        winMouseButtonsSendEvent(FALSE, iButton);
     }
 
     return 0;
