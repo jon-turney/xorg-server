@@ -7,6 +7,7 @@ srcs_wmutil = [
 headers_wmutil = [
     'cursor_convert.h',
     'icon_convert.h',
+    'mouse.h',
 ]
 
 install_headers(
