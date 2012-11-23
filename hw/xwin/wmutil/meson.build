@@ -1,6 +1,7 @@
 srcs_wmutil = [
     'cursor_convert.c',
     'icon_convert.c',
+    'mouse.c',
 ]
 
 headers_wmutil = [
