@@ -8,7 +8,8 @@ library_include_HEADERS = \
 
 libXWinWMUtil_la_SOURCES = \
 	icon_convert.c \
-	cursor_convert.c
+	cursor_convert.c \
+	mouse.c
 
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H \
             $(DIX_CFLAGS) \
