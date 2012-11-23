@@ -35,15 +35,13 @@
 #include <xwin-config.h>
 #endif
 
-#include "win.h"
+#include <X11/Xwindows.h>
+#include <X11/X.h>
 
-#include "inputstr.h"
-#include "exevents.h"           /* for button/axes labels */
-#include "xserver-properties.h"
-#include "inpututils.h"
+#include "mouse.h"
 
 /* Handle the mouse wheel */
-int
+void
 winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown)
 {
     int button;
@@ -82,7 +80,7 @@ winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown)
          * has been reached.
          */
         *iTotalDeltaZ = iDeltaZ;
-        return 0;
+        return;
     }
 
     /* Set the button to indicate up or down wheel delta */
@@ -105,11 +103,9 @@ winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown)
     /* Generate X input messages for each wheel delta we have seen */
     while (iDeltaZ--) {
         /* Push the wheel button */
-        winMouseButtonsSendEvent(ButtonPress, button);
+        winMouseButtonsSendEvent(TRUE, button);
 
         /* Release the wheel button */
-        winMouseButtonsSendEvent(ButtonRelease, button);
+        winMouseButtonsSendEvent(FALSE, button);
     }
-
-    return 0;
 }

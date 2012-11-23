@@ -42,6 +42,7 @@
 #include "winmsg.h"
 #include "winmonitors.h"
 #include "inputstr.h"
+#include "wmutil/mouse.h"
 
 /*
  * Global variables
@@ -916,7 +917,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (wParam) {
         case WIN_E3B_TIMER_ID:
             /* Send delayed button press */
-            winMouseButtonsSendEvent(ButtonPress,
+            winMouseButtonsSendEvent(TRUE,
                                      s_pScreenPriv->iE3BCachedPress);
 
             /* Kill this timer */
