@@ -4,7 +4,8 @@ library_includedir=$(includedir)/XWinWMUtil
 
 library_include_HEADERS = \
 	icon_convert.h \
-	cursor_convert.h
+	cursor_convert.h \
+	mouse.h
 
 libXWinWMUtil_la_SOURCES = \
 	icon_convert.c \
