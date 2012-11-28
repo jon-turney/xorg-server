@@ -49,6 +49,9 @@ from The Open Group.
 #endif
 #ifdef RELOCATE_PROJECTROOT
 #include <shlobj.h>
+#include <io.h>
+#include <sys/stat.h>
+
 typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
                                               int nFolder,
                                               HANDLE hToken,
@@ -345,6 +348,24 @@ winCheckMount(void)
 #endif
 
 #ifdef RELOCATE_PROJECTROOT
+
+static BOOL
+winDirectoryExists(const char * path)
+{
+  BOOL ret = FALSE;
+  if (access(path, 0) == 0)
+  {
+    struct stat pathstat;
+    stat(path, &pathstat);
+    if (pathstat.st_mode & S_IFDIR)
+    {
+      ret = TRUE;
+    }
+  }
+  ErrorF("winDirectoryExists(\"%s\") = %d\n", path, ret);
+  return ret;
+}
+
 const char *
 winGetBaseDir(void)
 {
@@ -609,7 +630,10 @@ winFixupPaths(void)
         snprintf(xkbbasedir, sizeof(xkbbasedir), "%s\\xkb", basedir);
         if (sizeof(xkbbasedir) > 0)
             xkbbasedir[sizeof(xkbbasedir) - 1] = 0;
-        XkbBaseDirectory = xkbbasedir;
+
+        if (winDirectoryExists(xkbbasedir))
+            XkbBaseDirectory = xkbbasedir;
+
         XkbBinDirectory = basedir;
     }
 #endif                          /* RELOCATE_PROJECTROOT */
