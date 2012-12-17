@@ -1067,7 +1067,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         /* Translate Windows key code to X scan code */
-        winTranslateKey(wParam, lParam, &iScanCode);
+        iScanCode = winTranslateKey(wParam, lParam);
 
         /* Ignore repeats for CapsLock */
         if (wParam == VK_CAPITAL)
@@ -1096,7 +1096,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
 
         /* Enqueue a keyup event */
-        winTranslateKey(wParam, lParam, &iScanCode);
+        iScanCode = winTranslateKey(wParam, lParam);
         winSendKeyEvent(iScanCode, FALSE);
 
         /* Release all pressed shift keys */

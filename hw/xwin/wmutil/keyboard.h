@@ -33,7 +33,7 @@ void winSendKeyEventCallback(DWORD dwKey, bool fDown);
 void winKeybdReleaseKeys(void);
 bool winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
 bool winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-void winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode);
+int winTranslateKey(WPARAM wParam, LPARAM lParam);
 void winFixShiftKeys(int iScanCode);
 
 #endif /* WMUTILS_KEYBOARD_H */
