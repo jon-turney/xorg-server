@@ -37,6 +37,7 @@
 
 #include "win.h"
 #include "wmutil/scancodes.h"
+#include "wmutil/keyboard.h"
 #include "winconfig.h"
 #include "winmsg.h"
 
@@ -281,6 +282,19 @@ winRestoreModeKeyStates(void)
        which are already down when we gain focus, but nobody has complained
        yet :-)
      */
+}
+
+void
+winSendKeyEventCallback(DWORD dwKey, bool fDown)
+{
+#ifdef HAS_DEVWINDOWS
+    /* Verify that the mi input system has been initialized */
+    if (g_fdMessageQueue == WIN_FD_INVALID)
+        return;
+#endif
+
+    QueueKeyboardEvents(g_pwinKeyboard, fDown ? KeyPress : KeyRelease,
+                        dwKey, NULL);
 }
 
 /*
