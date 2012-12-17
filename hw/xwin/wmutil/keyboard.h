@@ -26,11 +26,14 @@
 #ifndef WMUTILS_KEYBOARD_H
 #define WMUTILS_KEYBOARD_H
 
-void winKeybdReleaseKeys(void);
+#include <stdbool.h>
+
 void winSendKeyEvent(DWORD dwKey, bool fDown);
+void winSendKeyEventCallback(DWORD dwKey, bool fDown);
+void winKeybdReleaseKeys(void);
 bool winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
 bool winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-int winTranslateKey(WPARAM wParam, LPARAM lParam);
+void winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode);
 void winFixShiftKeys(int iScanCode);
 
 #endif /* WMUTILS_KEYBOARD_H */

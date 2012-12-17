@@ -35,10 +35,13 @@
 #include <xwin-config.h>
 #endif
 
-#include "win.h"
-#include "winvkmap.h"
+#include <X11/Xwindows.h>
+#include <X11/Xmd.h>   // to provide a BYTE type, since the Windows one is eclipsed
 
-static Bool g_winKeyState[NUM_KEYCODES];
+#include "winvkmap.h"
+#include "keyboard.h"
+
+static bool g_winKeyState[NUM_KEYCODES];
 
 /*
  * Translate a Windows WM_[SYS]KEY(UP/DOWN) message
@@ -104,14 +107,14 @@ winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode)
  * when AltGr is pressed/released on a non-U.S. keyboard.
  */
 
-Bool
+bool
 winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam)
 {
     MSG msgNext;
     LONG lTime;
-    Bool fReturn;
+    bool fReturn;
 
-    static Bool lastWasControlL = FALSE;
+    static bool lastWasControlL = FALSE;
     static UINT lastMessage;
     static LONG lastTime;
 
@@ -229,12 +232,6 @@ winKeybdReleaseKeys(void)
 {
     int i;
 
-#ifdef HAS_DEVWINDOWS
-    /* Verify that the mi input system has been initialized */
-    if (g_fdMessageQueue == WIN_FD_INVALID)
-        return;
-#endif
-
     /* Loop through all keys */
     for (i = 0; i < NUM_KEYCODES; ++i) {
         /* Pop key if pressed */
@@ -253,7 +250,7 @@ winKeybdReleaseKeys(void)
  */
 
 void
-winSendKeyEvent(DWORD dwKey, Bool fDown)
+winSendKeyEvent(DWORD dwKey, bool fDown)
 {
     /*
      * When alt-tabing between screens we can get phantom key up messages
@@ -265,13 +262,12 @@ winSendKeyEvent(DWORD dwKey, Bool fDown)
     /* Update the keyState map */
     g_winKeyState[dwKey] = fDown;
 
-    QueueKeyboardEvents(g_pwinKeyboard, fDown ? KeyPress : KeyRelease,
-                        dwKey + MIN_KEYCODE, NULL);
+    winSendKeyEventCallback(dwKey + MIN_KEYCODE, fDown);
 
     winDebug("winSendKeyEvent: dwKey: %d, fDown: %d\n", dwKey, fDown);
 }
 
-BOOL
+bool
 winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
 {
     switch (wParam) {
