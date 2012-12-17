@@ -118,8 +118,6 @@ SRCS =	InitInput.c \
 	winclipboard.h \
 	winconfig.h \
 	win.h \
-	winkeybd.h \
-	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
 	winmsg.h \
