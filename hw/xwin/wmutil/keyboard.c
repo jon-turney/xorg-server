@@ -43,7 +43,7 @@
 
 static bool g_winKeyState[NUM_KEYCODES];
 
-/* 
+/*
  * Translate a Windows WM_[SYS]KEY(UP/DOWN) message
  * into an ASCII scan code.
  *
@@ -292,8 +292,8 @@ winCheckKeyPressed(WPARAM wParam, LPARAM lParam)
     return FALSE;
 }
 
-/* Only on shift release message is sent even if both are pressed.
- * Fix this here 
+/* Only one shift release message is sent even if both are pressed.
+ * Fix this here
  */
 void
 winFixShiftKeys(int iScanCode)
