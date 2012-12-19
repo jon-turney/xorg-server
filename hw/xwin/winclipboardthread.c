@@ -359,10 +359,12 @@ winClipboardProc(void *pvNotUsed)
             }
         }
 
+#ifdef HAS_DEVWINDOWS
         if (!(FD_ISSET(iConnectionNumber, &fdsRead)) &&
             !(FD_ISSET(fdMessageQueue, &fdsRead))) {
             winDebug("winClipboardProc - Spurious wake\n");
         }
+#endif
     }
 
  winClipboardProc_Exit:

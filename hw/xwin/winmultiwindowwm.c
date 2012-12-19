@@ -82,6 +82,10 @@
 #define WINDOWSWM_NATIVE_HWND "_WINDOWSWM_NATIVE_HWND"
 #endif
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
@@ -1733,15 +1737,15 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
             unsigned long i;
 
             for (i = 0; i < nitems; i++) {
-                if (*pAtom == skiptaskbarState)
+                if (pAtom[i] == skiptaskbarState)
                     hint |= HINT_SKIPTASKBAR;
-                if (*pAtom == hiddenState)
+                if (pAtom[i] == hiddenState)
                     maxmin |= HINT_MIN;
-                else if (*pAtom == fullscreenState)
+                else if (pAtom[i] == fullscreenState)
                     maxmin |= HINT_MAX;
-                if (*pAtom == belowState)
+                if (pAtom[i] == belowState)
                     *zstyle = HWND_BOTTOM;
-                else if (*pAtom == aboveState)
+                else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
             }
 

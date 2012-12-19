@@ -15,7 +15,7 @@ if XWIN_GLX_WINDOWS
 GLX_DIR = glx
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 XWIN_GLX_LIBS = $(top_builddir)/hw/xwin/glx/libXwinGLX.la
-XWIN_GLX_LINK_FLAGS = -lopengl32
+XWIN_GLX_SYS_LIBS = -lopengl32
 endif
 
 if XWIN_MULTIWINDOW
@@ -25,7 +25,8 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwm.c \
 	winmultiwindowwndproc.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_LIBS = -lshlwapi -lole32
+MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
+MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -84,15 +85,19 @@ SRCS =	InitInput.c \
 	winengine.c \
 	winerror.c \
 	winglobals.c \
+	winglobals.h \
 	winkeybd.c \
 	winkeyhook.c \
 	winmisc.c \
 	winmonitors.c \
+	winmonitors.h \
 	winmouse.c \
 	winmsg.c \
 	winmsgwindow.c \
 	winmultiwindowclass.c \
+	winmultiwindowclass.h \
 	winmultiwindowicons.c \
+	winmultiwindowicons.h \
 	winprefs.c \
 	winprefsyacc.y \
 	winprefslex.l \
@@ -103,6 +108,7 @@ SRCS =	InitInput.c \
 	winshadddnl.c \
 	winshadgdi.c \
 	wintaskbar.c \
+	taskbar.h \
 	wintrayicon.c \
 	winvalargs.c \
 	winwakeup.c \
@@ -113,8 +119,6 @@ SRCS =	InitInput.c \
 	winconfig.h \
 	win.h \
 	winglobals.h \
-	winkeybd.h \
-	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
 	winmonitors.h \
@@ -155,8 +159,9 @@ INCLUDES = -I$(top_srcdir)/miext/rootless
 XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la
 XWIN_SYS_LIBS += -ldxguid
 
-XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS)
-XWin_LDADD = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_DEPENDENCIES = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS)
+XWin_LDADD =        $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) \
+                    $(XWIN_GLX_SYS_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) $(MULTIWINDOW_SYS_LIBS)
 XWin_LDFLAGS = -mwindows -static
 
 .rc.o:
@@ -190,5 +195,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) .
+SUBDIRS = man $(GLX_DIR) wmutil .
 DIST_SUBDIRS = man glx .

@@ -921,9 +921,6 @@ void
  * winkeybd.c
  */
 
-void
- winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode);
-
 int
  winKeybdProc(DeviceIntPtr pDeviceInt, int iState);
 
@@ -932,20 +929,6 @@ void
 
 void
  winRestoreModeKeyStates(void);
-
-Bool
- winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
-
-void
- winKeybdReleaseKeys(void);
-
-void
- winSendKeyEvent(DWORD dwKey, Bool fDown);
-
-BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-
-void
- winFixShiftKeys(int iScanCode);
 
 /*
  * winkeyhook.c
@@ -986,13 +969,6 @@ int
  winMouseProc(DeviceIntPtr pDeviceInt, int iState);
 
 int
- winMouseWheel(ScreenPtr pScreen, int iDeltaZ);
-
-void
- winMouseButtonsSendEvent(int iEventType, int iButton);
-
-int
-
 winMouseButtonsHandle(ScreenPtr pScreen,
                       int iEventType, int iButton, WPARAM wParam);
 

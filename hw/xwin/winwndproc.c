@@ -42,6 +42,7 @@
 #include "winmsg.h"
 #include "winmonitors.h"
 #include "inputstr.h"
+#include "wmutil/mouse.h"
 
 /*
  * Global variables
@@ -918,7 +919,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (wParam) {
         case WIN_E3B_TIMER_ID:
             /* Send delayed button press */
-            winMouseButtonsSendEvent(ButtonPress,
+            winMouseButtonsSendEvent(TRUE,
                                      s_pScreenPriv->iE3BCachedPress);
 
             /* Kill this timer */
@@ -978,7 +979,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #if CYGDEBUG
         winDebug("winWindowProc - WM_MOUSEWHEEL\n");
 #endif
-        winMouseWheel(s_pScreen, GET_WHEEL_DELTA_WPARAM(wParam));
+        winMouseWheel(&(s_pScreenPriv->iDeltaZ), GET_WHEEL_DELTA_WPARAM(wParam));
         break;
 
     case WM_SETFOCUS:
@@ -1066,7 +1067,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         /* Translate Windows key code to X scan code */
-        winTranslateKey(wParam, lParam, &iScanCode);
+        iScanCode = winTranslateKey(wParam, lParam);
 
         /* Ignore repeats for CapsLock */
         if (wParam == VK_CAPITAL)
@@ -1095,7 +1096,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
 
         /* Enqueue a keyup event */
-        winTranslateKey(wParam, lParam, &iScanCode);
+        iScanCode = winTranslateKey(wParam, lParam);
         winSendKeyEvent(iScanCode, FALSE);
 
         /* Release all pressed shift keys */

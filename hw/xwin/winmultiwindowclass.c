@@ -37,6 +37,12 @@
 #include "winmultiwindowclass.h"
 #include "win.h"
 
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
+#define strnlen(str, len) \
+	(__extension__ ({ int _len = strlen(str); \
+			 _len > len ? len : _len; }))
+#endif
+
 /*
  * Local function
  */
