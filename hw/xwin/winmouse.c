@@ -241,7 +241,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->fE3BFakeButton2Sent = FALSE;
 
         /* Send middle mouse button release */
-        winMouseButtonsSendEvent(TRUE, Button2);
+        winMouseButtonsSendEvent(FALSE, Button2);
     }
     else if (iEventType == ButtonRelease
              && pScreenPriv->iE3BCachedPress == 0
