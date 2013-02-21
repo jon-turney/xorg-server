@@ -67,7 +67,7 @@ int
 winMouseProc(DeviceIntPtr pDeviceInt, int iState)
 {
     int lngMouseButtons, i;
-    int lngWheelEvents = 2;
+    int lngWheelEvents = 4;
     CARD8 *map;
     DevicePtr pDevice = (DevicePtr) pDeviceInt;
     Atom *btn_labels;
@@ -82,15 +82,23 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
         /* Mapping of windows events to X events:
          * LEFT:1 MIDDLE:2 RIGHT:3
          * SCROLL_UP:4 SCROLL_DOWN:5
-         * XBUTTON 1:6 XBUTTON 2:7 ...
+         * TILT_LEFT:6 TILT_RIGHT:7
+         * XBUTTON 1:8 XBUTTON 2:9 (most commonly 'back' and 'forward')
+         * ...
          *
+         * The current Windows API only defines 2 extra buttons, so we don't
+         * expect more than 5 buttons to be reported, but more than that
+         * should be handled correctly
+         */
+
+        /*
          * To map scroll wheel correctly we need at least the 3 normal buttons
          */
         if (lngMouseButtons < 3)
             lngMouseButtons = 3;
 
-        /* allocate memory: 
-         * number of buttons + 2x mouse wheel event + 1 extra (offset for map) 
+        /* allocate memory:
+         * number of buttons + 4 x mouse wheel event + 1 extra (offset for map)
          */
         map = malloc(sizeof(CARD8) * (lngMouseButtons + lngWheelEvents + 1));
 
@@ -100,11 +108,16 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
             map[i] = i;
 
         btn_labels = calloc((lngMouseButtons + lngWheelEvents), sizeof(Atom));
+
         btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
         btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
         btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
         btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
         btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
+        btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
+        btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
+        btn_labels[7] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_BACK);
+        btn_labels[8] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_FORWARD);
 
         axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
         axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
