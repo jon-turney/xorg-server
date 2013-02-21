@@ -28,7 +28,7 @@
 
 #include <stdbool.h>
 
-void winMouseWheel(int *iTotalDeltaz, int iDeltaZ);
+void winMouseWheel(int *iTotalDeltaz, int iDeltaZ, int iButtonUp, int iButtonDown);
 
 /* Callback for sending mouse button events */
 void winMouseButtonsSendEvent(bool bPress, int iButton);

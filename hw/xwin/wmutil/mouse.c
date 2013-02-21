@@ -42,12 +42,9 @@
 
 /* Handle the mouse wheel */
 void
-winMouseWheel(int *iTotalDeltaZ, int iDeltaZ)
+winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown)
 {
-    int button;                 /* Button4 or Button5 */
-
-    /* Button4 = WheelUp */
-    /* Button5 = WheelDown */
+    int button;
 
     /* Do we have any previous delta stored? */
     if (((*iTotalDeltaZ) > 0 && iDeltaZ > 0)
@@ -88,10 +85,10 @@ winMouseWheel(int *iTotalDeltaZ, int iDeltaZ)
 
     /* Set the button to indicate up or down wheel delta */
     if (iDeltaZ > 0) {
-        button = Button4;
+        button = iButtonUp;
     }
     else {
-        button = Button5;
+        button = iButtonDown;
     }
 
     /*
