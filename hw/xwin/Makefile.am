@@ -27,7 +27,7 @@ SRCS_MULTIWINDOW = \
 	propertystore.h \
 	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_LIBS = -lshlwapi -lole32
+MULTIWINDOW_LIBS = -lshlwapi -lole32 $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -191,5 +191,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) .
+SUBDIRS = man $(GLX_DIR) wmutil .
 DIST_SUBDIRS = man glx .
