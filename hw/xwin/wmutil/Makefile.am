@@ -5,12 +5,16 @@ library_includedir=$(includedir)/XWinWMUtil
 library_include_HEADERS = \
 	icon_convert.h \
 	cursor_convert.h \
-	mouse.h
+	mouse.h \
+	keyboard.h
 
 libXWinWMUtil_la_SOURCES = \
 	icon_convert.c \
 	cursor_convert.c \
-	mouse.c
+	mouse.c \
+	keyboard.c \
+	winvkmap.h \
+	scancodes.h
 
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H \
             $(DIX_CFLAGS) \

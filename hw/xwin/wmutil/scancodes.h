@@ -1,5 +1,3 @@
-#ifndef _WINKEYNAMES_H
-#define _WINKEYNAMES_H
 /*
  * Copyright 1990,91 by Thomas Roell, Dinkelscherben, Germany.
  *
@@ -23,18 +21,8 @@
  *
  */
 
-#define GLYPHS_PER_KEY	4
-#define NUM_KEYCODES	248
-#define MIN_KEYCODE     8
-#define MAX_KEYCODE     (NUM_KEYCODES + MIN_KEYCODE - 1)
-
-#define AltMask		Mod1Mask
-#define NumLockMask	Mod2Mask
-#define AltLangMask	Mod3Mask
-#define KanaMask	Mod4Mask
-#define ScrollLockMask	Mod5Mask
-
-#define ModifierDown(k) ((keyc->state & (k)) == (k))
+#ifndef SCANCODES_H
+#define SCANCODES_H
 
 /*
  * NOTE: The AT/MF keyboards can generate (via the 8042) two (MF: three)
@@ -203,4 +191,4 @@
 #define KEY_NOTUSED	  0
 #define KEY_UNKNOWN	255
 
-#endif                          /* _WINKEYNAMES_H */
+#endif                          /* SCANCODES_H */
