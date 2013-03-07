@@ -43,6 +43,7 @@
 #include "winmonitors.h"
 #include "inputstr.h"
 #include "wmutil/mouse.h"
+#include "wmutil/keyboard.h"
 
 /*
  * Global variables

@@ -1,5 +1,3 @@
-#if !defined(WINKEYBD_H)
-#define WINKEYBD_H
 /*
  *Copyright (C) 1994-2000 The XFree86 Project, Inc. All Rights Reserved.
  *
@@ -30,10 +28,17 @@
  * Authors:	Harold L Hunt II
  */
 
+#ifndef WINVKMAP_H
+#define WINVKMAP_H
+
 /*
  * We need symbols for the scan codes of keys.
  */
-#include "winkeynames.h"
+#include "scancodes.h"
+
+#define NUM_KEYCODES	248
+#define MIN_KEYCODE     8
+#define MAX_KEYCODE     (NUM_KEYCODES + MIN_KEYCODE - 1)
 
 #define VK_FN 0xFF
 
@@ -268,8 +273,7 @@ const int
     /* 220 */ 0, 0, 0,
     /* 221 */ 0, 0, 0,
     /* 222 */ 0, 0, 0,
-                                        /* 223 */ VK_OEM_8, 0, KEY_RCtrl,
-                                        /* at least on Canadian Multilingual Standard layout */
+    /* 223 */ VK_OEM_8, 0, KEY_RCtrl,  /* at least on Canadian Multilingual Standard layout */
     /* 224 */ 0, 0, 0,
     /* 225 */ 0, 0, 0,
     /* 226 */ 0, 0, 0,
@@ -301,8 +305,7 @@ const int
     /* 252 */ 0, 0, 0,
     /* 253 */ 0, 0, 0,
     /* 254 */ 0, 0, 0,
-                                /* 255 */ VK_FN, 0, KEY_Fn
-                                /* Most keyboards don't generate a scancode for Fn, but a few do... */
+    /* 255 */ VK_FN, 0, KEY_Fn  /* Most keyboards don't generate a scancode for Fn, but a few do... */
 };
 
-#endif                          /* WINKEYBD_H */
+#endif                          /* WINVKMAP_H */
