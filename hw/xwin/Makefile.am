@@ -33,6 +33,7 @@ SRCS_MULTIWINDOW = \
 	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
 MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
+MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -142,6 +143,7 @@ XWIN_LIBS += \
 	$(top_builddir)/Xi/libXistubs.la
 
 XWin_DEPENDENCIES = \
+	$(MULTIWINDOW_LIBS) \
 	$(MULTIWINDOWEXTWM_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
@@ -150,6 +152,7 @@ XWin_DEPENDENCIES = \
 
 
 XWin_LDADD = \
+	$(MULTIWINDOW_LIBS) \
 	$(MULTIWINDOWEXTWM_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
@@ -196,5 +199,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) winclipboard .
-DIST_SUBDIRS = man dri glx winclipboard .
+SUBDIRS = man $(GLX_DIR) winclipboard wmutil .
+DIST_SUBDIRS = man dri glx winclipboard wmutil .
