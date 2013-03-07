@@ -917,9 +917,6 @@ void
  */
 
 int
- winTranslateKey(WPARAM wParam, LPARAM lParam);
-
-int
  winKeybdProc(DeviceIntPtr pDeviceInt, int iState);
 
 void
@@ -927,20 +924,6 @@ void
 
 void
  winRestoreModeKeyStates(void);
-
-Bool
- winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
-
-void
- winKeybdReleaseKeys(void);
-
-void
- winSendKeyEvent(DWORD dwKey, Bool fDown);
-
-BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-
-void
- winFixShiftKeys(int iScanCode);
 
 /*
  * winkeyhook.c
