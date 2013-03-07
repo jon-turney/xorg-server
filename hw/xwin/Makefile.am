@@ -27,7 +27,8 @@ SRCS_MULTIWINDOW = \
 	propertystore.h \
 	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_LIBS = -lshlwapi -lole32
+MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
+MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -157,8 +158,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/miext/rootless
 XWIN_SYS_LIBS += -ldxguid
 XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la
 
-XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
-XWin_LDADD = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_DEPENDENCIES = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
+XWin_LDADD        = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) \
+                    $(XWIN_GLX_LINK_FLAGS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) $(MULTIWINDOW_SYS_LIBS)
 XWin_LDFLAGS = -mwindows -static -Wl,--disable-stdcall-fixup
 
 .rc.o:
@@ -194,5 +196,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) .
+SUBDIRS = man $(GLX_DIR) wmutil .
 DIST_SUBDIRS = man glx .
