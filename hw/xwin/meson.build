@@ -18,6 +18,8 @@ xwin_c_args = []
 xwin_c_args += '-DHAVE_XWIN_CONFIG_H'
 xwin_c_args += '-Wno-bad-function-cast'
 
+subdir('wmutil')
+
 srcs_windows = [
     'winclipboardinit.c',
     'winclipboardwrappers.c',
@@ -146,6 +148,7 @@ executable(
         xwin_windowsdri,
         xwin_glx,
         xwin_clipboard,
+        xwin_wmutil,
         libxserver_fb,
         libxserver,
         libxserver_glx,
