@@ -577,7 +577,7 @@ winCreateWindowsWindow(WindowPtr pWin)
 
     /* Change style back to popup, already placed... */
     SetWindowLongPtr(hWnd, GWL_STYLE,
-                     WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+                     WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
     SetWindowPos(hWnd, 0, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE |
                  SWP_NOACTIVATE);
@@ -588,13 +588,13 @@ winCreateWindowsWindow(WindowPtr pWin)
     /* Make sure it gets the proper system menu for a WS_POPUP, too */
     GetSystemMenu(hWnd, TRUE);
 
-    /* Cause any .XWinrc menus to be added in main WNDPROC */
-    PostMessage(hWnd, WM_INIT_SYS_MENU, 0, 0);
-
     SetProp(hWnd, WIN_WID_PROP, (HANDLE) winGetWindowID(pWin));
 
     /* Flag that this Windows window handles its own activation */
     SetProp(hWnd, WIN_NEEDMANAGE_PROP, (HANDLE) 0);
+
+    /* Cause any .XWinrc menus to be added in main WNDPROC */
+    PostMessage(hWnd, WM_INIT_SYS_MENU, 0, 0);
 
     /* Call engine-specific create window procedure */
     (*pScreenPriv->pwinFinishCreateWindowsWindow) (pWin);
