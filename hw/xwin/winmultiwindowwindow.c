@@ -681,12 +681,6 @@ winUpdateWindowsWindow(WindowPtr pWin)
             assert(pWinPriv->hWnd != NULL);
         }
 
-        /* Display the window without activating it */
-        if (pWin->drawable.class != InputOnly)
-            ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
-        /* Send first paint message */
-        UpdateWindow(pWinPriv->hWnd);
     }
     else if (hWnd != NULL) {
         /* Destroy the Windows window if its parents are destroyed */

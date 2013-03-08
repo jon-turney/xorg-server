@@ -712,6 +712,37 @@ winMultiWindowWMProc(void *pArg)
 
         /* Branch on the message type */
         switch (pNode->msg.msg) {
+        case WM_WM_CREATE:
+#if CYGMULTIWINDOW_DEBUG
+            ErrorF("\tWM_WM_CREATE\n");
+#endif
+            /* Put a note as to the HWND associated with this Window */
+            XChangeProperty(pWMInfo->pDisplay,
+                            pNode->msg.iWindow,
+                            pWMInfo->atmPrivMap,
+                            XA_INTEGER,
+                            32,
+                            PropModeReplace,
+                            (unsigned char *) &(pNode->msg.hwndWindow), 1);
+
+            /* Determine the Window style, which determines borders and clipping region... */
+            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+
+            /* Display the window without activating it */
+            {
+                XWindowAttributes attr;
+
+                XGetWindowAttributes(pWMInfo->pDisplay, pNode->msg.iWindow,
+                                     &attr);
+                if (attr.class != InputOnly)
+                    ShowWindow(pNode->msg.hwndWindow, SW_SHOWNOACTIVATE);
+            }
+
+            /* Send first paint message */
+            UpdateWindow(pNode->msg.hwndWindow);
+
+            break;
+
 #if 0
         case WM_WM_MOVE:
             ErrorF("\tWM_WM_MOVE\n");
@@ -746,11 +777,6 @@ winMultiWindowWMProc(void *pArg)
 #if CYGMULTIWINDOW_DEBUG
             ErrorF("\tWM_WM_MAP\n");
 #endif
-            /* Put a note as to the HWND associated with this Window */
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
-                            32,
-                            PropModeReplace,
-                            (unsigned char *) &(pNode->msg.hwndWindow), 1);
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
@@ -759,10 +785,6 @@ winMultiWindowWMProc(void *pArg)
 #if CYGMULTIWINDOW_DEBUG
             ErrorF("\tWM_WM_MAP2\n");
 #endif
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
-                            32,
-                            PropModeReplace,
-                            (unsigned char *) &(pNode->msg.hwndWindow), 1);
             break;
 
         case WM_WM_MAP3:
@@ -1789,6 +1811,26 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
             (hint & ~HINT_BORDER & ~HINT_CAPTION & ~HINT_SIZEBOX) |
             HINT_NOFRAME;
 
+    XWindowAttributes wa;
+
+    wa.override_redirect = FALSE;
+    XGetWindowAttributes(pDisplay, iWindow, &wa);
+
+  if (!wa.override_redirect)
+    {
+      /*
+	Moved from WM_SHOWWINDOW now we are a bit more careful to do things in the right
+	order and set all the style flags before we show the window ...
+	but what exactly are we trying to do here?
+      */
+      if (GetParent(hWnd))
+	/* Set the transient style flags */
+	SetWindowLongPtr (hWnd, GWL_STYLE, WS_POPUP | WS_OVERLAPPED | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+      else
+	/* Set the window standard style flags */
+	SetWindowLongPtr (hWnd, GWL_STYLE, (WS_POPUP | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS) & ~WS_CAPTION & ~WS_SIZEBOX);
+
+
     /* Now apply styles to window */
     style = GetWindowLongPtr(hWnd, GWL_STYLE);
     if (!style)
@@ -1829,6 +1871,11 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     winDebug
         ("winApplyHints: iWindow 0x%08x hints 0x%08x style 0x%08x exstyle 0x%08x\n",
          iWindow, hint, style, exStyle);
+    }
+    else {
+        winDebug("winApplyHints: iWindow %d no hints as override-redirect\n",
+                 iWindow);
+    }
 }
 
 void
