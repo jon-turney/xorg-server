@@ -51,6 +51,7 @@ extern _X_EXPORT int defaultScreenSaverBlanking;
 extern _X_EXPORT int defaultScreenSaverAllowExposures;
 extern _X_EXPORT char *display;
 extern _X_EXPORT int displayfd;
+extern _X_EXPORT Bool explicit_display;
 
 extern _X_EXPORT int defaultBackingStore;
 extern _X_EXPORT Bool disableBackingStore;
