@@ -129,6 +129,7 @@ int monitorResolution = 0;
 
 char *display;
 int displayfd;
+Bool explicit_display = FALSE;
 char *ConnectionInfo;
 
 CARD32 TimeOutValue = DEFAULT_TIMEOUT * MILLI_PER_SECOND;
