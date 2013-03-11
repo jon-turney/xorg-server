@@ -366,8 +366,8 @@ void
 NotifyParentProcess(void)
 {
 #if !defined(WIN32)
-    if (dynamic_display[0]) {
-        write(displayfd, dynamic_display, strlen(dynamic_display));
+    if (displayfd) {
+        write(displayfd, display, strlen(display));
         write(displayfd, "\n", 1);
         close(displayfd);
     }
@@ -419,9 +419,8 @@ CreateWellKnownSockets(void)
     FD_ZERO(&WellKnownConnections);
 
     /* display is initialized to "0" by main(). It is then set to the display
-     * number if specified on the command line, or to NULL when the -displayfd
-     * option is used. */
-    if (display) {
+     * number if specified on the command line. */
+    if ((displayfd == 0) || explicit_display) {
         if (TryCreateSocket(atoi(display), &partial) &&
             ListenTransCount >= 1)
             if (!PartialNetwork && partial)
