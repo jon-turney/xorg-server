@@ -269,6 +269,21 @@ lookup_trans_conn(int fd)
     return NULL;
 }
 
+int
+TransIsListening(char *protocol)
+{
+    /* look for this transport in the list of listeners */
+    int i;
+
+    for (i = 0; i < ListenTransCount; i++) {
+        if (!strcmp(protocol, ListenTransConns[i]->transptr->TransName)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* Set MaxClients and lastfdesc, and allocate ConnectionTranslation */
 
 void
@@ -351,8 +366,8 @@ void
 NotifyParentProcess(void)
 {
 #if !defined(WIN32)
-    if (dynamic_display[0]) {
-        write(displayfd, dynamic_display, strlen(dynamic_display));
+    if (displayfd) {
+        write(displayfd, display, strlen(display));
         write(displayfd, "\n", 1);
         close(displayfd);
     }
@@ -404,9 +419,8 @@ CreateWellKnownSockets(void)
     FD_ZERO(&WellKnownConnections);
 
     /* display is initialized to "0" by main(). It is then set to the display
-     * number if specified on the command line, or to NULL when the -displayfd
-     * option is used. */
-    if (display) {
+     * number if specified on the command line. */
+    if ((displayfd == 0) || explicit_display) {
         if (TryCreateSocket(atoi(display), &partial) &&
             ListenTransCount >= 1)
             if (!PartialNetwork && partial)
@@ -415,6 +429,7 @@ CreateWellKnownSockets(void)
     else { /* -displayfd */
         Bool found = 0;
         for (i = 0; i < 65535 - X_TCP_PORT; i++) {
+            ErrorF("Trying to create socket for display number %d\n", i);
             if (TryCreateSocket(i, &partial) && !partial) {
                 found = 1;
                 break;

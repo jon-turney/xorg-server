@@ -37,6 +37,12 @@
 #include "winmultiwindowclass.h"
 #include "win.h"
 
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
+#define strnlen(str, len) \
+	(__extension__ ({ int _len = strlen(str); \
+			 _len > len ? len : _len; }))
+#endif
+
 /*
  * Local function
  */
@@ -68,7 +74,7 @@ winMultiWindowGetClassHint(WindowPtr pWin, char **res_name, char **res_class)
     while (prop) {
         if (prop->propertyName == XA_WM_CLASS
             && prop->type == XA_STRING && prop->format == 8 && prop->data) {
-            len_name = strlen((char *) prop->data);
+            len_name = strnlen((char *) prop->data, prop->size);
 
             (*res_name) = malloc(len_name + 1);
 
@@ -77,13 +83,17 @@ winMultiWindowGetClassHint(WindowPtr pWin, char **res_name, char **res_class)
                 return 0;
             }
 
-            /* Add one to len_name to allow copying of trailing 0 */
-            strncpy((*res_name), prop->data, len_name + 1);
+            /* Copy name and ensure null terminated */
+            memcpy((*res_name), prop->data, len_name);
+            (*res_name)[len_name] = '\0';
 
-            if (len_name == prop->size)
-                len_name--;
-
-            len_class = strlen(((char *) prop->data) + 1 + len_name);
+            /* Compute length of class name, it could be that it is not null terminated */
+            if (len_name < prop->size - 1) {
+                len_class = strnlen(((char *) prop->data) + 1 + len_name, prop->size - 1 - len_name);
+            }
+            else {
+                len_class = 0;
+            }
 
             (*res_class) = malloc(len_class + 1);
 
@@ -95,7 +105,9 @@ winMultiWindowGetClassHint(WindowPtr pWin, char **res_name, char **res_class)
                 return 0;
             }
 
-            strcpy((*res_class), ((char *) prop->data) + 1 + len_name);
+            /* Copy class name and ensure null terminated */
+            memcpy((*res_class), ((char *) prop->data) + 1 + len_name, len_class);
+            (*res_class)[len_class] = '\0';
 
             return 1;
         }

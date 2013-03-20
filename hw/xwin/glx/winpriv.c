@@ -14,6 +14,36 @@
 void
  winCreateWindowsWindow(WindowPtr pWin);
 
+static void
+winCreateWindowsWindowHierarchy(WindowPtr pWin)
+{
+    winWindowPriv(pWin);
+
+    winDebug("winCreateWindowsWindowHierarchy - pWin:%08x XID:0x%x \n", pWin,
+             pWin->drawable.id);
+
+    /* recursively ensure parent window exists if it's not the root window */
+    if (pWin->parent) {
+        if (pWin->parent != pWin->drawable.pScreen->root)
+            winCreateWindowsWindowHierarchy(pWin->parent);
+    }
+
+    /* ensure this window exists */
+    if (pWinPriv->hWnd == NULL) {
+        winCreateWindowsWindow(pWin);
+
+        /* ... and if it's already been mapped, make sure it's visible */
+        if (pWin->mapped) {
+            /* Display the window without activating it */
+            if (pWin->drawable.class != InputOnly)
+                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
+
+            /* Send first paint message */
+            UpdateWindow(pWinPriv->hWnd);
+        }
+    }
+}
+
 /**
  * Return size and handles of a window.
  * If pWin is NULL, then the information for the root window is requested.
@@ -50,8 +80,8 @@ winGetWindowInfo(WindowPtr pWin)
             }
 
             if (pWinPriv->hWnd == NULL) {
-                winCreateWindowsWindow(pWin);
-                ErrorF("winGetWindowInfo: forcing window to exist...\n");
+                ErrorF("winGetWindowInfo: forcing window to exist\n");
+                winCreateWindowsWindowHierarchy(pWin);
             }
 
             if (pWinPriv->hWnd != NULL) {

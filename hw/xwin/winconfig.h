@@ -160,6 +160,7 @@ typedef struct {
 #ifdef XWIN_XF86CONFIG
     char *keyboard;
 #endif
+    Bool customDPI;
     char *xkbRules;
     char *xkbModel;
     char *xkbLayout;
@@ -200,7 +201,7 @@ typedef union {
     unsigned long num;
     char *str;
     double realnum;
-    Bool bool;
+    Bool bool_;
     OptFrequency freq;
 } ValueUnion;
 

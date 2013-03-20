@@ -249,6 +249,7 @@ miScreenInit(ScreenPtr pScreen, pointer pbits,  /* pointer to screen bits */
     pScreen->ValidateTree = miValidateTree;
     pScreen->PostValidateTree = (PostValidateTreeProcPtr) 0;
     pScreen->WindowExposures = miWindowExposures;
+    pScreen->PaintWindow = miPaintWindow;
     /* CopyWindow */
     pScreen->ClearToBackground = miClearToBackground;
     pScreen->ClipNotify = (ClipNotifyProcPtr) 0;

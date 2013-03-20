@@ -1061,7 +1061,7 @@ if test "x$GLX" = xyes; then
 	AC_SUBST(XLIB_CFLAGS)
 	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
 	GLX_LIBS='$(top_builddir)/glx/libglx.la'
-	GLX_SYS_LIBS="$GLX_SYS_LIBS"
+	GLX_SYS_LIBS="$GLX_SYS_LIBS -lglapi"
 else
         GLX=no
 fi
@@ -1896,7 +1896,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau x11-xcb xcb-image xcb-icccm])
 
 	if test "x$WINDOWSWM" = xauto; then
 		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
@@ -2237,6 +2237,7 @@ miext/damage/Makefile
 miext/shadow/Makefile
 miext/rootless/Makefile
 os/Makefile
+pseudoramiX/Makefile
 randr/Makefile
 render/Makefile
 xkb/Makefile
@@ -2297,6 +2298,7 @@ hw/xnest/man/Makefile
 hw/xwin/Makefile
 hw/xwin/glx/Makefile
 hw/xwin/man/Makefile
+hw/xwin/wmutil/Makefile
 hw/xquartz/Makefile
 hw/xquartz/GL/Makefile
 hw/xquartz/bundle/Makefile

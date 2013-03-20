@@ -216,6 +216,9 @@ LogInit(const char *fname, const char *backup)
                 free(oldLog);
             }
         }
+        else {
+            unlink(logFileName);
+        }
         if ((logFile = fopen(logFileName, "w")) == NULL)
             FatalError("Cannot open log file \"%s\"\n", logFileName);
         setvbuf(logFile, NULL, _IONBF, 0);
@@ -781,9 +784,9 @@ FatalError(const char *f, ...)
     static Bool beenhere = FALSE;
 
     if (beenhere)
-        ErrorF("\nFatalError re-entered, aborting\n");
+        ErrorF("FatalError re-entered, aborting\n");
     else
-        ErrorF("\nFatal server error:\n");
+        ErrorF("Fatal server error: ");
 
     va_start(args, f);
 
@@ -802,7 +805,8 @@ FatalError(const char *f, ...)
 #endif
     VErrorF(f, args);
     va_end(args);
-    ErrorF("\n");
+    if (f[strlen(f) - 1] != '\n')
+        ErrorF("\n");
     if (!beenhere)
         OsVendorFatalError(f, args2);
     va_end(args2);

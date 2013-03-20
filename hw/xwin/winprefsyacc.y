@@ -39,6 +39,8 @@
 #include <stdlib.h>
 #define _STDLIB_H 1 /* bison checks this to know if stdlib has been included */
 #include <string.h>
+#include "globals.h"
+#include "winconfig.h"
 #include "winprefs.h"
 
 /* The following give better error messages in bison at the cost of a few KB */
@@ -56,6 +58,13 @@ static MENUPARSED menu;
 
 /* Functions for parsing the tokens into out structure */
 /* Defined at the end section of this file */
+
+static void SetDPI (char *dpi);
+static void SetXKBLayout (char *layout);
+static void SetXKBModel (char *model);
+static void SetXKBOptions (char *options);
+static void SetXKBRules (char *rules);
+static void SetXKBVariant (char *variant);
 
 static void SetIconDirectory (char *path);
 static void SetDefaultIcon (char *fname);
@@ -120,6 +129,12 @@ extern int yylex(void);
 %token TRAYICON
 %token FORCEEXIT
 %token SILENTEXIT
+%token DPI
+%token XKBLAYOUT
+%token XKBMODEL
+%token XKBOPTIONS
+%token XKBRULES
+%token XKBVARIANT
 
 %token <sVal> STRING
 %type <uVal>  group1
@@ -154,6 +169,30 @@ command:	defaulticon
 	| trayicon
 	| forceexit
 	| silentexit
+	| dpi
+	| xkblayout
+	| xkbmodel
+	| xkboptions
+	| xkbrules
+	| xkbvariant
+	;
+
+dpi:		DPI STRING NEWLINE { SetDPI($2); free($2); }
+	;
+
+xkblayout:	XKBLAYOUT STRING NEWLINE { SetXKBLayout($2); }
+	;
+
+xkbmodel:	XKBMODEL STRING NEWLINE { SetXKBModel($2); }
+	;
+
+xkboptions:	XKBOPTIONS STRING NEWLINE { SetXKBOptions($2); }
+	;
+
+xkbrules:	XKBRULES STRING NEWLINE { SetXKBRules($2); }
+	;
+
+xkbvariant:	XKBVARIANT STRING NEWLINE { SetXKBVariant($2); }
 	;
 
 trayicon:	TRAYICON STRING NEWLINE { SetTrayIcon($2); free($2); }
@@ -258,6 +297,58 @@ yyerror (char *s)
 
   ErrorF("LoadPreferences: %s line %d\n", s, yylineno);
   return 1;
+}
+
+static void
+SetDPI (char *dpi)
+{
+  if (!g_cmdline.customDPI)
+    monitorResolution = atoi (dpi);
+}
+
+static void
+SetXKBLayout (char *layout)
+{
+  if (!g_cmdline.xkbLayout)
+    g_cmdline.xkbLayout = layout;
+  else
+    free (layout);
+}
+
+static void
+SetXKBModel (char *model)
+{
+  if (!g_cmdline.xkbModel)
+    g_cmdline.xkbModel = model;
+  else
+    free (model);
+}
+
+static void
+SetXKBOptions (char *options)
+{
+  if (!g_cmdline.xkbOptions)
+    g_cmdline.xkbOptions = options;
+  else
+    free (options);
+}
+
+static void
+SetXKBRules (char *rules)
+{
+  if (!g_cmdline.xkbRules)
+    g_cmdline.xkbRules = rules;
+  else
+    free (rules);
+}
+
+static void
+SetXKBVariant (char *variant)
+{
+  if (!g_cmdline.xkbVariant)
+    g_cmdline.xkbVariant = variant;
+  else
+    free (variant);
 }
 
 /* Miscellaneous functions to store TOKENs into the structure */

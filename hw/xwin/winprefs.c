@@ -37,6 +37,8 @@
 #include <stdlib.h>
 #ifdef __CYGWIN__
 #include <sys/resource.h>
+#include <sys/wait.h>
+#include <pthread.h>
 #endif
 #include "win.h"
 
@@ -300,6 +302,110 @@ HandleCustomWM_INITMENU(unsigned long hwndIn, unsigned long hmenuIn)
 
 }
 
+#ifdef __CYGWIN__
+static void
+LogLineFromFd(int fd, const char *fdname, int pid)
+{
+#define BUFSIZE 512             /* must be less than internal buffer size used in LogVWrite */
+    char buf[BUFSIZE];
+    char *bufptr = buf;
+
+    /* read from fd until eof, newline or our buffer is full */
+    while ((read(fd, bufptr, 1) > 0) && (bufptr < &(buf[BUFSIZE - 1]))) {
+        if (*bufptr == '\n')
+            break;
+        bufptr++;
+    }
+
+    /* null terminate and log */
+    *bufptr = 0;
+    if (strlen(buf))
+        ErrorF("(pid %d %s) %s\n", pid, fdname, buf);
+}
+
+static void *
+ExecAndLogThread(void *cmd)
+{
+    int pid;
+    int stdout_filedes[2];
+    int stderr_filedes[2];
+    int status;
+
+    /* Create a pair of pipes */
+    pipe(stdout_filedes);
+    pipe(stderr_filedes);
+
+    switch (pid = fork()) {
+    case 0:                    /* child */
+    {
+        struct rlimit rl;
+        unsigned int fd;
+
+        /* dup write end of pipes onto stderr and stdout */
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+
+        dup2(stdout_filedes[1], STDOUT_FILENO);
+        dup2(stderr_filedes[1], STDERR_FILENO);
+
+        /* Close any open descriptors except for STD* */
+        getrlimit(RLIMIT_NOFILE, &rl);
+        for (fd = STDERR_FILENO + 1; fd < rl.rlim_cur; fd++)
+            close(fd);
+
+        /* Disassociate any TTYs */
+        setsid();
+
+        execl("/bin/sh", "/bin/sh", "-c", cmd, NULL);
+        perror("execl failed");
+        exit(127);
+    }
+        break;
+
+    default:                   /* parent */
+    {
+        close(stdout_filedes[1]);
+        close(stderr_filedes[1]);
+
+        ErrorF("executing '%s', pid %d\n", (char *) cmd, pid);
+
+        /* read from pipes, write to log, until both are closed */
+        while (TRUE) {
+            fd_set readfds, errorfds;
+            int nfds = max(stdout_filedes[0], stderr_filedes[0]) + 1;
+
+            FD_ZERO(&readfds);
+            FD_SET(stdout_filedes[0], &readfds);
+            FD_SET(stderr_filedes[0], &readfds);
+            errorfds = readfds;
+
+            if (select(nfds, &readfds, NULL, &errorfds, NULL) > 0) {
+                if (FD_ISSET(stdout_filedes[0], &readfds))
+                    LogLineFromFd(stdout_filedes[0], "stdout", pid);
+                if (FD_ISSET(stderr_filedes[0], &readfds))
+                    LogLineFromFd(stderr_filedes[0], "stderr", pid);
+
+                if (FD_ISSET(stdout_filedes[0], &errorfds) &&
+                    FD_ISSET(stderr_filedes[0], &errorfds))
+                    break;
+            }
+            else {
+                break;
+            }
+        }
+
+        waitpid(pid, &status, 0);
+    }
+        break;
+
+    case -1:                   /* error */
+        ErrorF("fork() to run command failed\n");
+    }
+
+    return (void *) status;
+}
+#endif
+
 /*
  * Searches for the custom WM_COMMAND command ID and performs action.
  * Return TRUE if command is proccessed, FALSE otherwise.
@@ -325,24 +431,17 @@ HandleCustomWM_COMMAND(unsigned long hwndIn, int command)
                 switch (m->menuItem[j].cmd) {
 #ifdef __CYGWIN__
                 case CMD_EXEC:
-                    if (fork() == 0) {
-                        struct rlimit rl;
-                        int fd;
+                {
+                    pthread_t t;
 
-                        /* Close any open descriptors except for STD* */
-                        getrlimit(RLIMIT_NOFILE, &rl);
-                        for (fd = STDERR_FILENO + 1; fd < rl.rlim_cur; fd++)
-                            close(fd);
-
-                        /* Disassociate any TTYs */
-                        setsid();
-
-                        execl("/bin/sh",
-                              "/bin/sh", "-c", m->menuItem[j].param, NULL);
-                        exit(0);
-                    }
+                    if (!pthread_create
+                        (&t, NULL, ExecAndLogThread, m->menuItem[j].param))
+                        pthread_detach(t);
                     else
-                        return TRUE;
+                        ErrorF
+                            ("Creating command output logging thread failed\n");
+                }
+                    return TRUE;
                     break;
 #else
                 case CMD_EXEC:
@@ -651,11 +750,17 @@ winPrefsLoadPreferences(char *path)
             "MENU rmenu {\n"
             "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
             "  \"Launch xterm\" EXEC xterm\n"
-            "  \"Load .XWinrc\" RELOAD\n"
+            "  SEPARATOR\n"
+            "  FAQ EXEC \"cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html\"\n"
+            "  \"User's Guide\" EXEC \"cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html\"\n"
+            "  SEPARATOR\n"
+            "  \"Reload .XWinrc\" RELOAD\n"
             "  SEPARATOR\n" "}\n" "\n" "ROOTMENU rmenu\n";
 
         path = "built-in default";
         prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
+
+
     }
 #endif
 
@@ -686,7 +791,7 @@ LoadPreferences(void)
     char *home;
     char fname[PATH_MAX + NAME_MAX + 2];
     char szDisplay[512];
-    char *szEnvDisplay;
+    char *szEnvDisplay, *szEnvLogFile;
     int i, j;
     char param[PARAM_MAX + 1];
     char *srcParam, *dstParam;
@@ -727,15 +832,19 @@ LoadPreferences(void)
 
     /* Setup a DISPLAY environment variable, need to allocate on heap */
     /* because putenv doesn't copy the argument... */
-    snprintf(szDisplay, 512, "DISPLAY=127.0.0.1:%s.0", display);
-    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + 1));
+    winGetDisplayName(szDisplay, 0);
+    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + strlen("DISPLAY=") + 1));
     if (szEnvDisplay) {
-        strcpy(szEnvDisplay, szDisplay);
+        snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
         putenv(szEnvDisplay);
     }
 
+    /* Setup XWINLOGFILE environment variable */
+    szEnvLogFile = (char *) (malloc(strlen(g_pszLogFile) + strlen("XWINLOGFILE=") + 1));
+    snprintf(szEnvLogFile, 512, "XWINLOGFILE=%s", g_pszLogFile);
+    putenv(szEnvLogFile);
+
     /* Replace any "%display%" in menu commands with display string */
-    snprintf(szDisplay, 512, "127.0.0.1:%s.0", display);
     for (i = 0; i < pref.menuItems; i++) {
         for (j = 0; j < pref.menu[i].menuItems; j++) {
             if (pref.menu[i].menuItem[j].cmd == CMD_EXEC) {

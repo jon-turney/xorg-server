@@ -190,7 +190,9 @@ winProcSetSelectionOwner(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSetSelectionOwnerReq);
 
-    winDebug("winProcSetSelectionOwner - Hello.\n");
+    winDebug
+        ("winProcSetSelectionOwner - Hello. atom 0x%08x window XID 0x%08x \n",
+         stuff->selection, stuff->window);
 
     /* Watch for server reset */
     if (s_ulServerGeneration != serverGeneration) {
@@ -241,8 +243,9 @@ winProcSetSelectionOwner(ClientPtr client)
         /* Save new selection owner or None */
         s_iOwners[CLIP_OWN_PRIMARY] = stuff->window;
 
-        winDebug("winProcSetSelectionOwner - PRIMARY - Now owned by: %d\n",
-                 stuff->window);
+        winDebug
+            ("winProcSetSelectionOwner - PRIMARY - Now owned by XID 0x%08x\n",
+             stuff->window);
     }
     else if (MakeAtom("CLIPBOARD", 9, TRUE) == stuff->selection) {
         /* Look for owned -> not owned transition */
@@ -262,8 +265,9 @@ winProcSetSelectionOwner(ClientPtr client)
         /* Save new selection owner or None */
         s_iOwners[CLIP_OWN_CLIPBOARD] = stuff->window;
 
-        winDebug("winProcSetSelectionOwner - CLIPBOARD - Now owned by: %d\n",
-                 stuff->window);
+        winDebug
+            ("winProcSetSelectionOwner - CLIPBOARD - Now owned by XID 0x%08x\n",
+             stuff->window);
 
     }
     else

@@ -316,6 +316,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
+    static Bool hasEnteredSizeMove = FALSE;
 
 #if CYGDEBUG
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
@@ -661,7 +662,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         SetCapture(hwnd);
-        return winMouseButtonsHandle(s_pScreen, ButtonPress, HIWORD(wParam) + 5,
+        return winMouseButtonsHandle(s_pScreen, ButtonPress, HIWORD(wParam) + 7,
                                      wParam);
 
     case WM_XBUTTONUP:
@@ -670,9 +671,21 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         ReleaseCapture();
         winStartMousePolling(s_pScreenPriv);
         return winMouseButtonsHandle(s_pScreen, ButtonRelease,
-                                     HIWORD(wParam) + 5, wParam);
+                                     HIWORD(wParam) + 7, wParam);
 
     case WM_MOUSEWHEEL:
+        if (SendMessage
+            (hwnd, WM_NCHITTEST, 0,
+             MAKELONG(GET_X_LPARAM(lParam),
+                      GET_Y_LPARAM(lParam))) == HTCLIENT) {
+            /* Pass the message to the root window */
+            SendMessage(hwndScreen, message, wParam, lParam);
+            return 0;
+        }
+        else
+            break;
+
+    case WM_MOUSEHWHEEL:
         if (SendMessage
             (hwnd, WM_NCHITTEST, 0,
              MAKELONG(GET_X_LPARAM(lParam),
@@ -860,7 +873,9 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove)
+            winAdjustXWindow(pWin, hwnd);
+        /* else: Wait for WM_EXITSIZEMOVE */
         return 0;
 
     case WM_SHOWWINDOW:
@@ -993,6 +1008,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          */
         break;
 
+    case WM_ENTERSIZEMOVE:
+        hasEnteredSizeMove = TRUE;
+        return 0;
+
+    case WM_EXITSIZEMOVE:
+        /* Adjust the X Window to the moved Windows window */
+        hasEnteredSizeMove = FALSE;
+        winAdjustXWindow(pWin, hwnd);
+        return 0;
+
     case WM_SIZE:
         /* see dix/window.c */
 #if CYGWINDOWING_DEBUG
@@ -1017,8 +1042,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                (int) (GetTickCount()));
     }
 #endif
-        /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove) {
+            /* Adjust the X Window to the moved Windows window */
+            winAdjustXWindow(pWin, hwnd);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
+        }
+        /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
 
     case WM_STYLECHANGING:
@@ -1127,4 +1157,42 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (needRestack)
         winReorderWindowsMultiWindow();
     return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+#if CYGDEBUG
+    winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+    switch (message) {
+    case WM_ERASEBKGND:
+        return TRUE;
+
+    case WM_PAINT:
+        /*
+           We don't have the bits to draw into the window, they went straight into the OpenGL
+           surface
+
+           XXX: For now, just leave it alone, but ideally we want to send an expose event to
+           the window so it really redraws the affected region...
+         */
+    {
+        PAINTSTRUCT ps;
+        HDC hdcUpdate;
+
+        hdcUpdate = BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+        /* XXX: this is exactly what DefWindowProc does? */
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }
