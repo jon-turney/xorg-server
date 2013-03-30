@@ -183,7 +183,7 @@ winClipboardProc(void *pvNotUsed)
            "successfully opened the display.\n");
 
     /* Get our connection number */
-    iConnectionNumber = ConnectionNumber(pDisplay);
+    iConnectionNumber = XConnectionNumber(pDisplay);
 
 #ifdef HAS_DEVWINDOWS
     /* Open a file descriptor for the windows message queue */
@@ -204,12 +204,12 @@ winClipboardProc(void *pvNotUsed)
 
     /* Create a messaging window */
     iWindow = XCreateSimpleWindow(pDisplay,
-                                  DefaultRootWindow(pDisplay),
+                                  XDefaultRootWindow(pDisplay),
                                   1, 1,
                                   500, 500,
                                   0,
-                                  BlackPixel(pDisplay, 0),
-                                  BlackPixel(pDisplay, 0));
+                                  XBlackPixel(pDisplay, 0),
+                                  XBlackPixel(pDisplay, 0));
     if (iWindow == 0) {
         ErrorF("winClipboardProc - Could not create an X window.\n");
         goto winClipboardProc_Done;
@@ -393,7 +393,7 @@ winClipboardProc(void *pvNotUsed)
     XSync(pDisplay, TRUE);
 
     /* Select event types to watch */
-    XSelectInput(pDisplay, DefaultRootWindow(pDisplay), None);
+    XSelectInput(pDisplay, XDefaultRootWindow(pDisplay), None);
 
     /* Close our X display */
     if (pDisplay) {
