@@ -52,6 +52,10 @@
 #include "internal.h"
 #include "winclipboard.h"
 
+
+extern void winFixClipboardChain(void);
+
+
 /*
  * Constants
  */

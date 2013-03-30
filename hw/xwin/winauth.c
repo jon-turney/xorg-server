@@ -38,6 +38,15 @@
 #include "securitysrv.h"
 #include "os/osdep.h"
 
+/* Need to get this from Xlib.h */
+extern void XSetAuthorization(
+    char *                      /* name */,
+    int                         /* namelen */,
+    char *                      /* data */,
+    int                         /* datalen */
+);
+
+
 /*
  * Constants
  */

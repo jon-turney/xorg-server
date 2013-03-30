@@ -36,6 +36,8 @@
 #define HAS_WINSOCK 1
 #endif
 
+extern void winSetAuthorization(void);
+
 /*
  * Including any server header might define the macro _XSERVER64 on 64 bit machines.
  * That macro must _NOT_ be defined for Xlib client code, otherwise bad things happen.
