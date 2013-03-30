@@ -43,6 +43,8 @@
 #endif
 #include "misc.h"
 
+extern void winSetAuthorization(void);
+
 /*
  * References to external symbols
  */
