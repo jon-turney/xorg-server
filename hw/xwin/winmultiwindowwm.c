@@ -64,6 +64,7 @@
 #include "pixmapstr.h"
 #include "windowstr.h"
 #include "winglobals.h"
+#include "winmultiwindowicons.h"
 
 #ifdef XWIN_MULTIWINDOWEXTWM
 #include <X11/extensions/windowswmstr.h>
@@ -80,6 +81,8 @@
 extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
+extern void winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
+extern void winSetAuthorization(void);
 
 #ifndef CYGDEBUG
 #define CYGDEBUG NO
