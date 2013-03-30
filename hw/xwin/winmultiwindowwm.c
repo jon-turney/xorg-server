@@ -1079,7 +1079,7 @@ winMultiWindowXMsgProc(void *pArg)
         xis->max_width = xis->max_height = 48;
         xis->width_inc = xis->height_inc = 16;
         XSetIconSizes(pProcArg->pDisplay,
-                      RootWindow(pProcArg->pDisplay, pProcArg->dwScreen),
+                      XRootWindow(pProcArg->pDisplay, pProcArg->dwScreen),
                       xis, 1);
         XFree(xis);
     }
@@ -1459,7 +1459,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
         if (cursor) {
             XDefineCursor(pWMInfo->pDisplay,
-                          DefaultRootWindow(pWMInfo->pDisplay), cursor);
+                          XDefaultRootWindow(pWMInfo->pDisplay), cursor);
             XFreeCursor(pWMInfo->pDisplay, cursor);
         }
     }
@@ -1603,7 +1603,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
      */
     redirectError = FALSE;
     XSetErrorHandler(winRedirectErrorHandler);
-    XSelectInput(pDisplay, RootWindow(pDisplay, dwScreen),
+    XSelectInput(pDisplay, XRootWindow(pDisplay, dwScreen),
                  ResizeRedirectMask | SubstructureRedirectMask |
                  ButtonPressMask);
     XSync(pDisplay, 0);
@@ -1615,7 +1615,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
        If other WMs are not allowed, also select one of the events which only one client
        at a time is allowed to select, so other window managers won't start...
      */
-    XSelectInput(pDisplay, RootWindow(pDisplay, dwScreen),
+    XSelectInput(pDisplay, XRootWindow(pDisplay, dwScreen),
                  SubstructureNotifyMask | (!fAllowOtherWM ? ButtonPressMask :
                                            0));
     XSync(pDisplay, 0);

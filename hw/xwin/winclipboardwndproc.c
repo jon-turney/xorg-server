@@ -84,7 +84,7 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
              iTimeoutSec);
 
     /* Get our connection number */
-    iConnNumber = ConnectionNumber(pDisplay);
+    iConnNumber = XConnectionNumber(pDisplay);
 
     /* Loop for X events */
     while (1) {
