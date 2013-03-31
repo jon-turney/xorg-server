@@ -225,7 +225,7 @@ winMultiWindowGetWMNormalHints(WindowPtr pWin, WinXSizeHints * hints)
 }
 
 int
-winMultiWindowGetTransientFor(WindowPtr pWin, WindowPtr *ppDaddy)
+winMultiWindowGetTransientFor(WindowPtr pWin, Window *ppDaddy)
 {
     struct _Window *pwin;
     struct _Property *prop;
@@ -248,7 +248,7 @@ winMultiWindowGetTransientFor(WindowPtr pWin, WindowPtr *ppDaddy)
     while (prop) {
         if (prop->propertyName == XA_WM_TRANSIENT_FOR) {
             if (ppDaddy)
-                memcpy(ppDaddy, prop->data, sizeof(WindowPtr));
+                memcpy(ppDaddy, prop->data, sizeof(Window));
             return 1;
         }
         else
