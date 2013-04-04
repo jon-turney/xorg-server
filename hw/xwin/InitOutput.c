@@ -96,6 +96,9 @@ const char *winGetBaseDir(void);
 
 static void winCheckMount(void);
 
+extern Bool XSupportsLocale(void);
+extern Status XInitThreads(void);
+
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
  * we change this pixmap format later if we detect that the display

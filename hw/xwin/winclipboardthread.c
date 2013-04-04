@@ -44,6 +44,7 @@
 #include "misc.h"
 
 extern winSetAuthorization(void);
+extern void winGetDisplayName(char *szDisplay, unsigned int screen);
 
 /*
  * References to external symbols
