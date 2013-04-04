@@ -736,7 +736,7 @@ winCreateWindowsChildWindow(WindowPtr pWin)
     winDebug("winCreateWindowsChildWindow - hwnd 0x%08x\n", hWnd);
     pWinPriv->hWnd = hWnd;
 
-    SetProp(hWnd, WIN_WID_PROP, (HANDLE) winGetWindowID(pWin));
+    SetProp(hWnd, WIN_WID_PROP, (HANDLE) (INT_PTR) winGetWindowID(pWin));
 }
 
 /*
