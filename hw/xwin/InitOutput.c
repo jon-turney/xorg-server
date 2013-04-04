@@ -59,6 +59,7 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
                                               DWORD dwFlags, LPTSTR pszPath);
 #endif
 #include "glx_extinit.h"
+#include "dixmain.h"
 #ifdef XWIN_GLX_WINDOWS
 #include "glx/glwindows.h"
 #endif
