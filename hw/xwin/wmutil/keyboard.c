@@ -40,6 +40,7 @@
 
 #include "winvkmap.h"
 #include "keyboard.h"
+#include "winmsg.h"
 
 static bool g_winKeyState[NUM_KEYCODES];
 

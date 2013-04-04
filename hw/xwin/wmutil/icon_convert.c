@@ -46,6 +46,7 @@
 #include <stdbool.h>
 
 #include "icon_convert.h"
+#include "winmsg.h"
 
 /*
  * global variables

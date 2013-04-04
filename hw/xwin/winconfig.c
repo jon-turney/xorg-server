@@ -264,8 +264,8 @@ winConfigKeyboard(DeviceIntPtr pDevice)
                 break;
             }
             g_winInfo.keyboard.rate = (kbd_speed > 0) ? kbd_speed : 1;
-            winMsgVerb(X_PROBED, 1, "Setting autorepeat to delay=%d, rate=%d\n",
-                       g_winInfo.keyboard.delay, g_winInfo.keyboard.rate);
+            winMsg(X_PROBED, "Setting autorepeat to delay=%d, rate=%d\n",
+                   g_winInfo.keyboard.delay, g_winInfo.keyboard.rate);
         }
     }
 

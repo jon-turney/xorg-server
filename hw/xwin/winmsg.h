@@ -1,5 +1,3 @@
-#ifndef __WIN_MSG_H__
-#define __WIN_MSG_H__
 /*
  *Copyright (C) 1994-2000 The XFree86 Project, Inc. All Rights Reserved.
  *
@@ -30,10 +28,16 @@
  * Authors: Alexander Gottwald	
  */
 
+#ifndef __WIN_MSG_H__
+#define __WIN_MSG_H__
+
+#include "X11/Xfuncproto.h"
+
 /*
  * Function prototypes
  */
 
+#ifdef XWIN_XF86CONFIG
 void
 winDrvMsgVerb(int scrnIndex,
               MessageType type, int verb, const char *format, ...)
@@ -41,12 +45,10 @@ _X_ATTRIBUTE_PRINTF(4, 5);
 void
 winDrvMsg(int scrnIndex, MessageType type, const char *format, ...)
 _X_ATTRIBUTE_PRINTF(3, 4);
-void
-winMsgVerb(MessageType type, int verb, const char *format, ...)
-_X_ATTRIBUTE_PRINTF(3, 4);
-void
-winMsg(MessageType type, const char *format, ...)
-_X_ATTRIBUTE_PRINTF(2, 3);
+#endif
+
+#define winMsg LogMessage
+
 void
 winDebug(const char *format, ...)
 _X_ATTRIBUTE_PRINTF(1, 2);
@@ -57,6 +59,10 @@ _X_ATTRIBUTE_PRINTF(1, 2);
 void
 winErrorFVerb(int verb, const char *format, ...)
 _X_ATTRIBUTE_PRINTF(2, 3);
+void
+winError(const char *format, ...)
+_X_ATTRIBUTE_PRINTF(1, 2);
+
 void winW32Error(int verb, const char *message);
 void winW32ErrorEx(int verb, const char *message, DWORD errorcode);
 void winDebugWin32Message(const char *function, HWND hwnd, UINT message,
