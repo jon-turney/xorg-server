@@ -21,7 +21,7 @@ DEALINGS IN THE SOFTWARE.
 
 ******************************************************************/
 
-int dix_main(int argc, char *argv[], char *envp[]);
+#include "dixmain.h"
 
 /*
   A default implementation of main, which can be overridden by DDX

@@ -54,8 +54,9 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #endif
 #include "winmonitors.h"
 #include "pseudoramiX/pseudoramiX.h"
-
 #include "glx_extinit.h"
+#include "dixmain.h"
+
 /*
  * References to external symbols
  */
