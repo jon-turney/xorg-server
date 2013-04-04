@@ -67,6 +67,7 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #ifdef XWIN_GLX_WINDOWS
 #include "glx/glwindows.h"
 #endif
+#include "dixmain.h"
 
 /*
  * References to external symbols

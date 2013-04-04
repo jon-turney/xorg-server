@@ -112,6 +112,7 @@ Equipment Corporation.
 #else
 #include "dixevents.h"          /* InitEvents() */
 #endif
+#include "dixmain.h"
 
 #ifdef DPMSExtension
 #include <X11/extensions/dpmsconst.h>
