@@ -362,6 +362,10 @@ extern _X_EXPORT pointer
 Fopen(const char *, const char *);
 extern _X_EXPORT int
 Fclose(pointer);
+#if defined(__CYGWIN__)
+extern const char *
+Win32TempDir(void);
+#endif
 #else
 
 extern const char *

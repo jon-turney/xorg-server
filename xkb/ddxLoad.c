@@ -44,6 +44,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 #include <X11/extensions/XI.h>
 #include "xkb.h"
+#include "os.h"
 
         /*
          * If XKM_OUTPUT_DIR specifies a path without a leading slash, it is
