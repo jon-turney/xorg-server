@@ -58,8 +58,9 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
                                               HANDLE hToken,
                                               DWORD dwFlags, LPTSTR pszPath);
 #endif
-
 #include "glx_extinit.h"
+#include "dixmain.h"
+
 /*
  * References to external symbols
  */
