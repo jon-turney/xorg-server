@@ -165,7 +165,7 @@ extern void SELinuxExtensionInit(void);
 extern void XTestExtensionInit(void);
 #endif
 
-#ifdef INXQUARTZ
+#ifndef SDKSYMS
 extern _X_EXPORT Bool noPseudoramiXExtension;
 extern void PseudoramiXExtensionInit(void);
 #endif
