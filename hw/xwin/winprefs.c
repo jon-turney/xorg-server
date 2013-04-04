@@ -403,7 +403,7 @@ ExecAndLogThread(void *cmd)
         ErrorF("fork() to run command failed\n");
     }
 
-    return (void *) status;
+    return (void *) (intptr_t) status;
 }
 #endif
 
