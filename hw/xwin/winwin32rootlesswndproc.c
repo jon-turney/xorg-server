@@ -42,6 +42,7 @@
 #include "winmultiwindowclass.h"
 #include "winmsg.h"
 #include "inputstr.h"
+#include "wmutil/keyboard.h"
 
 /*
  * Constant defines
