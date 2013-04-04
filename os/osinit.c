@@ -69,6 +69,7 @@ SOFTWARE.
 #if !defined(SYSV) && !defined(WIN32)
 #include <sys/resource.h>
 #endif
+#include <pthread.h>
 
 extern char *display;
 
