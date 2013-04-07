@@ -200,9 +200,12 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
     }
 
     if (!lpBits) {
+        RGBQUAD *pbmiColors;
         /* Bicolor, use a palettized DIB */
         WIN_DEBUG_MSG("winXCursorToHCURSOR: Trying two color cursor\n");
         pbmi = (BITMAPINFO *) &bi;
+        pbmiColors = &(pbmi->bmiColors[0]);
+
         memset(pbmi, 0, sizeof(BITMAPINFOHEADER));
         pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         pbmi->bmiHeader.biWidth = sm_cx;
@@ -213,18 +216,19 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
         pbmi->bmiHeader.biSizeImage = 0;
         pbmi->bmiHeader.biClrUsed = 3;
         pbmi->bmiHeader.biClrImportant = 3;
-        pbmi->bmiColors[0].rgbRed = 0;  /* Empty */
-        pbmi->bmiColors[0].rgbGreen = 0;
-        pbmi->bmiColors[0].rgbBlue = 0;
-        pbmi->bmiColors[0].rgbReserved = 0;
-        pbmi->bmiColors[1].rgbRed = pCursor->backRed >> 8;      /* Background */
-        pbmi->bmiColors[1].rgbGreen = pCursor->backGreen >> 8;
-        pbmi->bmiColors[1].rgbBlue = pCursor->backBlue >> 8;
-        pbmi->bmiColors[1].rgbReserved = 0;
-        pbmi->bmiColors[2].rgbRed = pCursor->foreRed >> 8;      /* Foreground */
-        pbmi->bmiColors[2].rgbGreen = pCursor->foreGreen >> 8;
-        pbmi->bmiColors[2].rgbBlue = pCursor->foreBlue >> 8;
-        pbmi->bmiColors[2].rgbReserved = 0;
+
+        pbmiColors[0].rgbRed = 0;  /* Empty */
+        pbmiColors[0].rgbGreen = 0;
+        pbmiColors[0].rgbBlue = 0;
+        pbmiColors[0].rgbReserved = 0;
+        pbmiColors[1].rgbRed = pCursor->backRed >> 8;      /* Background */
+        pbmiColors[1].rgbGreen = pCursor->backGreen >> 8;
+        pbmiColors[1].rgbBlue = pCursor->backBlue >> 8;
+        pbmiColors[1].rgbReserved = 0;
+        pbmiColors[2].rgbRed = pCursor->foreRed >> 8;      /* Foreground */
+        pbmiColors[2].rgbGreen = pCursor->foreGreen >> 8;
+        pbmiColors[2].rgbBlue = pCursor->foreBlue >> 8;
+        pbmiColors[2].rgbReserved = 0;
 
         lpBits =
             (unsigned long *) calloc(sm_cx *
