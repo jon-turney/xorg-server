@@ -214,8 +214,8 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
 
     showCmd |= SWP_NOMOVE | SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER;
 
-    winDebug("winMWExtWMUpdateWindowDecoration %08x %s\n",
-             (int) pRLWinPriv, fDecorate ? "Decorate" : "Bare");
+    winDebug("winMWExtWMUpdateWindowDecoration %p %s\n",
+             pRLWinPriv, fDecorate ? "Decorate" : "Bare");
 
     /* Get the standard and extended window style information */
     dwExStyle = GetWindowLongPtr(pRLWinPriv->hWnd, GWL_EXSTYLE);
