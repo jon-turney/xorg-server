@@ -37,6 +37,7 @@
 #include <sys/time.h>
 #include "winclipboard.h"
 #include "misc.h"
+#include "winmsg.h"
 
 
 extern void winFixClipboardChain(void);
