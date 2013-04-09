@@ -514,9 +514,30 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
 static int
 SendXMessage(Display * pDisplay, Window iWin, Atom atmType, long nData)
 {
+#ifdef __x86_64__
+    union {
+        int type;
+        struct {
+          int type;
+          unsigned long serial;
+          Bool send_event;
+          Display *display;
+          unsigned long window;
+          unsigned long message_type;
+          int format;
+          union {
+                char b[20];
+                short s[10];
+                long l[5];
+                } data;
+        } xclient;
+    } e;
+#else
     XEvent e;
+#endif
 
     /* Prepare the X event structure */
+    memset(&e, 0, sizeof(e));
     e.type = ClientMessage;
     e.xclient.window = iWin;
     e.xclient.message_type = atmType;
