@@ -35,9 +35,6 @@
 
 /* Need Bool */
 #include <X11/Xdefs.h>
-/* Need TRUE */
-#include "misc.h"
-
 /* Need to know how long paths can be... */
 #include <limits.h>
 /* Xwindows redefines PATH_MAX to at least 1024 */
