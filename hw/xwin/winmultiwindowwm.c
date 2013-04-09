@@ -59,7 +59,7 @@
 #include "winprefs.h"
 #include "window.h"
 #include "pixmapstr.h"
-#include "windowstr.h"
+#include "windowstr.h" // XXX: this shouldn't be in X client code
 #include "winglobals.h"
 #include "windisplay.h"
 #include "winmultiwindowicons.h"
@@ -872,6 +872,13 @@ winMultiWindowWMProc(void *pArg)
 
 
             /* Reshape */
+
+            /*
+              XXX: This is playing a dangerous game, bringing the WindowPtr type
+              into scope, and using it in window shaping code to access the
+              server's shape data.  This would be better rewritten as client
+              code, using ShapeNotify and XShapeGetRectangles() (See XtoW).
+            */
             {
                 WindowPtr pWin =
                     GetProp(pNode->msg.hwndWindow, WIN_WINDOW_PROP);
