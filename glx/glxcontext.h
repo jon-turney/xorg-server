@@ -139,4 +139,6 @@ extern __GLXcontext *__glXdirectContextCreate(__GLXscreen * screen,
                                               __GLXconfig * modes,
                                               __GLXcontext * shareContext);
 
+extern void FlushContext(__GLXcontext * cx);
+
 #endif                          /* !__GLX_context_h__ */
