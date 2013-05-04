@@ -258,7 +258,7 @@ winWindowsWMSendEvent(int type, unsigned int mask, int which, int arg,
     for (pEvent = *pHead; pEvent; pEvent = pEvent->next) {
         client = pEvent->client;
 #if CYGMULTIWINDOW_DEBUG
-        ErrorF("winWindowsWMSendEvent - x%08x\n", (int) client);
+        ErrorF("winWindowsWMSendEvent - %p\n", client);
 #endif
         if ((pEvent->mask & mask) == 0) {
             continue;
@@ -396,8 +396,8 @@ ProcWindowsWMFrameDraw(ClientPtr client)
         return BadWindow;
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF("ProcWindowsWMFrameDraw - HWND 0x%08x 0x%08x 0x%08x\n",
-           (int) pRLWinPriv->hWnd, (int) stuff->frame_style,
+    ErrorF("ProcWindowsWMFrameDraw - HWND %p 0x%08x 0x%08x\n",
+           pRLWinPriv->hWnd, (int) stuff->frame_style,
            (int) stuff->frame_style_ex);
     ErrorF("ProcWindowsWMFrameDraw - %d %d %d %d\n",
            stuff->ix, stuff->iy, stuff->iw, stuff->ih);

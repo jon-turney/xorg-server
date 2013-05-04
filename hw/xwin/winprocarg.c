@@ -1174,7 +1174,6 @@ winOS(void)
     char *windowstype = "Unknown";
     char *prodName = "Unknown";
     char *isWow = "Unknown";
-    LPFN_ISWOW64PROCESS fnIsWow64Process;
 
     /* Get operating system version information */
     osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -1229,30 +1228,38 @@ winOS(void)
         break;
     }
 
-    /* Check if we are running under WoW64 */
-    fnIsWow64Process =
+#ifdef __x86_64__
+    isWow = "(Win64)";
+#else
+    {
+      /* Check if we are running under WoW64 */
+      LPFN_ISWOW64PROCESS fnIsWow64Process;
+
+      fnIsWow64Process =
         (LPFN_ISWOW64PROCESS) GetProcAddress(GetModuleHandle("kernel32"),
                                              "IsWow64Process");
-    if (NULL != fnIsWow64Process) {
+      if (NULL != fnIsWow64Process) {
         wBOOL bIsWow64 = FALSE;
 
         if (fnIsWow64Process(GetCurrentProcess(), &bIsWow64)) {
-            isWow = bIsWow64 ? " (WoW64)" : " (Win32)";
+          isWow = bIsWow64 ? " (WoW64)" : " (Win32)";
         }
         else {
-            /* IsWow64Process() failed */
-            isWow = " (WoWUnknown)";
+          /* IsWow64Process() failed */
+          isWow = " (WoWUnknown)";
         }
-    }
-    else {
+      }
+      else {
         /* OS doesn't support IsWow64Process() */
         isWow = "";
+      }
     }
+#endif
 
-    ErrorF("OS: %s %s [%s %ld.%ld build %ld]%s\n",
+    ErrorF("OS: %s %s [%s %d.%d build %d]%s\n",
            prodName, osvi.szCSDVersion,
-           windowstype, osvi.dwMajorVersion, osvi.dwMinorVersion,
-           osvi.dwBuildNumber, isWow);
+           windowstype, (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion,
+           (int)osvi.dwBuildNumber, isWow);
 }
 
 /*

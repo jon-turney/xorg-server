@@ -70,7 +70,7 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
     int lngWheelEvents = 4;
     CARD8 *map;
     DevicePtr pDevice = (DevicePtr) pDeviceInt;
-    Atom *btn_labels;
+    Atom btn_labels[9];
     Atom axes_labels[2];
 
     switch (iState) {
@@ -107,8 +107,6 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
         for (i = 1; i <= lngMouseButtons + lngWheelEvents; i++)
             map[i] = i;
 
-        btn_labels = calloc((lngMouseButtons + lngWheelEvents), sizeof(Atom));
-
         btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
         btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
         btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
@@ -129,7 +127,6 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
                                 winMouseCtrl,
                                 GetMotionHistorySize(), 2, axes_labels);
         free(map);
-        free(btn_labels);
 
         g_winMouseButtonMap = pDeviceInt->button->map;
         break;
