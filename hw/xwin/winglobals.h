@@ -70,7 +70,6 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  * Wrapped DIX functions
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
-extern winDispatchProcPtr winProcQueryTreeOrig;
 extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 #endif
 
