@@ -31,15 +31,8 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
-#include "dixstruct.h"
+
 #include "winclipboard.h"
-
-/*
- * Local typedefs
- */
-
-typedef int (*winDispatchProcPtr) (ClientPtr);
-
 
 /*
  * References to external symbols
