@@ -34,31 +34,23 @@
 
 #include <assert.h>
 #include <unistd.h>
+#include <pthread.h>
 
-#include "dixstruct.h"
-#include "winclipboard.h"
+#include <xwinclip/xwinclip.h>
+
+#include <X11/Xdefs.h> // for Bool
+#include <X11/Xwindows.h>
+#include "winmsg.h"
+#include "winglobals.h"
+#include "win.h"
 
 #define WIN_CLIPBOARD_RETRIES			40
 #define WIN_CLIPBOARD_DELAY			1
 
 /*
- * Local typedefs
+ *
  */
-
-typedef int (*winDispatchProcPtr) (ClientPtr);
-
-int winProcSetSelectionOwner(ClientPtr /* client */ );
-
-/*
- * References to external symbols
- */
-
-extern pthread_t g_ptClipboardProc;
-extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
-extern Bool g_fClipboard;
-extern HWND g_hwndClipboard;
-extern Bool g_fClipboardLaunched;
-extern Bool g_fClipboardStarted;
+static pthread_t g_ptClipboardProc;
 
 /*
  *
@@ -66,16 +58,41 @@ extern Bool g_fClipboardStarted;
 static void *
 winClipboardThreadProc(void *arg)
 {
+  char szDisplay[512];
   int clipboardRestarts = 0;
 
   while (1)
     {
+      int fShutdown;
+
       ++clipboardRestarts;
 
-      /* Flag that clipboard client has been launched */
-      g_fClipboardLaunched = TRUE;
+      /* Use our generated cookie for authentication */
+      winSetAuthorization();
 
-      winClipboardProc(arg);
+      /* Setup the display connection string */
+      /*
+       * NOTE: Always connect to screen 0 since we require that screen
+       * numbers start at 0 and increase without gaps.  We only need
+       * to connect to one screen on the display to get events
+       * for all screens on the display.  That is why there is only
+       * one clipboard client thread.
+      */
+      winGetDisplayName(szDisplay, 0);
+
+      /* Print the display connection string */
+      ErrorF("winClipboardProc - DISPLAY=%s\n", szDisplay);
+
+      /* Flag that clipboard client has started */
+      g_fClipboardStarted = TRUE;
+
+      fShutdown = ClipboardProc(g_fUnicodeClipboard, szDisplay);
+
+      /* Flag that clipboard client has stopped */
+      g_fClipboardStarted = FALSE;
+
+      if (fShutdown)
+        break;
 
       /* checking if we need to restart */
       if (clipboardRestarts >= WIN_CLIPBOARD_RETRIES) {
@@ -101,12 +118,6 @@ winInitClipboard(void)
 {
     winDebug("winInitClipboard ()\n");
 
-    /* Wrap some internal server functions */
-    if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner) {
-        winProcSetSelectionOwnerOrig = ProcVector[X_SetSelectionOwner];
-        ProcVector[X_SetSelectionOwner] = winProcSetSelectionOwner;
-    }
-
     /* Spawn a thread for the Clipboard module */
     if (pthread_create(&g_ptClipboardProc, NULL, winClipboardThreadProc, NULL)) {
         /* Bail if thread creation failed */
@@ -121,78 +132,21 @@ void
 winClipboardShutdown(void)
 {
   /* Close down clipboard resources */
-  if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted) {
-    /* Synchronously destroy the clipboard window */
-    if (g_hwndClipboard != NULL) {
-      SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
-      /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
-    }
-    else
-      return;
+  if (g_fClipboard && g_fClipboardStarted) {
+    ClipboardWindowDestroy();
 
     /* Wait for the clipboard thread to exit */
     pthread_join(g_ptClipboardProc, NULL);
 
-    g_fClipboardLaunched = FALSE;
     g_fClipboardStarted = FALSE;
 
     winDebug("winClipboardShutdown - Clipboard thread has exited.\n");
   }
 }
 
-/*
- * Create the Windows window that we use to recieve Windows messages
- */
-
-HWND
-winClipboardCreateMessagingWindow(void)
-{
-    WNDCLASSEX wc;
-    HWND hwnd;
-
-    /* Setup our window class */
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = winClipboardWindowProc;
-    wc.cbClsExtra = 0;
-    wc.cbWndExtra = 0;
-    wc.hInstance = GetModuleHandle(NULL);
-    wc.hIcon = 0;
-    wc.hCursor = 0;
-    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
-    wc.lpszMenuName = NULL;
-    wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
-    wc.hIconSm = 0;
-    RegisterClassEx(&wc);
-
-    /* Create the window */
-    hwnd = CreateWindowExA(0,   /* Extended styles */
-                           WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
-                           WIN_CLIPBOARD_WINDOW_TITLE,  /* Window name */
-                           WS_OVERLAPPED,       /* Not visible anyway */
-                           CW_USEDEFAULT,       /* Horizontal position */
-                           CW_USEDEFAULT,       /* Vertical position */
-                           CW_USEDEFAULT,       /* Right edge */
-                           CW_USEDEFAULT,       /* Bottom edge */
-                           (HWND) NULL, /* No parent or owner window */
-                           (HMENU) NULL,        /* No menu */
-                           GetModuleHandle(NULL),       /* Instance handle */
-                           NULL);       /* Creation data */
-    assert(hwnd != NULL);
-
-    /* I'm not sure, but we may need to call this to start message processing */
-    ShowWindow(hwnd, SW_HIDE);
-
-    /* Similarly, we may need a call to this even though we don't paint */
-    UpdateWindow(hwnd);
-
-    return hwnd;
-}
-
 void
 winFixClipboardChain(void)
 {
-    if (g_fClipboard && g_hwndClipboard) {
-        PostMessage(g_hwndClipboard, WM_WM_REINIT, 0, 0);
-    }
+  if (g_fClipboard)
+    ClipboardFixClipboardChain();
 }

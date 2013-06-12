@@ -3,11 +3,7 @@ bin_PROGRAMS = XWin
 if XWIN_CLIPBOARD
 SRCS_CLIPBOARD = \
 	winclipboardinit.c \
-	winclipboardtextconv.c \
-	winclipboardthread.c \
-	winclipboardwndproc.c \
-	winclipboardwrappers.c \
-	winclipboardxevents.c
+	winclipboardwrappers.c
 DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
 endif
 
@@ -111,7 +107,6 @@ SRCS =	InitInput.c \
 	winwindow.c \
 	winwndproc.c \
 	ddraw.h \
-	winclipboard.h \
 	winconfig.h \
 	win.h \
 	winglobals.h \
