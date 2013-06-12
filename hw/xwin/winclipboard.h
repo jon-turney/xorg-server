@@ -1,5 +1,3 @@
-#ifndef _WINCLIPBOARD_H_
-#define _WINCLIPBOARD_H_
 /*
  *Copyright (C) 2003-2004 Harold L Hunt II All Rights Reserved.
  *
@@ -30,8 +28,21 @@
  * Authors:	Harold L Hunt II
  */
 
+#ifndef _WINCLIPBOARD_H_
+#define _WINCLIPBOARD_H_
+
+#include <xcb/xcb.h>
+
+/* Windows headers */
+#include <X11/Xwindows.h>
+
+/* X headers */
+#include <X11/Xatom.h>
+#include <X11/Xproto.h>
+#include <X11/Xutil.h>
+
+#if 0
 /* Standard library headers */
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -44,14 +55,7 @@
 #include <setjmp.h>
 #include <pthread.h>
 
-/* X headers */
-#include <X11/X.h>
-#include <X11/Xatom.h>
-#include <X11/Xproto.h>
-#include <X11/Xutil.h>
-
-/* Windows headers */
-#include <X11/Xwindows.h>
+#endif
 
 /* Clipboard module constants */
 #define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
@@ -124,6 +128,6 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 int
 
-winClipboardFlushXEvents(HWND hwnd,
-                         int iWindow, Display * pDisplay, Bool fUnicodeSupport);
+winClipboardFlushXEvents(HWND hwnd, xcb_window_t iWindow, xcb_connection_t *conn);
+
 #endif

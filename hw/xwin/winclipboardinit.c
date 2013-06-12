@@ -28,6 +28,8 @@
  * Authors:	Harold L Hunt II
  */
 
+#include <assert.h>
+
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
