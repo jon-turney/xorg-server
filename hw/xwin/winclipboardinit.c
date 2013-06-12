@@ -31,8 +31,15 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
+#include <assert.h>
+#include <unistd.h>
+
 #include "dixstruct.h"
 #include "winclipboard.h"
+
+#define WIN_CLIPBOARD_RETRIES			40
+#define WIN_CLIPBOARD_DELAY			1
 
 /*
  * Local typedefs
@@ -50,6 +57,40 @@ extern pthread_t g_ptClipboardProc;
 extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 extern Bool g_fClipboard;
 extern HWND g_hwndClipboard;
+extern Bool g_fClipboardLaunched;
+extern Bool g_fClipboardStarted;
+
+/*
+ *
+ */
+static void *
+winClipboardThreadProc(void *arg)
+{
+  int clipboardRestarts = 0;
+
+  while (1)
+    {
+      ++clipboardRestarts;
+
+      /* Flag that clipboard client has been launched */
+      g_fClipboardLaunched = TRUE;
+
+      winClipboardProc(arg);
+
+      /* checking if we need to restart */
+      if (clipboardRestarts >= WIN_CLIPBOARD_RETRIES) {
+        /* terminates clipboard thread but the main server still lives */
+        ErrorF("winClipboardProc - the clipboard thread has restarted %d times and seems to be unstable, disabling clipboard integration\n", clipboardRestarts);
+        g_fClipboard = FALSE;
+        break;
+      }
+
+      sleep(WIN_CLIPBOARD_DELAY);
+      ErrorF("winClipboardProc - trying to restart clipboard thread \n");
+    }
+
+  return NULL;
+}
 
 /*
  * Intialize the Clipboard module
@@ -67,13 +108,36 @@ winInitClipboard(void)
     }
 
     /* Spawn a thread for the Clipboard module */
-    if (pthread_create(&g_ptClipboardProc, NULL, winClipboardProc, NULL)) {
+    if (pthread_create(&g_ptClipboardProc, NULL, winClipboardThreadProc, NULL)) {
         /* Bail if thread creation failed */
         ErrorF("winInitClipboard - pthread_create failed.\n");
         return FALSE;
     }
 
     return TRUE;
+}
+
+void
+winClipboardShutdown(void)
+{
+  /* Close down clipboard resources */
+  if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted) {
+    /* Synchronously destroy the clipboard window */
+    if (g_hwndClipboard != NULL) {
+      SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
+      /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
+    }
+    else
+      return;
+
+    /* Wait for the clipboard thread to exit */
+    pthread_join(g_ptClipboardProc, NULL);
+
+    g_fClipboardLaunched = FALSE;
+    g_fClipboardStarted = FALSE;
+
+    winDebug("winClipboardShutdown - Clipboard thread has exited.\n");
+  }
 }
 
 /*
