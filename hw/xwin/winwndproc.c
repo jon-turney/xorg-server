@@ -1192,11 +1192,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             ShowCursor(TRUE);
         }
 
-#ifdef XWIN_CLIPBOARD
-        /* Make sure the clipboard chain is ok. */
-        winFixClipboardChain();
-#endif
-
         /* Call engine specific screen activation/deactivation function */
         (*s_pScreenPriv->pwinActivateApp) (s_pScreen);
 

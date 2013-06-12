@@ -791,9 +791,6 @@ RegionPtr
 
 Bool
  winInitClipboard(void);
-
-void
- winFixClipboardChain(void);
 #endif
 
 /*

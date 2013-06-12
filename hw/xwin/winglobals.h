@@ -71,6 +71,7 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
 #endif
+extern Bool g_fClipboard;
 
 /* The global X default icons */
 #if defined(XWIN_MULTIWINDOW)

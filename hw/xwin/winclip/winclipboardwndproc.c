@@ -40,21 +40,11 @@
 #include "misc.h"
 #include "winmsg.h"
 
-extern void winFixClipboardChain(void);
-
-
 /*
  * Constants
  */
 
 #define WIN_POLL_TIMEOUT	1
-
-/*
- * References to external symbols
- */
-
-extern xcb_connection_t *g_pClipboardConn;
-extern Window g_iClipboardWindow;
 
 /*
  * Process X events up to specified timeout
@@ -132,10 +122,17 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, xcb_connection_t *conn, int iTi
   return WIN_XEVENTS_SUCCESS;
 }
 
+static void
+winFixClipboardChain(HWND hwnd)
+{
+  PostMessage(hwnd, WM_WM_REINIT, 0, 0);
+}
+
 /*
  * Process a given Windows message
  */
 
+static
 LRESULT CALLBACK
 winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -280,7 +277,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Attempt to break the nesting by getting out of the chain, twice?, and then fix and bail */
         s_fCBCInitialized = FALSE;
         ChangeClipboardChain(hwnd, s_hwndNextViewer);
-        winFixClipboardChain();
+        winFixClipboardChain(hwnd);
         winErrorFVerb(1, "winClipboardWindowProc - WM_DRAWCLIPBOARD - "
                       "Nested calls detected.  Re-initing.\n");
         winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD: Exit\n");
@@ -522,6 +519,11 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       winDebug("winClipboardWindowProc - WM_RENDER*FORMAT - Returning.\n");
       return 0;
     }
+
+  case WM_ACTIVATEAPP:
+    /* Make sure the clipboard chain is ok. */
+    winFixClipboardChain(hwnd);
+    return 0;
   }
 
   /* Let Windows perform default processing for unhandled messages */
@@ -551,4 +553,53 @@ winClipboardFlushWindowsMessageQueue(HWND hwnd)
   }
 
   return TRUE;
+}
+
+/*
+ * Create the Windows window that we use to recieve Windows messages
+ */
+
+HWND
+winClipboardCreateMessagingWindow(void)
+{
+    WNDCLASSEX wc;
+    HWND hwnd;
+
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winClipboardWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hIcon = 0;
+    wc.hCursor = 0;
+    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
+    wc.hIconSm = 0;
+    RegisterClassEx(&wc);
+
+    /* Create the window */
+    hwnd = CreateWindowExA(0,   /* Extended styles */
+                           WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
+                           WIN_CLIPBOARD_WINDOW_TITLE,  /* Window name */
+                           WS_OVERLAPPED,       /* Not visible anyway */
+                           CW_USEDEFAULT,       /* Horizontal position */
+                           CW_USEDEFAULT,       /* Vertical position */
+                           CW_USEDEFAULT,       /* Right edge */
+                           CW_USEDEFAULT,       /* Bottom edge */
+                           (HWND) NULL, /* No parent or owner window */
+                           (HMENU) NULL,        /* No menu */
+                           GetModuleHandle(NULL),       /* Instance handle */
+                           NULL);       /* Creation data */
+    assert(hwnd != NULL);
+
+    /* I'm not sure, but we may need to call this to start message processing */
+    ShowWindow(hwnd, SW_HIDE);
+
+    /* Similarly, we may need a call to this even though we don't paint */
+    UpdateWindow(hwnd);
+
+    return hwnd;
 }

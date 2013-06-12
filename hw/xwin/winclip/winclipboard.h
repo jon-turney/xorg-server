@@ -41,22 +41,6 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 
-#if 0
-/* Standard library headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#ifdef __CYGWIN__
-#include <sys/select.h>
-#else
-#include <X11/Xwinsock.h>
-#endif
-#include <fcntl.h>
-#include <setjmp.h>
-#include <pthread.h>
-
-#endif
-
 /* Clipboard module constants */
 #define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
 #define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
@@ -78,10 +62,14 @@
 /*
  * References to external symbols
  */
-
-extern char *display;
 extern void winDebug(const char *format, ...);
 extern void winErrorFVerb(int verb, const char *format, ...);
+
+/*
+ *
+ */
+extern xcb_connection_t *g_pClipboardConn;
+extern Window g_iClipboardWindow;
 
 /*
  * winclipboardinit.c
@@ -117,15 +105,11 @@ void
 
 BOOL winClipboardFlushWindowsMessageQueue(HWND hwnd);
 
-LRESULT CALLBACK
-winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-
 /*
  * winclipboardxevents.c
  */
 
 int
-
 winClipboardFlushXEvents(HWND hwnd, xcb_window_t iWindow, xcb_connection_t *conn);
 
 #endif

@@ -3,13 +3,9 @@ bin_PROGRAMS = XWin
 if XWIN_CLIPBOARD
 SRCS_CLIPBOARD = \
 	winclipboardinit.c \
-	winclipboardtextconv.c \
-	winclipboardthread.c \
-	winclipboardwndproc.c \
-	winclipboardwrappers.c \
-	winclipboardxevents.c
+	winclipboardwrappers.c
 DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
-CLIPBOARD_LIBS = -lXfixes
+CLIPBOARD_LIBS = $(top_builddir)/hw/xwin/winclip/libXWinclip.la
 endif
 
 if XWIN_GLX_WINDOWS
@@ -112,7 +108,6 @@ SRCS =	InitInput.c \
 	winwindow.c \
 	winwndproc.c \
 	ddraw.h \
-	winclipboard.h \
 	winconfig.h \
 	win.h \
 	winglobals.h \
@@ -194,5 +189,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) wmutil .
+SUBDIRS = man $(GLX_DIR) wmutil winclip .
 DIST_SUBDIRS = man glx .

@@ -61,17 +61,20 @@ extern void winGetDisplayName(char *szDisplay, unsigned int screen);
 
 extern Bool g_fUnicodeClipboard;
 extern Bool g_fClipboardStarted;
-extern Bool g_fClipboardLaunched;
 extern Bool g_fClipboard;
-extern HWND g_hwndClipboard;
-extern xcb_connection_t *g_pClipboardConn;
-extern Window g_iClipboardWindow;
 
 /*
  * Global variables
  */
 
 int xfixes_event_base;
+xcb_connection_t *g_pClipboardConn; // XXX: work out away to pass these down
+Window g_iClipboardWindow;
+
+/*
+ * Local variables
+ */
+HWND g_hwndClipboard = NULL;
 
 /*
  * Local function prototypes
@@ -134,6 +137,16 @@ assertSelectionOwnership(xcb_connection_t *c, xcb_window_t o, xcb_atom_t selecti
       }
     }
     winDebug("Asserted ownership of %d\n", selection);
+  }
+}
+
+void
+winClipboardWindowDestroy(void)
+{
+  if (g_hwndClipboard) {
+    /* Synchronously destroy the clipboard window */
+    winDebug("winClipboardProc - Destroy Windows window\n");
+    SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
   }
 }
 
@@ -303,9 +316,10 @@ winClipboardProc(void *pvNotUsed)
     g_iClipboardWindow = iWindow;
 
     /* Create Windows messaging window */
+    // XXX: pass g_pClipboardConn and g_iClipboardWindow down here to make them available to wndproc
     hwnd = winClipboardCreateMessagingWindow();
 
-    /* Save copy of HWND in screen privates */
+    /* Save copy of HWND */
     g_hwndClipboard = hwnd;
 
     /* Assert ownership of PRIMARY and CLIPBOARD selections if Win32 clipboard is owned */
@@ -432,10 +446,7 @@ winClipboardProc(void *pvNotUsed)
  winClipboardProc_Done:
     /* Close our Windows window */
     if (g_hwndClipboard) {
-        /* Destroy the Window window (hwnd) */
-        winDebug("winClipboardProc - Destroy Windows window\n");
-        PostMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
-        winClipboardFlushWindowsMessageQueue(g_hwndClipboard);
+      winClipboardWindowDestroy();
     }
 
     /* Close our X window */
@@ -461,7 +472,6 @@ winClipboardProc(void *pvNotUsed)
     }
 
     /* global clipboard variable reset */
-    g_fClipboardLaunched = FALSE;
     g_fClipboardStarted = FALSE;
     g_iClipboardWindow = None;
     g_pClipboardConn = NULL;

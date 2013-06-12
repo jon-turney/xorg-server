@@ -45,19 +45,6 @@
 DISPATCH_PROC(winProcEstablishConnection);
 
 /*
- * References to external symbols
- */
-
-extern unsigned int g_uiAuthDataLen;
-extern char *g_pAuthData;
-extern Bool g_fClipboardLaunched;
-extern Bool g_fClipboardStarted;
-extern Bool g_fClipboard;
-extern Window g_iClipboardWindow;
-extern HWND g_hwndClipboard;
-
-
-/*
  * Wrapper for internal EstablishConnection function.
  * Initializes internal clients that must not be started until
  * an external client has connected.
@@ -119,13 +106,6 @@ winProcEstablishConnection(ClientPtr client)
 
     /* Clear original function pointer */
     winProcEstablishConnectionOrig = NULL;
-
-    /* If the clipboard client has already been started, abort */
-    if (g_fClipboardLaunched) {
-        ErrorF("winProcEstablishConnection - Clipboard client already "
-               "launched, returning.\n");
-        return iReturn;
-    }
 
     /* Startup the clipboard client if clipboard mode is being used */
     if (g_fClipboard) {
