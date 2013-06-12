@@ -13,6 +13,7 @@ AM_CFLAGS = -DHAVE_XWIN_CONFIG_H \
             -I$(top_srcdir) -I$(srcdir)/..
 
 libXWinclip_la_LDFLAGS = -static -no-undefined
+libXWinclip_la_LIBADD = $(LTLIBICONV)
 
 #bin_PROGRAMS = xwinclip
 #

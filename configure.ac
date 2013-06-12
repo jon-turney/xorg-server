@@ -31,6 +31,7 @@ RELEASE_DATE="2013-03-05"
 RELEASE_NAME="Keemun Mao Feng"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_ICONV
 
 # Require xorg-macros minimum of 1.14 for XORG_COMPILER_BRAND in XORG_DEFAULT_OPTIONS
 m4_ifndef([XORG_MACROS_VERSION],
