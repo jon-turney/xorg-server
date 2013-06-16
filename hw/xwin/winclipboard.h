@@ -106,6 +106,12 @@ BOOL winClipboardFlushWindowsMessageQueue(HWND hwnd);
 LRESULT CALLBACK
 winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+typedef struct
+{
+  Display *pClipboardDisplay;
+  Window iClipboardWindow;
+} ClipboardWindowCreationParams;
+
 /*
  * winclipboardxevents.c
  */
