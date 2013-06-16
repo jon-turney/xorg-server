@@ -47,6 +47,9 @@
 #define WIN_CONNECT_RETRIES			40
 #define WIN_CONNECT_DELAY			4
 
+#define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
+#define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
+
 extern winSetAuthorization(void);
 extern void winGetDisplayName(char *szDisplay, unsigned int screen);
 
@@ -75,6 +78,9 @@ int xfixes_error_base;
 /*
  * Local function prototypes
  */
+
+static HWND
+winClipboardCreateMessagingWindow(void);
 
 static int
  winClipboardErrorHandler(Display * pDisplay, XErrorEvent * pErr);
@@ -435,6 +441,55 @@ winClipboardProc(void *pvNotUsed)
     g_hwndClipboard = NULL;
 
     return NULL;
+}
+
+/*
+ * Create the Windows window that we use to recieve Windows messages
+ */
+
+static HWND
+winClipboardCreateMessagingWindow(void)
+{
+    WNDCLASSEX wc;
+    HWND hwnd;
+
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winClipboardWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hIcon = 0;
+    wc.hCursor = 0;
+    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
+    wc.hIconSm = 0;
+    RegisterClassEx(&wc);
+
+    /* Create the window */
+    hwnd = CreateWindowExA(0,   /* Extended styles */
+                           WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
+                           WIN_CLIPBOARD_WINDOW_TITLE,  /* Window name */
+                           WS_OVERLAPPED,       /* Not visible anyway */
+                           CW_USEDEFAULT,       /* Horizontal position */
+                           CW_USEDEFAULT,       /* Vertical position */
+                           CW_USEDEFAULT,       /* Right edge */
+                           CW_USEDEFAULT,       /* Bottom edge */
+                           (HWND) NULL, /* No parent or owner window */
+                           (HMENU) NULL,        /* No menu */
+                           GetModuleHandle(NULL),       /* Instance handle */
+                           NULL);       /* Creation data */
+    assert(hwnd != NULL);
+
+    /* I'm not sure, but we may need to call this to start message processing */
+    ShowWindow(hwnd, SW_HIDE);
+
+    /* Similarly, we may need a call to this even though we don't paint */
+    UpdateWindow(hwnd);
+
+    return hwnd;
 }
 
 /*
