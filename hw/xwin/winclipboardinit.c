@@ -36,7 +36,7 @@
 #include <pthread.h>
 
 #include "os.h"
-#include "winclipboard.h"
+#include "winclipboard/winclipboard.h"
 
 #define WIN_CLIPBOARD_RETRIES			40
 #define WIN_CLIPBOARD_DELAY			1

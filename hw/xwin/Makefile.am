@@ -3,12 +3,9 @@ bin_PROGRAMS = XWin
 if XWIN_CLIPBOARD
 SRCS_CLIPBOARD = \
 	winclipboardinit.c \
-	winclipboardtextconv.c \
-	winclipboardthread.c \
-	winclipboardwndproc.c \
-	winclipboardwrappers.c \
-	winclipboardxevents.c
+	winclipboardwrappers.c
 DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
+CLIPBOARD_LIBS = $(top_builddir)/hw/xwin/winclipboard/libXWinclipboard.la
 endif
 
 if XWIN_GLX_WINDOWS
@@ -111,7 +108,6 @@ SRCS =	InitInput.c \
 	winwindow.c \
 	winwndproc.c \
 	ddraw.h \
-	winclipboard.h \
 	winconfig.h \
 	win.h \
 	winglobals.h \
@@ -157,7 +153,7 @@ XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la
 
 XWin_DEPENDENCIES = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS)
 XWin_LDADD =        $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) \
-                    $(XWIN_GLX_SYS_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) $(MULTIWINDOW_SYS_LIBS)
+                    $(CLIPBOARD_LIBS) $(XWIN_GLX_SYS_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) $(MULTIWINDOW_SYS_LIBS)
 XWin_LDFLAGS = -mwindows -static
 
 .rc.o:
@@ -193,5 +189,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) wmutil .
+SUBDIRS = man $(GLX_DIR) wmutil winclipboard .
 DIST_SUBDIRS = man glx .
