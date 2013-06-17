@@ -49,7 +49,6 @@ extern void winGetDisplayName(char *szDisplay, unsigned int screen);
  */
 
 extern Bool g_fClipboard;
-extern HWND g_hwndClipboard;
 extern Bool g_fClipboardStarted;
 
 /*
@@ -135,12 +134,7 @@ winClipboardShutdown(void)
   /* Close down clipboard resources */
   if (g_fClipboard && g_fClipboardStarted) {
     /* Synchronously destroy the clipboard window */
-    if (g_hwndClipboard != NULL) {
-      SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
-      /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
-    }
-    else
-      return;
+    winClipboardWindowDestroy();
 
     /* Wait for the clipboard thread to exit */
     pthread_join(g_ptClipboardProc, NULL);
@@ -151,10 +145,3 @@ winClipboardShutdown(void)
   }
 }
 
-void
-winFixClipboardChain(void)
-{
-    if (g_fClipboard && g_hwndClipboard) {
-        PostMessage(g_hwndClipboard, WM_WM_REINIT, 0, 0);
-    }
-}
