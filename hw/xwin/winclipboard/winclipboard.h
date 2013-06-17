@@ -95,7 +95,7 @@ void
  * winclipboardthread.c
  */
 
-void *winClipboardProc(char *szDisplay);
+Bool winClipboardProc(char *szDisplay);
 
 void
 winClipboardWindowDestroy(void);
