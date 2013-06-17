@@ -50,9 +50,6 @@
 #define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
 #define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
 
-extern winSetAuthorization(void);
-extern void winGetDisplayName(char *szDisplay, unsigned int screen);
-
 /*
  * References to external symbols
  */
@@ -91,7 +88,7 @@ static int
  */
 
 void *
-winClipboardProc(void *pvNotUsed)
+winClipboardProc(char *szDisplay)
 {
     Atom atomClipboard;
     int iReturn;
@@ -109,7 +106,6 @@ winClipboardProc(void *pvNotUsed)
     Window iWindow = None;
     int iRetries;
     Bool fUseUnicode;
-    char szDisplay[512];
     int iSelectError;
 
     winDebug("winClipboardProc - Hello\n");
@@ -142,24 +138,8 @@ winClipboardProc(void *pvNotUsed)
         goto winClipboardProc_Done;
     }
 
-    /* Use our generated cookie for authentication */
-    winSetAuthorization();
-
     /* Initialize retry count */
     iRetries = 0;
-
-    /* Setup the display connection string x */
-    /*
-     * NOTE: Always connect to screen 0 since we require that screen
-     * numbers start at 0 and increase without gaps.  We only need
-     * to connect to one screen on the display to get events
-     * for all screens on the display.  That is why there is only
-     * one clipboard client thread.
-     */
-    winGetDisplayName(szDisplay, 0);
-
-    /* Print the display connection string */
-    ErrorF("winClipboardProc - DISPLAY=%s\n", szDisplay);
 
     /* Open the X display */
     do {
