@@ -79,9 +79,6 @@ static int
 static int
  winClipboardIOErrorHandler(Display * pDisplay);
 
-static void
-winClipboardThreadExit(void *arg);
-
 /*
  * Main thread function
  */
@@ -107,8 +104,6 @@ winClipboardProc(void *pvNotUsed)
     Bool fUseUnicode;
     char szDisplay[512];
     int iSelectError;
-
-    pthread_cleanup_push(&winClipboardThreadExit, NULL);
 
     winDebug("winClipboardProc - Hello\n");
     ++clipboardRestarts;
@@ -452,7 +447,6 @@ winClipboardProc(void *pvNotUsed)
         raise(SIGTERM);
     }
 
-    pthread_cleanup_pop(0);
     return NULL;
 }
 
@@ -490,15 +484,4 @@ winClipboardIOErrorHandler(Display * pDisplay)
         g_winClipboardOldIOErrorHandler(pDisplay);
 
     return 0;
-}
-
-/*
- * winClipboardThreadExit - Thread exit handler
- */
-
-static void
-winClipboardThreadExit(void *arg)
-{
-    /* clipboard thread has exited, stop server as well */
-    kill(getpid(), SIGTERM);
 }
