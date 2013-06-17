@@ -55,7 +55,6 @@
  */
 
 extern Bool g_fUnicodeClipboard;
-extern Bool g_fClipboard;
 
 /*
  * Global variables
@@ -84,10 +83,12 @@ static int
  winClipboardIOErrorHandler(Display * pDisplay);
 
 /*
- * Main thread function
+ * Create X11 and Win32 messaging windows, and run message processing loop
+ *
+ * returns TRUE if shutdown was signalled to loop, FALSE if some error occurred
  */
 
-void *
+Bool
 winClipboardProc(char *szDisplay)
 {
     Atom atomClipboard;
@@ -107,6 +108,7 @@ winClipboardProc(char *szDisplay)
     int iRetries;
     Bool fUseUnicode;
     int iSelectError;
+    Bool fShutdown = FALSE;
 
     winDebug("winClipboardProc - Hello\n");
 
@@ -362,8 +364,8 @@ winClipboardProc(char *szDisplay)
     }
 
  winClipboardProc_Exit:
-    /* disable the clipboard, which means the thread will die */
-    g_fClipboard = FALSE;
+    /* broke out of while loop on a shutdown message */
+    fShutdown = TRUE;
 
  winClipboardProc_Done:
     /* Close our Windows window */
@@ -407,7 +409,7 @@ winClipboardProc(char *szDisplay)
     /* global clipboard variable reset */
     g_hwndClipboard = NULL;
 
-    return NULL;
+    return fShutdown;
 }
 
 /*
