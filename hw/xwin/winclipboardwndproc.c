@@ -53,7 +53,6 @@ extern void winFixClipboardChain(void);
  * References to external symbols
  */
 
-extern Bool g_fUseUnicode;
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
 extern Atom g_atomLastOwnedSelection;
