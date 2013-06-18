@@ -117,10 +117,16 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     winDebug("winClipboardProc - Hello\n");
 
     /* Set error handler */
-    XSetErrorHandler(winClipboardErrorHandler);
+    static Bool fErrorHandlerSet = FALSE;
+
     g_winClipboardProcThread = pthread_self();
-    g_winClipboardOldIOErrorHandler =
-        XSetIOErrorHandler(winClipboardIOErrorHandler);
+
+    if (! fErrorHandlerSet) {
+      XSetErrorHandler(winClipboardErrorHandler);
+      g_winClipboardOldIOErrorHandler =
+         XSetIOErrorHandler(winClipboardIOErrorHandler);
+      fErrorHandlerSet = TRUE;
+    }
 
     /* Set jump point for Error exits */
     if (setjmp(g_jmpEntry)) {
