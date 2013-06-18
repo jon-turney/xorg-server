@@ -38,7 +38,6 @@
 #include <X11/Xwindows.h>
 
 #define WIN_XEVENTS_SUCCESS			0
-#define WIN_XEVENTS_SHUTDOWN			1
 #define WIN_XEVENTS_CONVERT			2
 #define WIN_XEVENTS_NOTIFY			3
 

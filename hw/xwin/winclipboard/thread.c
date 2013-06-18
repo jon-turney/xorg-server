@@ -301,14 +301,8 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
                 ("winClipboardProc - X connection ready, pumping X event queue\n");
 
             /* Process X events */
-            /* Exit when we see that server is shutting down */
-            iReturn = winClipboardFlushXEvents(hwnd,
-                                               iWindow, pDisplay, fUseUnicode, &atoms);
-            if (WIN_XEVENTS_SHUTDOWN == iReturn) {
-                ErrorF("winClipboardProc - winClipboardFlushXEvents "
-                       "trapped shutdown event, exiting main loop.\n");
-                break;
-            }
+            winClipboardFlushXEvents(hwnd,
+                                     iWindow, pDisplay, fUseUnicode, &atoms);
         }
 
 #ifdef HAS_DEVWINDOWS
