@@ -98,7 +98,7 @@ typedef struct
 
 int
 winClipboardFlushXEvents(HWND hwnd,
-                         int iWindow, Display * pDisplay, Bool fUnicodeSupport, ClipboardAtoms *atom);
+                         Window iWindow, Display * pDisplay, Bool fUnicodeSupport, ClipboardAtoms *atom);
 
 
 Atom
