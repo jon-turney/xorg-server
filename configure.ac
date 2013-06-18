@@ -82,6 +82,16 @@ AC_PROG_YACC
 AC_SYS_LARGEFILE
 XORG_PROG_RAWCPP
 
+dnl we really need yacc and lex to build tarballs made by cygport directly from a git tag not 'make dist'
+AC_PATH_PROG(YACC_INST, $YACC)
+if test -z "$YACC_INST"; then
+   AC_MSG_ERROR([yacc not found])
+fi
+AC_PATH_PROG(LEX_INST, $LEX)
+if test -z "$LEX_INST"; then
+   AC_MSG_ERROR([lex not found])
+fi
+
 # Quoted so that make will expand $(CWARNFLAGS) in makefiles to allow
 # easier overrides at build time.
 XSERVER_CFLAGS='$(CWARNFLAGS)'
