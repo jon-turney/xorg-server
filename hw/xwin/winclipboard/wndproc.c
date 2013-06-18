@@ -312,7 +312,8 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             winDebug("winClipboardWindowProc: %d formats\n",
                      CountClipboardFormats());
-            {
+
+            if (OpenClipboard(hwnd)) {
                 unsigned int format = 0;
 
                 do {
@@ -332,7 +333,13 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     else if (format > 0)
                         winDebug("winClipboardWindowProc: %d\n", format);
                 } while (format != 0);
+                CloseClipboard();
             }
+            else {
+                winDebug
+                    ("WindowProc: could not open clipboard to enumerate formats\n");
+            }
+
             /*
              * We need to make sure that the X Server has processed
              * previous XSetSelectionOwner messages.
