@@ -86,7 +86,7 @@ static int
 void *
 winClipboardProc(void *pvNotUsed)
 {
-    Atom atomClipboard, atomClipboardManager;
+    Atom atomClipboard;
     int iReturn;
     HWND hwnd = NULL;
     int iConnectionNumber = 0;
@@ -201,7 +201,6 @@ winClipboardProc(void *pvNotUsed)
 
     /* Create atoms */
     atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
-    atomClipboardManager = XInternAtom(pDisplay, "CLIPBOARD_MANAGER", False);
 
     /* Create a messaging window */
     iWindow = XCreateSimpleWindow(pDisplay,
