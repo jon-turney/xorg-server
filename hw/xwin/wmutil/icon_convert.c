@@ -260,6 +260,10 @@ NetWMToWinIconAlpha(uint32_t * icon)
                                    DIB_RGB_COLORS, (void **) &DIB_pixels, NULL,
                                    0);
     ReleaseDC(NULL, hdc);
+
+    if (!ii.hbmColor)
+      return NULL;
+
     ii.hbmMask = CreateBitmap(width, height, 1, 1, NULL);
     memcpy(DIB_pixels, pixels, height * width * 4);
 
@@ -370,7 +374,7 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
     unsigned char *mask, *image = NULL, *imageMask;
     unsigned char *dst, *src;
     int planes, bpp, i;
-    int biggest_size = 0;
+    unsigned int biggest_size = 0;
     HDC hDC;
     ICONINFO ii;
     xcb_icccm_wm_hints_t hints;
@@ -381,9 +385,6 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
     static int generation;
     uint32_t *icon, *icon_data = NULL;
     unsigned long int size;
-    unsigned long int type;
-    int format;
-    unsigned long int left;
 
     hDC = GetDC(GetDesktopWindow());
     planes = GetDeviceCaps(hDC, PLANES);
@@ -416,10 +417,24 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
         size = xcb_get_property_value_length(reply)/sizeof(uint32_t);
         for (icon = icon_data; icon < &icon_data[size] && *icon;
              icon = &icon[icon[0] * icon[1] + 2]) {
-            /* Find an exact match to the size we require...  */
+            winDebug("winXIconToHICON: %u x %u NetIcon\n", icon[0], icon[1]);
+
+            /* Icon data size may overflow an int and thus is bigger than the
+               property can possibly be */
+            if ((icon[0] > 0xFFFF) || (icon[1] > 0xFFFF)) {
+              winDebug("winXIconToHICON: malformed _NET_WM_ICON data\n");
+              break;
+            }
+
+            /* Icon data size is bigger than amount of data remaining */
+            if (&icon[icon[0] * icon[1] + 2] > &icon_data[size]) {
+              winDebug("winXIconToHICON: malformed _NET_WM_ICON data\n");
+              break;
+            }
+
+            /* Found an exact match to the size we require...  */
             if (icon[0] == iconSize && icon[1] == iconSize) {
-                winDebug("winXIconToHICON: found %lu x %lu NetIcon\n", icon[0],
-                         icon[1]);
+                winDebug("winXIconToHICON: selected %d x %d NetIcon\n", iconSize);
                 hIcon = NetWMToWinIcon(bpp, icon);
                 break;
             }
@@ -432,7 +447,7 @@ winXIconToHICON(xcb_connection_t *conn, xcb_window_t id, int iconSize)
 
         if (!hIcon && biggest_icon) {
             winDebug
-                ("winXIconToHICON: selected %lu x %lu NetIcon for scaling to %u x %u\n",
+                ("winXIconToHICON: selected %u x %u NetIcon for scaling to %d x %d\n",
                  biggest_icon[0], biggest_icon[1], iconSize, iconSize);
 
             hIcon = NetWMToWinIcon(bpp, biggest_icon);

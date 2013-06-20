@@ -82,6 +82,16 @@ AC_PROG_YACC
 AC_SYS_LARGEFILE
 XORG_PROG_RAWCPP
 
+dnl we really need yacc and lex to build tarballs made by cygport directly from a git tag not 'make dist'
+AC_PATH_PROG(YACC_INST, $YACC)
+if test -z "$YACC_INST"; then
+   AC_MSG_ERROR([yacc not found])
+fi
+AC_PATH_PROG(LEX_INST, $LEX)
+if test -z "$LEX_INST"; then
+   AC_MSG_ERROR([lex not found])
+fi
+
 # Quoted so that make will expand $(CWARNFLAGS) in makefiles to allow
 # easier overrides at build time.
 XSERVER_CFLAGS='$(CWARNFLAGS)'
@@ -1937,6 +1947,10 @@ if test "x$XWIN" = xyes; then
 
 dnl XWin with AIGLX requires OpenGL spec files in order to generate wrapper code for native GL functions
 	if [test "x$XWIN" = xyes && test "x$AIGLX" = xyes] ; then
+           AC_CHECK_PROG(PYTHON, python, python)
+           if test -z "$PYTHON"; then
+                AC_MSG_ERROR([python not found])
+           fi
            if test "x$KHRONOS_SPEC_DIR" = "xauto" ; then
 		PKG_CHECK_MODULES([KHRONOS_OPENGL_REGISTRY], [khronos-opengl-registry])
 		KHRONOS_SPEC_DIR=`pkg-config khronos-opengl-registry --variable=specdir`
