@@ -1906,7 +1906,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau x11-xcb xcb-image xcb-icccm])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes x11-xcb xcb-image xcb-icccm])
 
 	if test "x$WINDOWSWM" = xauto; then
 		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
@@ -2313,6 +2313,7 @@ hw/xwin/Makefile
 hw/xwin/glx/Makefile
 hw/xwin/man/Makefile
 hw/xwin/wmutil/Makefile
+hw/xwin/winclipboard/Makefile
 hw/xquartz/Makefile
 hw/xquartz/GL/Makefile
 hw/xquartz/bundle/Makefile
