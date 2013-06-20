@@ -37,9 +37,9 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+#include <X11/Xatom.h>
+
 #include "internal.h"
-#include "misc.h"
-#include "winmsg.h"
 #include "winclipboard.h"
 
 /*
@@ -527,7 +527,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
  * Process any pending Windows messages
  */
 
-BOOL
+Bool
 winClipboardFlushWindowsMessageQueue(HWND hwnd)
 {
     MSG msg;
