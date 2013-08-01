@@ -38,6 +38,16 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
+/*
+ * Including any server header might define the macro _XSERVER64 on 64 bit machines.
+ * That macro must _NOT_ be defined for Xlib client code, otherwise bad things happen.
+ * So let's undef that macro if necessary.
+ */
+#ifdef _XSERVER64
+#undef _XSERVER64
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -61,8 +71,6 @@
 #include "winwindow.h"
 #include "winprefs.h"
 #include "window.h"
-#include "pixmapstr.h"
-#include "windowstr.h"
 #include "winglobals.h"
 #include "winmultiwindowicons.h"
 
@@ -84,6 +92,7 @@ extern void winUpdateRgnMultiWindow(WindowPtr pWin);
 extern void winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
 extern void winSetAuthorization(void);
 extern void winGetDisplayName(char *szDisplay, unsigned int screen);
+extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 #ifndef CYGDEBUG
 #define CYGDEBUG NO
@@ -203,9 +212,6 @@ static void
 
 static void
  winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
-
-void
- winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -536,27 +542,7 @@ IsWmProtocolAvailable(Display * pDisplay, Window iWindow, Atom atmProtocol)
 static int
 SendXMessage(Display * pDisplay, Window iWin, Atom atmType, long nData)
 {
-#ifdef __x86_64__
-    union {
-        int type;
-        struct {
-          int type;
-          unsigned long serial;
-          Bool send_event;
-          Display *display;
-          unsigned long window;
-          unsigned long message_type;
-          int format;
-          union {
-                char b[20];
-                short s[10];
-                long l[5];
-                } data;
-        } xclient;
-    } e;
-#else
     XEvent e;
-#endif
 
     /* Prepare the X event structure */
     memset(&e, 0, sizeof(e));
@@ -1985,58 +1971,4 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     winDebug
         ("winApplyHints: iWindow 0x%08x hints 0x%08x style 0x%08x exstyle 0x%08x\n",
          iWindow, hint, style, exStyle);
-}
-
-void
-winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
-{
-    int iX, iY, iWidth, iHeight;
-    int iDx, iDy;
-    RECT rcNew;
-    WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
-    DrawablePtr pDraw = NULL;
-
-    if (!pWin)
-        return;
-    pDraw = &pWin->drawable;
-    if (!pDraw)
-        return;
-
-    /* Get the X and Y location of the X window */
-    iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
-    iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
-
-    /* Get the height and width of the X window */
-    iWidth = pWin->drawable.width;
-    iHeight = pWin->drawable.height;
-
-    /* Setup a rectangle with the X window position and size */
-    SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
-
-    winDebug("winUpdateWindowPosition - drawable extent (%d, %d)-(%d, %d)\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
-
-    AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
-                       GetWindowLongPtr(hWnd, GWL_EXSTYLE));
-
-    /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
-    if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN)) {
-        iDx = GetSystemMetrics(SM_XVIRTUALSCREEN) - rcNew.left;
-        rcNew.left += iDx;
-        rcNew.right += iDx;
-    }
-
-    if (rcNew.top < GetSystemMetrics(SM_YVIRTUALSCREEN)) {
-        iDy = GetSystemMetrics(SM_YVIRTUALSCREEN) - rcNew.top;
-        rcNew.top += iDy;
-        rcNew.bottom += iDy;
-    }
-
-    winDebug("winUpdateWindowPosition - Window extent (%d, %d)-(%d, %d)\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
-
-    /* Position the Windows window */
-    SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,
-                 rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
-
 }
