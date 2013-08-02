@@ -84,7 +84,7 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
     HDC hDC;
     BITMAPV4HEADER bi;
     BITMAPINFO *pbmi;
-    unsigned long *lpBits;
+    uint32_t *lpBits;
 
     int sm_cx = GetSystemMetrics(SM_CXCURSOR);
     int sm_cy = GetSystemMetrics(SM_CYCURSOR);
@@ -144,15 +144,14 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
         bi.bV4AlphaMask = 0xFF000000;
 
         lpBits =
-            (unsigned long *) calloc(sm_cx *
+            (uint32_t *) calloc(sm_cx *
                                      sm_cy,
-                                     sizeof(unsigned long));
+                                     sizeof(uint32_t));
 
         if (lpBits) {
             int y;
             for (y = 0; y < nCY; y++) {
-                unsigned long *src, *dst;
-
+                void *src, *dst;
                 src = &(pCursor->argb[y * pCursor->width]);
                 dst = &(lpBits[y * sm_cx]);
                 memcpy(dst, src, 4 * nCX);
@@ -231,7 +230,7 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
         pbmiColors[2].rgbReserved = 0;
 
         lpBits =
-            (unsigned long *) calloc(sm_cx *
+            (uint32_t *) calloc(sm_cx *
                                      sm_cy, sizeof(char));
 
         pCur = (unsigned char *) lpBits;
