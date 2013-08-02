@@ -572,7 +572,7 @@ getHwnd(WMInfoPtr pWMInfo, Window iWindow)
                            iWindow,
                            pWMInfo->atmPrivMap,
                            0,
-                           1,
+                           sizeof(HWND)/4,
                            False,
                            XA_INTEGER,
                            &atmType,
@@ -836,10 +836,10 @@ winMultiWindowWMProc(void *pArg)
             ErrorF("\tWM_WM_MAP\n");
 #endif
             /* Put a note as to the HWND associated with this Window */
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
+            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
-                            (unsigned char *) &(pNode->msg.hwndWindow), 1);
+                            (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
@@ -848,10 +848,10 @@ winMultiWindowWMProc(void *pArg)
 #if CYGMULTIWINDOW_DEBUG
             ErrorF("\tWM_WM_MAP2\n");
 #endif
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
+            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
-                            (unsigned char *) &(pNode->msg.hwndWindow), 1);
+                            (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             break;
 
         case WM_WM_MAP3:
@@ -859,10 +859,10 @@ winMultiWindowWMProc(void *pArg)
             ErrorF("\tWM_WM_MAP3\n");
 #endif
             /* Put a note as to the HWND associated with this Window */
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
+            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
-                            (unsigned char *) &(pNode->msg.hwndWindow), 1);
+                            (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             UpdateStyle(pWMInfo, pNode->msg.iWindow);
