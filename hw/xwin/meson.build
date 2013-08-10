@@ -107,7 +107,10 @@ srcs_windows += [
     '../../mi/miinitext.h',
 ]
 
-rsrc = windows.compile_resources('XWin.rc', include_directories: include_directories('../../include/'))
+rsrc = windows.compile_resources(
+     'XWin.rc',
+     args: ['--use-temp-file', '-DHOST="@0@-@1@"'.format(host_machine.system(), host_machine.cpu_family())],
+     include_directories: include_directories('../../include/'))
 srcs_windows += rsrc
 
 flex = find_program('flex')
