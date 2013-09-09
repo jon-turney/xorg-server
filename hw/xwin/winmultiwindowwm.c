@@ -1553,6 +1553,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                     pWMInfo->ewmh._NET_WM_STATE_ABOVE,
                     pWMInfo->ewmh._NET_WM_STATE_BELOW,
                     pWMInfo->ewmh._NET_WM_STATE_SKIP_TASKBAR,
+                    pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT,
+                    pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ,
                 };
 
             xcb_ewmh_set_supported(&pWMInfo->ewmh, pProcArg->dwScreen,
@@ -1770,6 +1772,8 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         int i;
         int nitems = xcb_get_property_value_length(reply)/sizeof(xcb_atom_t);
         xcb_atom_t *pAtom = xcb_get_property_value(reply);
+        Bool verMax = FALSE;
+        Bool horMax = FALSE;
 
             for (i = 0; i < nitems; i++) {
                 if (pAtom[i] == skiptaskbarState)
@@ -1782,7 +1786,14 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
                     *zstyle = HWND_BOTTOM;
                 else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
+                if (pAtom[i] == pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT)
+                  verMax = TRUE;
+                if (pAtom[i] == pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ)
+                  horMax = TRUE;
             }
+
+            if (verMax && horMax)
+              maxmin |= HINT_MAX;
 
             free(reply);
       }
