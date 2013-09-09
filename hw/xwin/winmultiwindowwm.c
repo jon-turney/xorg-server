@@ -1732,7 +1732,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 {
     static Atom windowState, motif_wm_hints, windowType;
     static Atom hiddenState, fullscreenState, belowState, aboveState,
-        skiptaskbarState;
+        skiptaskbarState, vertMaxState, horzMaxState;
     static Atom dockWindow;
     static int generation;
     Atom type, *pAtom = NULL;
@@ -1759,12 +1759,17 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         dockWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
         skiptaskbarState =
             XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
+        vertMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+        horzMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
     }
 
     if (XGetWindowProperty(pDisplay, iWindow, windowState, 0L,
                            MAXINT, False, XA_ATOM, &type, &format,
                            &nitems, &left,
                            (unsigned char **) &pAtom) == Success) {
+        Bool verMax = FALSE;
+        Bool horMax = FALSE;
+
         if (pAtom ) {
             unsigned long i;
 
@@ -1779,7 +1784,14 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
                     *zstyle = HWND_BOTTOM;
                 else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
+                if (pAtom[i] == vertMaxState)
+                  verMax = TRUE;
+                if (pAtom[i] == horzMaxState)
+                  horMax = TRUE;
             }
+
+            if (verMax && horMax)
+              maxmin |= HINT_MAX;
 
             XFree(pAtom);
         }
