@@ -157,7 +157,7 @@ XWin_LDADD =        $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS
 XWin_LDFLAGS = -mwindows -static
 
 .rc.o:
-	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
+	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DHOST_TRIPLET=\"$(host)\"
 
 XWin.o: XWin.rc XWin.exe.manifest X.ico
 
