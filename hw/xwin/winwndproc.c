@@ -1230,6 +1230,12 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
 #endif
 
+#ifdef XWIN_CLIPBOARD
+        case ID_APP_MONITOR_PRIMARY:
+          fPrimarySelection = !fPrimarySelection;
+          return 0;
+#endif
+
         case ID_APP_ABOUT:
             /* Display the About box */
             winDisplayAboutDialog(s_pScreenPriv);

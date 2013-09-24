@@ -43,11 +43,13 @@
 #undef _XSERVER64
 #endif
 
-#include "internal.h"
 #include <limits.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/Xfixes.h>
+
+#include "winclipboard.h"
+#include "internal.h"
 
 /*
  * Constants
@@ -63,6 +65,7 @@
  */
 
 extern int xfixes_event_base;
+int fPrimarySelection = 1;
 
 /*
  * Local variables
@@ -809,7 +812,7 @@ winClipboardFlushXEvents(HWND hwnd,
                 winDebug("winClipboardFlushXEvents - XFixesSetSelectionOwnerNotify\n");
 
                 /* Save selection owners for monitored selections, ignore other selections */
-                if (e->selection == XA_PRIMARY) {
+                if ((e->selection == XA_PRIMARY) && fPrimarySelection) {
                     MonitorSelection(e, CLIP_OWN_PRIMARY);
                 }
                 else if (e->selection == atomClipboard) {
