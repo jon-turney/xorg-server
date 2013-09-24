@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.14.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2013-03-05"
-RELEASE_NAME="Keemun Mao Feng"
+AC_INIT([xorg-server], 1.14.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2013-04-17"
+RELEASE_NAME="Act Normal"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
@@ -798,7 +798,7 @@ XPROTO="xproto >= 7.0.22"
 RANDRPROTO="randrproto >= 1.4.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.1.99"
-INPUTPROTO="inputproto >= 2.2.99.1"
+INPUTPROTO="inputproto >= 2.3"
 KBPROTO="kbproto >= 1.0.3"
 FONTSPROTO="fontsproto"
 FIXESPROTO="fixesproto >= 5.0"
@@ -1906,7 +1906,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau x11-xcb xcb-image xcb-icccm])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes x11-xcb xcb-image xcb-icccm])
 
 	if test "x$WINDOWSWM" = xauto; then
 		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
@@ -2319,6 +2319,7 @@ hw/xwin/Makefile
 hw/xwin/glx/Makefile
 hw/xwin/man/Makefile
 hw/xwin/wmutil/Makefile
+hw/xwin/winclipboard/Makefile
 hw/xquartz/Makefile
 hw/xquartz/GL/Makefile
 hw/xquartz/bundle/Makefile
