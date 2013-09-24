@@ -64,9 +64,6 @@ void
  * winclipboardthread.c
  */
 
-void
-winClipboardWindowDestroy(void);
-
 typedef struct
 {
     Atom atomClipboard;
