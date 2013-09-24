@@ -112,6 +112,8 @@ winClipboardGetLastOwnedSelectionAtom(ClipboardAtoms *atoms)
     if (lastOwnedSelectionIndex == CLIP_OWN_NONE)
         return None;
 
+    winDebug("GetLastOwnedSelectionAtom: selection %s owned by XID %x\n", szSelectionNames[lastOwnedSelectionIndex], s_iOwners[lastOwnedSelectionIndex]);
+
     if (lastOwnedSelectionIndex == CLIP_OWN_PRIMARY)
         return XA_PRIMARY;
 
@@ -182,12 +184,14 @@ winClipboardFlushXEvents(HWND hwnd,
         {
             char *pszAtomName = NULL;
 
-            winDebug("SelectionRequest - target %d\n",
-                     event.xselectionrequest.target);
+            pszAtomName = XGetAtomName(pDisplay,
+                                       event.xselectionrequest.selection);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Selection: %s\n", pszAtomName);
+            XFree(pszAtomName);
 
             pszAtomName = XGetAtomName(pDisplay,
                                        event.xselectionrequest.target);
-            winDebug("SelectionRequest - Target atom name %s\n", pszAtomName);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Target %d = %s\n", event.xselectionrequest.target, pszAtomName);
             XFree(pszAtomName);
             pszAtomName = NULL;
         }
@@ -209,7 +213,7 @@ winClipboardFlushXEvents(HWND hwnd,
                     atomUTF8String,
                     XA_STRING
                 };
-                winDebug("SelectionRequest - populating targets\n");
+                winDebug("winClipboardFlushXEvents - SelectionRequest - populating targets\n");
 
                 /* Try to change the property */
                 iReturn = XChangeProperty(pDisplay,
@@ -455,7 +459,7 @@ winClipboardFlushXEvents(HWND hwnd,
              * client when we abort.
              */
             if (fAbort) {
-                winDebug("SelectionRequest - aborting\n");
+                winDebug("winClipboardFlushXEvents - SelectionRequest - aborting\n");
                 /* Setup selection notify event */
                 eventSelection.type = SelectionNotify;
                 eventSelection.send_event = True;
@@ -775,7 +779,7 @@ winClipboardFlushXEvents(HWND hwnd,
             return WIN_XEVENTS_NOTIFY;
 
         case SelectionClear:
-            winDebug("SelectionClear - doing nothing\n");
+            winDebug("winClipboardFlushXEvents - SelectionClear - doing nothing\n");
             break;
 
         case PropertyNotify:
@@ -783,8 +787,9 @@ winClipboardFlushXEvents(HWND hwnd,
             char *pszAtomName;
 
             pszAtomName = XGetAtomName(pDisplay, event.xproperty.atom);
-            winDebug("winClipboardFlushXEvents - PropertyNotify - ATOM: %s\n",
-                     pszAtomName);
+            winDebug("winClipboardFlushXEvents - PropertyNotify - ATOM: %s %s\n",
+                     pszAtomName,
+                     event.xproperty.state == PropertyNewValue ? "PropertyNewValue" : "PropertyDelete");
             XFree(pszAtomName);
         }
             break;
