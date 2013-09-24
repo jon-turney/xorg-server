@@ -561,7 +561,7 @@ winClipboardFlushXEvents(HWND hwnd,
             char *pszAtomName;
 
             pszAtomName = XGetAtomName(pDisplay, event.xproperty.atom);
-            winDebug("winClipboardFlushXEvents - PropertyNotify - ATOM: %s\n",
+            winDebug("winClipboardFlushXEvents - SelectionNotify - ATOM: %s\n",
                      pszAtomName);
             XFree(pszAtomName);
         }
@@ -578,12 +578,12 @@ winClipboardFlushXEvents(HWND hwnd,
                                          &xtpText.nitems,
                                          &ulReturnBytesLeft, &xtpText.value);
             if (iReturn != Success) {
-                ErrorF("winClipboardFlushXEvents - PropertyNotify - "
+                ErrorF("winClipboardFlushXEvents - SelectionNotify - "
                        "XGetWindowProperty () failed, aborting: %d\n", iReturn);
                 break;
             }
 
-            winDebug("PropertyNotify - returned data %d left %d\n",
+            winDebug("SelectionNotify - returned data %d left %d\n",
                      xtpText.nitems, ulReturnBytesLeft);
 
             /* Request the selection data */
@@ -599,7 +599,7 @@ winClipboardFlushXEvents(HWND hwnd,
                                          &xtpText.nitems,
                                          &ulReturnBytesLeft, &xtpText.value);
             if (iReturn != Success) {
-                ErrorF("winClipboardFlushXEvents - PropertyNotify - "
+                ErrorF("winClipboardFlushXEvents - SelectionNotify - "
                        "XGetWindowProperty () failed, aborting: %d\n", iReturn);
                 break;
             }
@@ -607,10 +607,10 @@ winClipboardFlushXEvents(HWND hwnd,
             {
                 char *pszAtomName = NULL;
 
-                winDebug("PropertyNotify - returned data %d left %d\n",
+                winDebug("SelectionNotify - returned data %d left %d\n",
                          xtpText.nitems, ulReturnBytesLeft);
                 pszAtomName = XGetAtomName(pDisplay, xtpText.encoding);
-                winDebug("PropertyNotify - encoding atom name %s\n",
+                winDebug("SelectionNotify -  encoding atom name %s\n",
                          pszAtomName);
                 XFree(pszAtomName);
                 pszAtomName = NULL;
@@ -645,14 +645,14 @@ winClipboardFlushXEvents(HWND hwnd,
                     }
                 }
                 else {
-                    ErrorF("winClipboardFlushXEvents - PropertyNotify - "
+                    ErrorF("winClipboardFlushXEvents - SelectionNotify - "
                            "X*TextPropertyToTextList list_return is NULL.\n");
                     pszReturnData = malloc(1);
                     pszReturnData[0] = '\0';
                 }
             }
             else {
-                ErrorF("winClipboardFlushXEvents - PropertyNotify - "
+                ErrorF("winClipboardFlushXEvents - SelectionNotify - "
                        "X*TextPropertyToTextList returned: ");
                 switch (iReturn) {
                 case XNoMemory:
@@ -693,12 +693,12 @@ winClipboardFlushXEvents(HWND hwnd,
                 pwszUnicodeStr
                     = (wchar_t *) malloc(sizeof(wchar_t) * (iUnicodeLen + 1));
                 if (!pwszUnicodeStr) {
-                    ErrorF("winClipboardFlushXEvents - PropertyNotify "
+                    ErrorF("winClipboardFlushXEvents - SelectionNotify "
                            "malloc failed for pwszUnicodeStr, aborting.\n");
 
                     /* Abort */
                     fAbort = TRUE;
-                    goto winClipboardFlushXEvents_PropertyNotify_Done;
+                    goto winClipboardFlushXEvents_SelectionNotify_Done;
                 }
 
                 /* Do the actual conversion */
@@ -723,11 +723,12 @@ winClipboardFlushXEvents(HWND hwnd,
 
             /* Check that global memory was allocated */
             if (!hGlobal) {
-                ErrorF("winClipboardFlushXEvents - PropertyNotify "
+                ErrorF("winClipboardFlushXEvents - SelectionNotify "
                        "GlobalAlloc failed, aborting: %ld\n", GetLastError());
+
                 /* Abort */
                 fAbort = TRUE;
-                goto winClipboardFlushXEvents_PropertyNotify_Done;
+                goto winClipboardFlushXEvents_SelectionNotify_Done;
             }
 
             /* Obtain a pointer to the global memory */
@@ -738,7 +739,7 @@ winClipboardFlushXEvents(HWND hwnd,
 
                 /* Abort */
                 fAbort = TRUE;
-                goto winClipboardFlushXEvents_PropertyNotify_Done;
+                goto winClipboardFlushXEvents_SelectionNotify_Done;
             }
 
             /* Copy the returned string into the global memory */
@@ -772,7 +773,7 @@ winClipboardFlushXEvents(HWND hwnd,
              * Windows after the call to SetClipboardData ().
              */
 
- winClipboardFlushXEvents_PropertyNotify_Done:
+ winClipboardFlushXEvents_SelectionNotify_Done:
             /* Free allocated resources */
             if (ppszTextList)
                 XFreeStringList(ppszTextList);
