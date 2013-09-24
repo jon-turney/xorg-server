@@ -250,7 +250,9 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
      *       because there may be events in local data structures
      *       already.
      */
-    winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode, &atoms);
+    ClipboardConversionData data;
+    data.fUseUnicode = fUseUnicode;
+    winClipboardFlushXEvents(hwnd, iWindow, pDisplay, &data, &atoms);
 
     /* Pre-flush Windows messages */
     if (!winClipboardFlushWindowsMessageQueue(hwnd)) {
@@ -317,7 +319,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
             /* Process X events */
             winClipboardFlushXEvents(hwnd,
-                                     iWindow, pDisplay, fUseUnicode, &atoms);
+                                     iWindow, pDisplay, &data, &atoms);
         }
 
 #ifdef HAS_DEVWINDOWS
