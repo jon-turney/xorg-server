@@ -48,6 +48,7 @@ from The Open Group.
 #ifdef XWIN_CLIPBOARD
 extern Bool g_fUnicodeClipboard;
 extern Bool g_fClipboard;
+#include "winclipboard/winclipboard.h"
 #endif
 
 /*
@@ -716,6 +717,26 @@ ddxProcessArgument(int argc, char *argv[], int i)
      */
     if (IS_OPTION("-noclipboard")) {
         g_fClipboard = FALSE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-primary' argument
+     */
+    if (IS_OPTION("-primary")) {
+        fPrimarySelection = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-noprimary' argument
+     */
+    if (IS_OPTION("-noprimary")) {
+        fPrimarySelection = FALSE;
 
         /* Indicate that we have processed this argument */
         return 1;
