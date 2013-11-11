@@ -125,6 +125,7 @@ Equipment Corporation.
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
+#include "selection.h"
 
 #include "privates.h"
 #include "xace.h"
@@ -3091,9 +3092,7 @@ dixSaveScreens(ClientPtr client, int on, int mode)
             DeviceIntPtr dev;
             UpdateCurrentTimeIf();
             nt_list_for_each_entry(dev, inputInfo.devices, next)
-                lastDeviceEventTime[dev->id] = currentTime;
-            lastDeviceEventTime[XIAllDevices] = currentTime;
-            lastDeviceEventTime[XIAllMasterDevices] = currentTime;
+                NoticeTime(dev, currentTime);
         }
         SetScreenSaverTimer();
     }
