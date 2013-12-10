@@ -43,35 +43,18 @@ preresolve=False
 staticwrappers=False
 nodebugcallcounting=False
 
-#exclude base WGL API
-WinGDI={key: 1 for key in [
-     "wglCopyContext"
-    ,"wglCreateContext"
-    ,"wglCreateLayerContext"
-    ,"wglDeleteContext"
-    ,"wglGetCurrentContext"
-    ,"wglGetCurrentDC"
-    ,"wglGetProcAddress"
-    ,"wglMakeCurrent"
-    ,"wglShareLists"
-    ,"wglUseFontBitmapsA"
-    ,"wglUseFontBitmapsW"
-    ,"wglUseFontBitmaps"
-    ,"SwapBuffers"
-    ,"wglUseFontOutlinesA"
-    ,"wglUseFontOutlinesW"
-    ,"wglUseFontOutlines"
-    ,"wglDescribeLayerPlane"
-    ,"wglSetLayerPaletteEntries"
-    ,"wglGetLayerPaletteEntries"
-    ,"wglRealizeLayerPalette"
-    ,"wglSwapLayerBuffers"
-    ,"wglSwapMultipleBuffers"
-    ,"ChoosePixelFormat"
-    ,"DescribePixelFormat"
-    ,"GetEnhMetaFilePixelFormat"
-    ,"GetPixelFormat"
-    ,"SetPixelFormat"
+# list of WGL extension functions we use
+used_wgl_ext_fns = {key: 1 for key in [
+    "wglSwapIntervalEXT",
+    "wglGetExtensionsStringARB",
+    "wglDestroyPbufferARB",
+    "wglGetPbufferDCARB",
+    "wglReleasePbufferDCARB",
+    "wglCreatePbufferARB",
+    "wglMakeContextCurrentARB",
+    "wglChoosePixelFormatARB",
+    "wglGetPixelFormatAttribivARB",
+    "wglGetPixelFormatAttribivARB"
 ]}
 
 if __name__ == '__main__':
@@ -191,7 +174,7 @@ class PreResolveOutputGenerator(OutputGenerator):
     def genCmd(self, cmd, name):
         OutputGenerator.genCmd(self, cmd, name)
 
-        if name in WinGDI:
+        if prefix == 'wgl' and not name in used_wgl_ext_fns:
             return
 
         self.outFile.write('RESOLVE_DECL(PFN' + name.upper() + 'PROC);\n')
@@ -225,7 +208,7 @@ class WrapperOutputGenerator(OutputGenerator):
             self.outFile.write('/* No wrapper for ' + name + ', not in dispatch table */\n')
             return
 
-        if name in WinGDI:
+        if prefix == 'wgl' and not name in used_wgl_ext_fns:
             return
 
         self.wrappers[name]=1
