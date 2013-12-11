@@ -1208,6 +1208,12 @@ winOS(void)
         if (osvi.dwMajorVersion <= 4)
             prodName = "Windows NT";
         else if (osvi.dwMajorVersion == 6) {
+            if (osvi.dwMinorVersion == 3) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 8.1";
+                else
+                    prodName = "Windows Server 2012 R2";
+            }
             if (osvi.dwMinorVersion == 2) {
                 if (osvi.wProductType == VER_NT_WORKSTATION)
                     prodName = "Windows 8";
@@ -1229,7 +1235,9 @@ winOS(void)
         }
         else if (osvi.dwMajorVersion == 5) {
             if (osvi.dwMinorVersion == 2) {
-                if (GetSystemMetrics(SM_SERVERR2))
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows XP x64 Edition";
+                else if (GetSystemMetrics(SM_SERVERR2))
                     prodName = "Windows Server 2003 R2";
                 else
                     prodName = "Windows Server 2003";
