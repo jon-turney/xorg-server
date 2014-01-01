@@ -158,6 +158,9 @@ static void *winMultiWindowWMProc(void *pArg);
 static void *winMultiWindowXMsgProc(void *pArg);
 
 static void
+winMultiWindowThreadExit(void *arg);
+
+static void
  winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg);
 
 #if 0
@@ -781,6 +784,8 @@ winMultiWindowWMProc(void *pArg)
     WMProcArgPtr pProcArg = (WMProcArgPtr) pArg;
     WMInfoPtr pWMInfo = pProcArg->pWMInfo;
 
+    pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
+
     /* Initialize the Window Manager */
     winInitMultiWindowWM(pWMInfo, pProcArg);
 
@@ -981,6 +986,7 @@ winMultiWindowWMProc(void *pArg)
             int e = xcb_connection_has_error(pWMInfo->conn);
             if (e) {
                 ErrorF("winMultiWindowWMProc - Fatal error %d on xcb connection\n", e);
+                pthread_exit(NULL);
                 break;
             }
         }
@@ -998,6 +1004,9 @@ winMultiWindowWMProc(void *pArg)
 #if CYGMULTIWINDOW_DEBUG
     ErrorF("-winMultiWindowWMProc ()\n");
 #endif
+
+    pthread_cleanup_pop(0);
+
     return NULL;
 }
 
@@ -1036,6 +1045,8 @@ winMultiWindowXMsgProc(void *pArg)
     xcb_atom_t atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints;
     int iReturn;
     xcb_auth_info_t *auth_info;
+
+    pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
 
     winDebug("winMultiWindowXMsgProc - Hello\n");
 
@@ -1164,6 +1175,7 @@ winMultiWindowXMsgProc(void *pArg)
         if (!event) { // returns NULL on I/O error
             int e = xcb_connection_has_error(pProcArg->conn);
             ErrorF("winMultiWindowXMsgProc - Fatal error %d on xcb connection\n", e);
+            pthread_exit(NULL);
             break;
         }
 
@@ -1334,7 +1346,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     xcb_disconnect(pProcArg->conn);
-    pthread_exit(NULL);
+    pthread_cleanup_pop(0);
     return NULL;
 }
 
@@ -1572,6 +1584,17 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
         memcpy(&pNode->msg, pMsg, sizeof(winWMMessageRec));
         PushMessage(&((WMInfoPtr) pWMInfo)->wmMsgQueue, pNode);
     }
+}
+
+/*
+ * winMultiWindowThreadExit - Thread exit handler
+ */
+
+static void
+winMultiWindowThreadExit(void *arg)
+{
+    /* multiwindow client thread has exited, stop server as well */
+    raise(SIGTERM);
 }
 
 /*
