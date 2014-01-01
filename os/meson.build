@@ -75,6 +75,7 @@ endif
 
 libxserver_os = static_library('libxserver_os',
     srcs_os,
+    c_args: '-DBINDIR="@0@"'.format(join_paths(get_option('prefix'), get_option('bindir'))),
     include_directories: inc,
     dependencies: [
         common_dep,
