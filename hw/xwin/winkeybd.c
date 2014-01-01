@@ -282,6 +282,19 @@ winRestoreModeKeyStates(void)
      */
 }
 
+void
+winSendKeyEventCallback(DWORD dwKey, bool fDown)
+{
+#ifdef HAS_DEVWINDOWS
+    /* Verify that the mi input system has been initialized */
+    if (g_fdMessageQueue == WIN_FD_INVALID)
+        return;
+#endif
+
+    QueueKeyboardEvents(g_pwinKeyboard, fDown ? KeyPress : KeyRelease,
+                        dwKey);
+}
+
 /*
  */
 int
