@@ -39,17 +39,6 @@
 #include <stdarg.h>
 
 void
-winVMsg(int, MessageType, int verb, const char *, va_list)
-_X_ATTRIBUTE_PRINTF(4, 0);
-
-void
-winVMsg(int scrnIndex, MessageType type, int verb, const char *format,
-        va_list ap)
-{
-    LogVMessageVerb(type, verb, format, ap);
-}
-
-void
 winDrvMsg(int scrnIndex, MessageType type, const char *format, ...)
 {
     va_list ap;
@@ -60,28 +49,8 @@ winDrvMsg(int scrnIndex, MessageType type, const char *format, ...)
 }
 
 void
-winMsg(MessageType type, const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    LogVMessageVerb(type, 1, format, ap);
-    va_end(ap);
-}
-
-void
 winDrvMsgVerb(int scrnIndex, MessageType type, int verb, const char *format,
               ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    LogVMessageVerb(type, verb, format, ap);
-    va_end(ap);
-}
-
-void
-winMsgVerb(MessageType type, int verb, const char *format, ...)
 {
     va_list ap;
 
