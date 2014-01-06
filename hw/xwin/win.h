@@ -793,7 +793,7 @@ Bool
  winInitClipboard(void);
 
 void
- winFixClipboardChain(void);
+ winClipboardShutdown(void);
 #endif
 
 /*
@@ -917,9 +917,6 @@ void
  */
 
 int
- winTranslateKey(WPARAM wParam, LPARAM lParam);
-
-int
  winKeybdProc(DeviceIntPtr pDeviceInt, int iState);
 
 void
@@ -927,20 +924,6 @@ void
 
 void
  winRestoreModeKeyStates(void);
-
-Bool
- winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
-
-void
- winKeybdReleaseKeys(void);
-
-void
- winSendKeyEvent(DWORD dwKey, Bool fDown);
-
-BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-
-void
- winFixShiftKeys(int iScanCode);
 
 /*
  * winkeyhook.c
@@ -981,14 +964,7 @@ int
  winMouseProc(DeviceIntPtr pDeviceInt, int iState);
 
 int
- winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown);
-
-void
- winMouseButtonsSendEvent(int iEventType, int iButton);
-
-int
-
-winMouseButtonsHandle(ScreenPtr pScreen,
+ winMouseButtonsHandle(ScreenPtr pScreen,
                       int iEventType, int iButton, WPARAM wParam);
 
 void
@@ -1232,6 +1208,8 @@ int
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 #endif
 
 /*

@@ -1268,7 +1268,7 @@ default routine is chosen during GC validation.
 
 <para>Note that some pointers to functions that draw to the screen are
 stored in the Screen structure.  They include GetImage(), GetSpans(),
-CopyWindow() and RestoreAreas().
+PaintWindow(), CopyWindow() and RestoreAreas().
 </para>
 </sect3>
 

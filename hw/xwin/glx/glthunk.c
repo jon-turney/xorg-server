@@ -34,10 +34,10 @@
 #include <X11/Xwindows.h>
 
 #define GL_GLEXT_LEGACY
-#include <GL/gl.h>
+#include <w32api/GL/gl.h>
 #undef GL_ARB_imaging
 #undef GL_VERSION_1_3
-#include <GL/glext.h>
+#include <w32api/GL/glext.h>
 
 static PROC
 glWinResolveHelper(PROC * cache, const char *symbol)

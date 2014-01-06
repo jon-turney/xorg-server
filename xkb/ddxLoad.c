@@ -44,6 +44,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <xkbsrv.h>
 #include <X11/extensions/XI.h>
 #include "xkb.h"
+#include "os.h"
 
         /*
          * If XKM_OUTPUT_DIR specifies a path without a leading slash, it is
@@ -104,7 +105,7 @@ XkbDDXCompileKeymapByNames(XkbDescPtr xkb,
     const char *xkbbindir = emptystring;
     const char *xkbbindirsep = emptystring;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     /* WIN32 has no popen. The input must be stored in a file which is
        used as input for xkbcomp. xkbcomp does not read from stdin. */
     char tmpname[PATH_MAX];
@@ -117,9 +118,9 @@ XkbDDXCompileKeymapByNames(XkbDescPtr xkb,
 
     OutputDirectory(xkm_output_dir, sizeof(xkm_output_dir));
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
     strcpy(tmpname, Win32TempDir());
-    strcat(tmpname, "\\xkb_XXXXXX");
+    strcat(tmpname, PATHSEPARATOR "xkb_XXXXXX");
     (void) mktemp(tmpname);
 #endif
 
@@ -158,7 +159,7 @@ XkbDDXCompileKeymapByNames(XkbDescPtr xkb,
         return FALSE;
     }
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
     out = Popen(buf, "w");
 #else
     out = fopen(tmpname, "w");
@@ -172,7 +173,7 @@ XkbDDXCompileKeymapByNames(XkbDescPtr xkb,
         }
 #endif
         XkbWriteXKBKeymapForNames(out, names, xkb, want, need);
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
         if (Pclose(out) == 0)
 #else
         if (fclose(out) == 0 && System(buf) >= 0)
@@ -184,14 +185,14 @@ XkbDDXCompileKeymapByNames(XkbDescPtr xkb,
                 strlcpy(nameRtrn, keymap, nameRtrnLen);
             }
             free(buf);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
             unlink(tmpname);
 #endif
             return TRUE;
         }
         else
             LogMessage(X_ERROR, "Error compiling keymap (%s)\n", keymap);
-#ifdef WIN32
+#if defined(WIN32) || defined(__CYGWIN__)
         /* remove the temporary file */
         unlink(tmpname);
 #endif

@@ -158,6 +158,10 @@ typedef void (*WindowExposuresProcPtr) (WindowPtr /*pWindow */ ,
                                         RegionPtr /*prgn */ ,
                                         RegionPtr /*other_exposed */ );
 
+typedef void (* PaintWindowProcPtr) (WindowPtr /*pWindow*/ ,
+                                     RegionPtr /*pRegion*/ ,
+                                     int /*what*/ );
+
 typedef void (*CopyWindowProcPtr) (WindowPtr /*pWindow */ ,
                                    DDXPointRec /*ptOldOrg */ ,
                                    RegionPtr /*prgnSrc */ );
@@ -403,6 +407,7 @@ typedef struct _Screen {
     ValidateTreeProcPtr ValidateTree;
     PostValidateTreeProcPtr PostValidateTree;
     WindowExposuresProcPtr WindowExposures;
+    PaintWindowProcPtr PaintWindow;
     CopyWindowProcPtr CopyWindow;
     ClearToBackgroundProcPtr ClearToBackground;
     ClipNotifyProcPtr ClipNotify;

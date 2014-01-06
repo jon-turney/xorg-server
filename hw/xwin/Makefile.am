@@ -3,19 +3,16 @@ bin_PROGRAMS = XWin
 if XWIN_CLIPBOARD
 SRCS_CLIPBOARD = \
 	winclipboardinit.c \
-	winclipboardtextconv.c \
-	winclipboardthread.c \
-	winclipboardwndproc.c \
-	winclipboardwrappers.c \
-	winclipboardxevents.c
+	winclipboardwrappers.c
 DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
+CLIPBOARD_LIBS = $(top_builddir)/hw/xwin/winclipboard/libXWinclipboard.la
 endif
 
 if XWIN_GLX_WINDOWS
 GLX_DIR = glx
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 XWIN_GLX_LIBS = $(top_builddir)/hw/xwin/glx/libXwinGLX.la
-XWIN_GLX_LINK_FLAGS = -lopengl32
+XWIN_GLX_SYS_LIBS = -lopengl32
 endif
 
 if XWIN_MULTIWINDOW
@@ -27,7 +24,8 @@ SRCS_MULTIWINDOW = \
 	propertystore.h \
 	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_LIBS = -lshlwapi -lole32
+MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
+MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
 if XWIN_MULTIWINDOWEXTWM
@@ -110,12 +108,9 @@ SRCS =	InitInput.c \
 	winwindow.c \
 	winwndproc.c \
 	ddraw.h \
-	winclipboard.h \
 	winconfig.h \
 	win.h \
 	winglobals.h \
-	winkeybd.h \
-	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
 	winmonitors.h \
@@ -126,6 +121,8 @@ SRCS =	InitInput.c \
 	winprefs.h \
 	winresource.h \
 	winwindow.h \
+	windisplay.c \
+	windisplay.h \
 	XWin.rc \
 	$(top_srcdir)/Xext/dpmsstubs.c \
 	$(top_srcdir)/Xi/stubs.c \
@@ -155,12 +152,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/miext/rootless
 XWIN_SYS_LIBS += -ldxguid
 XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la
 
-XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
-XWin_LDADD = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
+XWin_DEPENDENCIES = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
+XWin_LDADD        = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS) \
+                    $(CLIPBOARD_LIBS) $(XWIN_GLX_SYS_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) $(MULTIWINDOW_SYS_LIBS)
 XWin_LDFLAGS = -mwindows -static -Wl,--disable-stdcall-fixup
 
 .rc.o:
-	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
+	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DHOST_TRIPLET=\"$(host)\"
 
 XWin.o: XWin.rc XWin.exe.manifest X.ico
 
@@ -192,5 +190,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) .
+SUBDIRS = man $(GLX_DIR) wmutil winclipboard .
 DIST_SUBDIRS = man glx .

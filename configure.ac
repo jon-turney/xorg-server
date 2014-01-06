@@ -83,6 +83,16 @@ AC_PROG_YACC
 AC_SYS_LARGEFILE
 XORG_PROG_RAWCPP
 
+dnl we really need yacc and lex to build tarballs made by cygport directly from a git tag not 'make dist'
+AC_PATH_PROG(YACC_INST, $YACC)
+if test -z "$YACC_INST"; then
+   AC_MSG_ERROR([yacc not found])
+fi
+AC_PATH_PROG(LEX_INST, $LEX)
+if test -z "$LEX_INST"; then
+   AC_MSG_ERROR([lex not found])
+fi
+
 # Quoted so that make will expand $(CWARNFLAGS) in makefiles to allow
 # easier overrides at build time.
 XSERVER_CFLAGS='$(CWARNFLAGS)'
@@ -2084,7 +2094,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes x11-xcb xcb-image xcb-icccm])
 
 	if test "x$WINDOWSWM" = xauto; then
 		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
@@ -2506,6 +2516,8 @@ hw/xnest/man/Makefile
 hw/xwin/Makefile
 hw/xwin/glx/Makefile
 hw/xwin/man/Makefile
+hw/xwin/wmutil/Makefile
+hw/xwin/winclipboard/Makefile
 hw/xquartz/Makefile
 hw/xquartz/GL/Makefile
 hw/xquartz/bundle/Makefile

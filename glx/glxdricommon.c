@@ -144,10 +144,14 @@ createModeFromConfig(const __DRIcoreExtension * core,
                 renderType |= GLX_RGBA_BIT;
             if (value & __DRI_ATTRIB_COLOR_INDEX_BIT)
                 renderType |= GLX_COLOR_INDEX_BIT;
+#ifdef __DRI_ATTRIB_FLOAT_BIT
             if (value & __DRI_ATTRIB_FLOAT_BIT)
                 renderType |= GLX_RGBA_FLOAT_BIT_ARB;
+#endif
+#ifdef __DRI_ATTRIB_UNSIGNED_FLOAT_BIT
             if (value & __DRI_ATTRIB_UNSIGNED_FLOAT_BIT)
                 renderType |= GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT;
+#endif
             break;
         case __DRI_ATTRIB_CONFIG_CAVEAT:
             if (value & __DRI_ATTRIB_NON_CONFORMANT_CONFIG)
@@ -193,8 +197,12 @@ render_type_is_pbuffer_only(unsigned renderType)
      *     GLXFBConfig must have the GLX_PBUFFER_BIT bit set and the
      *     GLX_RENDER_TYPE attribute must have the GLX_RGBA_FLOAT_BIT set."
      */
+#if defined(__DRI_ATTRIB_UNSIGNED_FLOAT_BIT) && defined(__DRI_ATTRIB_FLOAT_BIT)
     return !!(renderType & (__DRI_ATTRIB_UNSIGNED_FLOAT_BIT
                             | __DRI_ATTRIB_FLOAT_BIT));
+#else
+    return 0;
+#endif
 }
 
 __GLXconfig *
