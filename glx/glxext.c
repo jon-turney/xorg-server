@@ -66,6 +66,7 @@ static DevPrivateKeyRec glxClientPrivateKeyRec;
 ** Forward declarations.
 */
 static int __glXDispatch(ClientPtr);
+static GLboolean __glXFreeContext(__GLXcontext * cx);
 
 /*
 ** Called when the extension is reset.
@@ -187,7 +188,7 @@ __glXRemoveFromContextList(__GLXcontext * cx)
 /*
 ** Free a context.
 */
-GLboolean
+static GLboolean
 __glXFreeContext(__GLXcontext * cx)
 {
     if (cx->idExists || cx->currentClient)
@@ -292,7 +293,7 @@ glxClientCallback(CallbackListPtr *list, void *closure, void *data)
                 c->loseCurrent(c);
                 lastGLContext = NULL;
                 c->currentClient = NULL;
-                __glXFreeContext(c);
+                FreeResourceByType(c, __glXContextRes, FALSE);
             }
         }
 
