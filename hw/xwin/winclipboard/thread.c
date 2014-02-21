@@ -344,7 +344,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
  winClipboardProc_Done:
     /* Close our Windows window */
     if (g_hwndClipboard) {
-        winClipboardWindowDestroy();
+        DestroyWindow(g_hwndClipboard);
     }
 
     /* Close our X window */
@@ -484,7 +484,7 @@ void
 winClipboardWindowDestroy(void)
 {
   if (g_hwndClipboard) {
-    SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
+    SendMessage(g_hwndClipboard, WM_WM_QUIT, 0, 0);
   }
 }
 
