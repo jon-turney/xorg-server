@@ -1732,7 +1732,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     static Atom windowState, motif_wm_hints, windowType;
     static Atom hiddenState, fullscreenState, belowState, aboveState,
         skiptaskbarState, vertMaxState, horzMaxState;
-    static Atom dockWindow;
+    static Atom dockWindow, splashWindow;
     static int generation;
     Atom type, *pAtom = NULL;
     int format;
@@ -1756,6 +1756,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         belowState = XInternAtom(pDisplay, "_NET_WM_STATE_BELOW", False);
         aboveState = XInternAtom(pDisplay, "_NET_WM_STATE_ABOVE", False);
         dockWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        splashWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_SPLASH", False);
         skiptaskbarState =
             XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
         vertMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
@@ -1839,6 +1840,10 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         if (pAtom && nitems == 1) {
             if (*pAtom == dockWindow) {
                 hint = (hint & ~HINT_NOFRAME) | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
+                *zstyle = HWND_TOPMOST;
+            }
+            else if (*pAtom == splashWindow) {
+                hint |= (HINT_SKIPTASKBAR | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
                 *zstyle = HWND_TOPMOST;
             }
         }
