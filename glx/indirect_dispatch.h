@@ -116,6 +116,10 @@ extern _X_HIDDEN void __glXDisp_LightModeliv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_LightModeliv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_VertexAttribs1dvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_VertexAttribs1dvNV(GLbyte * pc);
+extern _X_HIDDEN int __glXDisp_GetVertexAttribfv(struct __GLXclientStateRec *,
+                                                 GLbyte *);
+extern _X_HIDDEN int __glXDispSwap_GetVertexAttribfv(struct __GLXclientStateRec
+                                                     *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_Normal3bv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Normal3bv(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_VendorPrivate(struct __GLXclientStateRec *,
@@ -413,6 +417,10 @@ extern _X_HIDDEN void __glXDisp_TexGenfv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_TexGenfv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_VertexAttrib4dvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_VertexAttrib4dvNV(GLbyte * pc);
+extern _X_HIDDEN int __glXDisp_GetVertexAttribiv(struct __GLXclientStateRec *,
+                                                 GLbyte *);
+extern _X_HIDDEN int __glXDispSwap_GetVertexAttribiv(struct __GLXclientStateRec
+                                                     *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_DrawBuffers(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_DrawBuffers(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_CreateContextWithConfigSGIX(struct
@@ -552,6 +560,8 @@ extern _X_HIDDEN void __glXDisp_MultiTexCoord1sv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_MultiTexCoord1sv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_RasterPos3sv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_RasterPos3sv(GLbyte * pc);
+extern _X_HIDDEN void __glXDisp_BindFramebufferEXT(GLbyte * pc);
+extern _X_HIDDEN void __glXDispSwap_BindFramebufferEXT(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_PushAttrib(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_PushAttrib(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_DestroyPbuffer(struct __GLXclientStateRec *,
@@ -676,6 +686,8 @@ extern _X_HIDDEN int __glXDisp_GetTexParameteriv(struct __GLXclientStateRec *,
                                                  GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GetTexParameteriv(struct __GLXclientStateRec
                                                      *, GLbyte *);
+extern _X_HIDDEN void __glXDisp_VertexAttribs4dvNV(GLbyte * pc);
+extern _X_HIDDEN void __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_VertexAttrib3sv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_VertexAttrib3sv(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_IsQuery(struct __GLXclientStateRec *, GLbyte *);
@@ -776,8 +788,6 @@ extern _X_HIDDEN void __glXDisp_ColorMaterial(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_ColorMaterial(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_VertexAttribs1svNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_VertexAttribs1svNV(GLbyte * pc);
-extern _X_HIDDEN void __glXDisp_VertexAttrib1fvNV(GLbyte * pc);
-extern _X_HIDDEN void __glXDispSwap_VertexAttrib1fvNV(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_GetSeparableFilter(struct __GLXclientStateRec *,
                                                   GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GetSeparableFilter(struct __GLXclientStateRec
@@ -803,6 +813,10 @@ extern _X_HIDDEN int __glXDispSwap_RenderLarge(struct __GLXclientStateRec *,
                                                GLbyte *);
 extern _X_HIDDEN void __glXDisp_PolygonOffset(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_PolygonOffset(GLbyte * pc);
+extern _X_HIDDEN int __glXDisp_GetVertexAttribdv(struct __GLXclientStateRec *,
+                                                 GLbyte *);
+extern _X_HIDDEN int __glXDispSwap_GetVertexAttribdv(struct __GLXclientStateRec
+                                                     *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_Normal3dv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Normal3dv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_Lightf(GLbyte * pc);
@@ -960,6 +974,8 @@ extern _X_HIDDEN void __glXDisp_CopyTexImage1D(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_CopyTexImage1D(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_RasterPos2dv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_RasterPos2dv(GLbyte * pc);
+extern _X_HIDDEN void __glXDisp_VertexAttrib1fvNV(GLbyte * pc);
+extern _X_HIDDEN void __glXDispSwap_VertexAttrib1fvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_Fogiv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Fogiv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_EndQuery(GLbyte * pc);
@@ -1010,6 +1026,8 @@ extern _X_HIDDEN void __glXDisp_MultiTexCoord1iv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_MultiTexCoord1iv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_Vertex2fv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Vertex2fv(GLbyte * pc);
+extern _X_HIDDEN void __glXDisp_BindRenderbufferEXT(GLbyte * pc);
+extern _X_HIDDEN void __glXDispSwap_BindRenderbufferEXT(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_Vertex3sv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Vertex3sv(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_GetQueryObjectiv(struct __GLXclientStateRec *,
@@ -1156,8 +1174,6 @@ extern _X_HIDDEN int __glXDisp_GetConvolutionFilterEXT(struct
 extern _X_HIDDEN int __glXDispSwap_GetConvolutionFilterEXT(struct
                                                            __GLXclientStateRec
                                                            *, GLbyte *);
-extern _X_HIDDEN void __glXDisp_VertexAttribs4dvNV(GLbyte * pc);
-extern _X_HIDDEN void __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc);
 extern _X_HIDDEN int __glXDisp_GetTexGenfv(struct __GLXclientStateRec *,
                                            GLbyte *);
 extern _X_HIDDEN int __glXDispSwap_GetTexGenfv(struct __GLXclientStateRec *,
