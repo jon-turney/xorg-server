@@ -155,7 +155,7 @@ XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la
 XWin_DEPENDENCIES = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
 XWin_LDADD        = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS) \
                     $(CLIPBOARD_LIBS) $(XWIN_GLX_SYS_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS) $(MULTIWINDOW_SYS_LIBS)
-XWin_LDFLAGS = -mwindows -static -Wl,--disable-stdcall-fixup
+XWin_LDFLAGS = -mwindows -Wl,--disable-stdcall-fixup $(LD_EXPORT_SYMBOLS_FLAG)
 
 .rc.o:
 	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DHOST_TRIPLET=\"$(host)\"
