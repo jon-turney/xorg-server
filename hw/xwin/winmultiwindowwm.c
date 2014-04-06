@@ -1623,7 +1623,7 @@ static void
 winMultiWindowThreadExit(void *arg)
 {
     /* multiwindow client thread has exited, stop server as well */
-    kill(getpid(), SIGTERM);
+    raise(SIGTERM);
 }
 
 /*
