@@ -896,7 +896,7 @@ FatalError(const char *f, ...)
     if (beenhere)
         ErrorFSigSafe("FatalError re-entered, aborting\n");
     else
-        ErrorFSigSafe("Fatal server error: ");
+        ErrorFSigSafe("Fatal server error:\n");
 
     va_start(args, f);
 
