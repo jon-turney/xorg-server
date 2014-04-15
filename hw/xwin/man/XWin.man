@@ -243,14 +243,12 @@ clipping region is then used to do a single bit block transfer that is
 constrained to the updated area by the clipping region.  There is some
 overhead involved in creating, installing, destroying, and removing
 the clipping region, thus there may not be much benefit for a small
-number of boxes (less than 10).  It is even possible that this
+number of boxes.  It is even possible that this
 functionality does not provide a benefit at any number of boxes; we
 can only determine the usefulness of this feature through testing.
 This option probably has limited effect on current \fIWindows\fP versions
 as they already perform GDI batching.
-This parameter works in conjunction with engines 1, 2, and 4 (Shadow
-GDI, Shadow DirectDraw, and Shadow DirectDraw Non-Locking,
-respectively).
+This parameter only has any effect when a Shadow drawing engine is selected.
 .TP 8
 .B "\-engine \fIengine_type_id\fP"
 This option, which is intended for Cygwin/X developers,
@@ -266,11 +264,11 @@ The engine type ids are:
 .IP 1 4
 Shadow GDI
 .IP 2 4
-Shadow DirectDraw
+Shadow DirectDraw (obsolete, disabled)
 .IP 4 4
 Shadow DirectDraw Non-Locking
 .IP 8 4
-Primary DirectDraw (unsupported, obsolete)
+Primary DirectDraw (unsupported, obsolete, disabled)
 .IP 16 4
 Native GDI (unsupported, experimental and barely functional)
 .RE

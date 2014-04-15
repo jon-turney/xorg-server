@@ -757,7 +757,7 @@ winUseMsg(void)
     ErrorF("-engine engine_type_id\n"
            "\tOverride the server's automatically selected engine type:\n"
            "\t\t1 - Shadow GDI\n"
-           "\t\t2 - Shadow DirectDraw\n"
+           "\t\t2 - Shadow DirectDraw - obsolete\n"
            "\t\t4 - Shadow DirectDraw4 Non-Locking\n"
 #ifdef XWIN_PRIMARYFB
            "\t\t8 - Primary DirectDraw - obsolete\n"
