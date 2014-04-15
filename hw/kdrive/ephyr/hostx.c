@@ -696,8 +696,8 @@ hostx_screen_init(KdScreenInfo *screen,
     }
 
     {
-        const uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-        const uint32_t values[] = { width, height };
+        uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        uint32_t values[2] = {width, height};
         xcb_configure_window(HostX.conn, scrpriv->win, mask, values);
     }
 
