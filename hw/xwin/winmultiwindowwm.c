@@ -1741,7 +1741,8 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
     static xcb_atom_t splashType;
     static int generation;
 
-    unsigned long hint = 0, maxmin = 0;
+    unsigned long hint = HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
+    unsigned long maxmin = 0;
     unsigned long style, exStyle;
 
     if (!hWnd)
@@ -1803,15 +1804,17 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
         MwmHints *mwm_hint = xcb_get_property_value(reply);
         if (mwm_hint && (nitems >= PropMwmHintsElements) &&
             (mwm_hint->flags & MwmHintsDecorations)) {
-            if (!mwm_hint->decorations)
+            if (!mwm_hint->decorations) {
+                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION);
                 hint |= (HINT_NOFRAME | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
+            }
             else if (!(mwm_hint->decorations & MwmDecorAll)) {
-                if (mwm_hint->decorations & MwmDecorBorder)
-                    hint |= HINT_BORDER;
-                if (mwm_hint->decorations & MwmDecorHandle)
-                    hint |= HINT_SIZEBOX;
-                if (mwm_hint->decorations & MwmDecorTitle)
-                    hint |= HINT_CAPTION;
+                if (!(mwm_hint->decorations & MwmDecorBorder))
+                    hint &= ~HINT_BORDER;
+                if (!(mwm_hint->decorations & MwmDecorHandle))
+                    hint &= ~HINT_SIZEBOX;
+                if (!(mwm_hint->decorations & MwmDecorTitle))
+                    hint &= ~HINT_CAPTION;
                 if (!(mwm_hint->decorations & MwmDecorMenu))
                     hint |= HINT_NOSYSMENU;
                 if (!(mwm_hint->decorations & MwmDecorMinimize))
@@ -1837,11 +1840,13 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
       if (xcb_ewmh_get_wm_window_type_reply(&pWMInfo->ewmh, cookie, &type, NULL)) {
         for (i = 0; i < type.atoms_len; i++) {
             if (type.atoms[i] ==  pWMInfo->ewmh._NET_WM_WINDOW_TYPE_DOCK) {
-                hint = (hint & ~HINT_NOFRAME) | HINT_SKIPTASKBAR | HINT_SIZEBOX;
+                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION | HINT_NOFRAME);
+                hint |= (HINT_SKIPTASKBAR | HINT_SIZEBOX);
                 *zstyle = HWND_TOPMOST;
             }
             else if ((type.atoms[i] == pWMInfo->ewmh._NET_WM_WINDOW_TYPE_SPLASH)
                      || (type.atoms[i] == splashType)) {
+                hint &= ~(HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION);
                 hint |= (HINT_SKIPTASKBAR | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
                 *zstyle = HWND_TOPMOST;
             }
@@ -1863,14 +1868,17 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
                     || (size_hints.max_height < GetSystemMetrics(SM_CYVIRTUALSCREEN)))
                     hint |= HINT_NOMAXIMIZE;
 
+
                 if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
                     /*
                        If both minimum size and maximum size are specified and are the same,
                        don't bother with a resizing frame
                      */
                     if ((size_hints.min_width == size_hints.max_width)
-                        && (size_hints.min_height == size_hints.max_height))
+                        && (size_hints.min_height == size_hints.max_height)) {
+                        hint |= HINT_NOMAXIMIZE;
                         hint = (hint & ~HINT_SIZEBOX);
+                    }
                 }
             }
         }
