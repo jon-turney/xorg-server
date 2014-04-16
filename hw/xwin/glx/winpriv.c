@@ -26,6 +26,8 @@ winCreateWindowsWindowHierarchy(WindowPtr pWin)
     if (pWin->parent) {
         if (pWin->parent != pWin->drawable.pScreen->root)
             winCreateWindowsWindowHierarchy(pWin->parent);
+    } else {
+        return;
     }
 
     /* ensure this window exists */
