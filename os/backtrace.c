@@ -267,7 +267,7 @@ xorg_backtrace_exec_wrapper(const char *path)
         close(pipefd[1]);
 
         snprintf(parent, sizeof(parent), "%d", getppid());
-        execle(path, path, parent, NULL, NULL);
+        execl(path, path, parent, NULL);
         exit(1);
     }
     else {
@@ -280,7 +280,21 @@ xorg_backtrace_exec_wrapper(const char *path)
         close(pipefd[1]);
 
         while (!done) {
-            bytesread = read(pipefd[0], btline, sizeof(btline) - 1);
+            bytesread = 0;
+
+            do
+                {
+                    int n = read(pipefd[0], &btline[bytesread], 1);
+
+                    if (n <= 0)
+                        break;
+
+                    bytesread = bytesread + n;
+
+                    if (btline[bytesread-1] == '\n')
+                        break;
+                }
+            while (bytesread < sizeof(btline));
 
             if (bytesread > 0) {
                 btline[bytesread] = 0;

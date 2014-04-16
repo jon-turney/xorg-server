@@ -89,21 +89,6 @@ winDetectSupportedEngines(void)
                           "winDetectSupportedEngines - DirectDraw not installed\n");
             return;
         }
-        else {
-            /* We have DirectDraw */
-            winErrorFVerb(2,
-                          "winDetectSupportedEngines - DirectDraw installed, allowing ShadowDD\n");
-            g_dwEnginesSupported |= WIN_SERVER_SHADOW_DD;
-
-#ifdef XWIN_PRIMARYFB
-            /* Allow PrimaryDD engine if NT */
-            if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT) {
-                g_dwEnginesSupported |= WIN_SERVER_PRIMARY_DD;
-                winErrorFVerb(2,
-                              "winDetectSupportedEngines - Windows NT, allowing PrimaryDD\n");
-            }
-#endif
-        }
 
         /* Try to query for DirectDraw4 interface */
         ddrval = IDirectDraw_QueryInterface(lpdd,

@@ -488,19 +488,20 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
 
             /*
                If we have a client machine name
-               and it's not the local host name...
+               and it's not the local host name
+               and it's not already in the window title...
              */
             if (strlen(pszClientMachine) &&
                 !gethostname(hostname, HOST_NAME_MAX + 1) &&
-                strcmp(hostname, pszClientMachine)) {
-                /* ... add ' (on <clientmachine>)' to end of window name */
+                strcmp(hostname, pszClientMachine) &&
+                (strstr(pszWindowName, pszClientMachine) == 0)) {
+                /* ... add '@<clientmachine>' to end of window name */
                 *ppWindowName =
                     malloc(strlen(pszWindowName) +
-                           strlen(pszClientMachine) + 7);
+                           strlen(pszClientMachine) + 2);
                 strcpy(*ppWindowName, pszWindowName);
-                strcat(*ppWindowName, " (on ");
+                strcat(*ppWindowName, "@");
                 strcat(*ppWindowName, pszClientMachine);
-                strcat(*ppWindowName, ")");
 
                 free(pszWindowName);
                 free(pszClientMachine);
@@ -1622,7 +1623,7 @@ static void
 winMultiWindowThreadExit(void *arg)
 {
     /* multiwindow client thread has exited, stop server as well */
-    kill(getpid(), SIGTERM);
+    raise(SIGTERM);
 }
 
 /*
@@ -1857,9 +1858,12 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         long supplied;
 
         if (normal_hint &&
-            (XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied) ==
-             Success)) {
+            XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied)) {
             if (normal_hint->flags & PMaxSize) {
+                /* Ensure default style is used if no other styling */
+                if (!(hint & ~HINT_SKIPTASKBAR))
+                    hint |= HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
+
                 /* Not maximizable if a maximum size is specified */
                 hint |= HINT_NOMAXIMIZE;
 
