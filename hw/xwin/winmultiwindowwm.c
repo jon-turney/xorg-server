@@ -1860,6 +1860,10 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         if (normal_hint &&
             XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied)) {
             if (normal_hint->flags & PMaxSize) {
+                /* Ensure default style is used if no other styling */
+                if (!(hint & ~HINT_SKIPTASKBAR))
+                    hint |= HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
+
                 /* Not maximizable if a maximum size is specified */
                 hint |= HINT_NOMAXIMIZE;
 
