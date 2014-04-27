@@ -67,23 +67,33 @@ winUpdateIcon(HWND hWnd, xcb_connection_t *conn, Window id, HICON hIconNew)
         /* If we still need an icon, try and get the icon from WM_HINTS */
         hIcon = winXIconToHICON(conn, id, GetSystemMetrics(SM_CXICON));
         hIconSmall = winXIconToHICON(conn, id, GetSystemMetrics(SM_CXSMICON));
+
+        /* If we got the small, but not the large one swap them */
+        if (!hIcon && hIconSmall) {
+            hIcon = hIconSmall;
+            hIconSmall = NULL;
+        }
       }
 
-    /* If we got the small, but not the large one swap them */
-    if (!hIcon && hIconSmall) {
-        hIcon = hIconSmall;
-        hIconSmall = NULL;
+    /* If we still need an icon, use the default one */
+    if (!hIcon) {
+        hIcon = g_hIconX;
+        hIconSmall = g_hSmallIconX;
     }
 
-    /* Set the large icon */
-    hIconOld = (HICON) SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
-    /* Delete the old icon if its not the default */
-    winDestroyIcon(hIconOld);
+    if (hIcon) {
+        /* Set the large icon */
+        hIconOld = (HICON) SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM) hIcon);
+        /* Delete the old icon if its not the default */
+        winDestroyIcon(hIconOld);
+    }
 
-    /* Same for the small icon */
-    hIconOld =
-        (HICON) SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM) hIconSmall);
-    winDestroyIcon(hIconOld);
+    if (hIconSmall) {
+        /* Same for the small icon */
+        hIconOld =
+            (HICON) SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM) hIconSmall);
+        winDestroyIcon(hIconOld);
+    }
 }
 
 void
