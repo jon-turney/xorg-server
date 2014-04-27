@@ -876,8 +876,8 @@ winMultiWindowWMProc(void *pArg)
                                 sizeof(HWND)/4, &(pNode->msg.hwndWindow));
 
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateIcon(pWMInfo, pNode->msg.iWindow);
             UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateIcon(pWMInfo, pNode->msg.iWindow);
 
 
             /* Reshape */
