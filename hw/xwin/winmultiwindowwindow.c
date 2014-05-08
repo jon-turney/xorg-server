@@ -590,13 +590,25 @@ winCreateWindowsTopLevelWindow(WindowPtr pWin)
         }
     }
     else {
-        /* Default positions if none specified */
-        if (!winMultiWindowGetWMNormalHints(pWin, &hints))
-            hints.flags = 0;
-        if (!(hints.flags & (USPosition | PPosition)) &&
-            !pWin->overrideRedirect) {
-            iX = CW_USEDEFAULT;
-            iY = CW_USEDEFAULT;
+        if (!pWin->overrideRedirect) {
+            /* Default positions if none specified */
+            if (!winMultiWindowGetWMNormalHints(pWin, &hints))
+                hints.flags = 0;
+
+            if ((hints.flags & USPosition) ||
+                ((hints.flags & PPosition) &&
+                 ((pWin->drawable.x - pWin->borderWidth != 0) ||
+                  (pWin->drawable.y - pWin->borderWidth != 0)))) {
+                /*
+                  Always respect user specified position, respect program
+                  specified position if it's not the origin
+                */
+            }
+            else {
+                /* Use default position */
+                iX = CW_USEDEFAULT;
+                iY = CW_USEDEFAULT;
+            }
         }
     }
 
