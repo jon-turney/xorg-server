@@ -2328,11 +2328,16 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
 
         /* SGIX_pbuffer / GLX 1.3 */
         if (screen->has_WGL_ARB_pbuffer) {
-            c->base.maxPbufferWidth = ATTR_VALUE(WGL_MAX_PBUFFER_WIDTH_ARB, -1);
-            c->base.maxPbufferHeight =
-                ATTR_VALUE(WGL_MAX_PBUFFER_HEIGHT_ARB, -1);
-            c->base.maxPbufferPixels =
-                ATTR_VALUE(WGL_MAX_PBUFFER_PIXELS_ARB, -1);
+            // mesa libGL "can't handle the truth" about max pbuffer size.
+            // We must report 0, which exactly matches what it expects
+            //
+            // ATTR_VALUE(WGL_MAX_PBUFFER_WIDTH_ARB, -1);
+            // ATTR_VALUE(WGL_MAX_PBUFFER_PIXELS_ARB, -1);
+            // ATTR_VALUE(WGL_MAX_PBUFFER_HEIGHT_ARB, -1);
+            //
+            c->base.maxPbufferWidth = 0;
+            c->base.maxPbufferHeight = 0;
+            c->base.maxPbufferPixels = 0;
         }
         else {
             c->base.maxPbufferWidth = -1;
