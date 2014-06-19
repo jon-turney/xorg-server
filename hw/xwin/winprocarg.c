@@ -1263,7 +1263,7 @@ winOS(void)
     }
 
 #ifdef __x86_64__
-    isWow = "(Win64)";
+    isWow = " (Win64)";
 #else
     {
       /* Check if we are running under WoW64 */
