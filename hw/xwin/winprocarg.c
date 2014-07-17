@@ -1197,9 +1197,9 @@ static void
 winOS(void)
 {
     OSVERSIONINFOEX osvi = { 0 };
-    char *windowstype = "Unknown";
-    char *prodName = "Unknown";
-    char *isWow = "Unknown";
+    const char *windowstype = "Unknown";
+    const char *prodName = "Unknown";
+    const char *isWow = "Unknown";
 
     /* Get operating system version information */
     osvi.dwOSVersionInfoSize = sizeof(osvi);
