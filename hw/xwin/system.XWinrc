@@ -96,7 +96,7 @@ menu root {
 	FAQ            EXEC "cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html"
 	"User's Guide" EXEC "cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html"
 	SEPARATOR
-	"View logfile" EXEC "xterm -e less +F $XWINLOGFILE"
+	"View logfile" EXEC "xterm -title $XWINLOGFILE -e less +F $XWINLOGFILE"
 	SEPARATOR
 
 	"Reload .XWinrc"	RELOAD
