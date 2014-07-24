@@ -588,6 +588,7 @@ typedef struct _winPrivScreenRec {
     UnrealizeFontPtr UnrealizeFont;
 #endif
 
+    Bool fNativeGlActive;
 } winPrivScreenRec;
 
 #ifdef XWIN_MULTIWINDOWEXTWM
