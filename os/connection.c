@@ -421,7 +421,7 @@ CreateWellKnownSockets(void)
     }
     else { /* -displayfd and no explicit display number */
         Bool found = 0;
-        for (i = 0; i < 65535 - X_TCP_PORT; i++) {
+        for (i = 0; i < 65536 - X_TCP_PORT; i++) {
             ErrorF("Trying to create socket for display number %d\n", i);
             if (TryCreateSocket(i, &partial) &&
                 (ListenTransCount >= 1))
