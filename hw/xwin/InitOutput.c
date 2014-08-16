@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -58,7 +56,11 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
                                               HANDLE hToken,
                                               DWORD dwFlags, LPTSTR pszPath);
 #endif
+#include "winmonitors.h"
+#include "pseudoramiX/pseudoramiX.h"
+
 #include "glx_extinit.h"
+#include "dixmain.h"
 #ifdef XWIN_GLX_WINDOWS
 #include "glx/glwindows.h"
 #endif
@@ -66,26 +68,11 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 /*
  * References to external symbols
  */
-#ifdef XWIN_CLIPBOARD
-extern Bool g_fUnicodeClipboard;
-extern Bool g_fClipboardLaunched;
-extern Bool g_fClipboardStarted;
-extern pthread_t g_ptClipboardProc;
-extern HWND g_hwndClipboard;
-extern Bool g_fClipboard;
-#endif
+extern Bool noRRXineramaExtension;
 
 /*
  * Function prototypes
  */
-
-#ifdef XWIN_CLIPBOARD
-static void
- winClipboardShutdown(void);
-#endif
-
-static Bool
- winCheckDisplayNumber(void);
 
 void
  winLogCommandLine(int argc, char *argv[]);
@@ -99,6 +86,11 @@ Bool
 #ifdef RELOCATE_PROJECTROOT
 const char *winGetBaseDir(void);
 #endif
+
+static void winCheckMount(void);
+
+extern Bool XSupportsLocale(void);
+extern Status XInitThreads(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -124,31 +116,6 @@ static PixmapFormatRec g_PixmapFormats[] = {
 };
 
 const int NUMFORMATS = sizeof(g_PixmapFormats) / sizeof(g_PixmapFormats[0]);
-
-#ifdef XWIN_CLIPBOARD
-static void
-winClipboardShutdown(void)
-{
-    /* Close down clipboard resources */
-    if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted) {
-        /* Synchronously destroy the clipboard window */
-        if (g_hwndClipboard != NULL) {
-            SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
-            /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
-        }
-        else
-            return;
-
-        /* Wait for the clipboard thread to exit */
-        pthread_join(g_ptClipboardProc, NULL);
-
-        g_fClipboardLaunched = FALSE;
-        g_fClipboardStarted = FALSE;
-
-        winDebug("winClipboardShutdown - Clipboard thread has exited.\n");
-    }
-}
-#endif
 
 static const ExtensionModule xwinExtensions[] = {
 #ifdef GLXEXT
@@ -205,6 +172,8 @@ main(int argc, char *argv[], char *envp[])
     if (iReturn != 0) {
         ErrorF("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
     }
+
+    winCheckMount();
 
     return dix_main(argc, argv, envp);
 }
@@ -292,6 +261,8 @@ AbortDDX(enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *
 winCheckMntOpt(const struct mntent *mnt, const char *opt)
@@ -316,6 +287,9 @@ winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -325,6 +299,7 @@ winCheckMount(void)
     enum { none = 0, sys_root, user_root, sys_tmp, user_tmp }
         level = none, curlevel;
     BOOL binary = TRUE;
+    BOOL fat = TRUE;
 
     mnt = setmntent("/etc/mtab", "r");
     if (mnt == NULL) {
@@ -363,6 +338,11 @@ winCheckMount(void)
             binary = FALSE;
         else
             binary = TRUE;
+
+        if (strcmp(ent->mnt_type, "vfat") == 0)
+            fat = TRUE;
+        else
+            fat = FALSE;
     }
 
     if (endmntent(mnt) != 1) {
@@ -372,6 +352,12 @@ winCheckMount(void)
 
     if (!binary)
         winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+    if (fat) {
+        winMsg(X_WARNING,
+               "/tmp mounted on FAT filesystem, activating -nolock\n");
+        nolock = TRUE;
+    }
 }
 #else
 static void
@@ -771,7 +757,7 @@ winUseMsg(void)
     ErrorF("-engine engine_type_id\n"
            "\tOverride the server's automatically selected engine type:\n"
            "\t\t1 - Shadow GDI\n"
-           "\t\t2 - Shadow DirectDraw\n"
+           "\t\t2 - Shadow DirectDraw - obsolete\n"
            "\t\t4 - Shadow DirectDraw4 Non-Locking\n"
 #ifdef XWIN_PRIMARYFB
            "\t\t8 - Primary DirectDraw - obsolete\n"
@@ -783,7 +769,7 @@ winUseMsg(void)
 
     ErrorF("-fullscreen\n" "\tRun the server in fullscreen mode.\n");
 
-    ErrorF("-hostintitle\n"
+    ErrorF("-[no]hostintitle\n"
            "\tIn multiwindow mode, add remote host names to window titles.\n");
 
     ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
@@ -954,14 +940,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
                    "Exiting.\n");
     }
 
-    /* Check for duplicate invocation on same display number. */
-    if (serverGeneration == 1 && !winCheckDisplayNumber()) {
-        if (g_fSilentDupError)
-            g_fSilentFatalError = TRUE;
-        FatalError("InitOutput - Duplicate invocation on display "
-                   "number: %s.  Exiting.\n", display);
-    }
-
 #ifdef XWIN_XF86CONFIG
     /* Try to read the xorg.conf-style configuration file */
     if (!winReadConfigfile())
@@ -1013,6 +991,61 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
         }
     }
 
+  /*
+     Unless full xinerama has been explicitly enabled, register all native screens with pseudoramiX
+  */
+  if (!noPanoramiXExtension)
+      noPseudoramiXExtension = TRUE;
+
+  if ((g_ScreenInfo[0].fMultipleMonitors) && !noPseudoramiXExtension)
+    {
+      int pass;
+
+      noRRXineramaExtension = TRUE;
+
+      PseudoramiXExtensionInit();
+
+      /* Add primary monitor on pass 0, other monitors on pass 1, to ensure
+       the primary monitor is first in XINERAMA list */
+      for (pass = 0; pass < 2; pass++)
+        {
+          int iMonitor;
+
+          for (iMonitor = 1; ; iMonitor++)
+            {
+              struct GetMonitorInfoData data;
+              QueryMonitor(iMonitor, &data);
+              if (data.bMonitorSpecifiedExists)
+                {
+                  MONITORINFO mi;
+                  mi.cbSize = sizeof(MONITORINFO);
+
+                  if (GetMonitorInfo(data.monitorHandle, &mi))
+                    {
+                      /* pass == 1 XOR primary monitor flags is set */
+                      if ((!(pass == 1)) != (!(mi.dwFlags & MONITORINFOF_PRIMARY)))
+                        {
+                          /*
+                            Note the screen origin in a normalized coordinate space where (0,0) is at the top left
+                            of the native virtual desktop area
+                          */
+                          data.monitorOffsetX = data.monitorOffsetX - GetSystemMetrics(SM_XVIRTUALSCREEN);
+                          data.monitorOffsetY = data.monitorOffsetY - GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+                          winDebug ("InitOutput - screen %d added at virtual desktop coordinate (%d,%d) (pseudoramiX) \n",
+                                    iMonitor-1, data.monitorOffsetX, data.monitorOffsetY);
+
+                          PseudoramiXAddScreen(data.monitorOffsetX, data.monitorOffsetY,
+                                               data.monitorWidth, data.monitorHeight);
+                        }
+                    }
+                }
+              else
+                break;
+            }
+        }
+    }
+
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
 
     /* Generate a cookie used by internal clients for authorization */
@@ -1021,82 +1054,28 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Perform some one time initialization */
     if (1 == serverGeneration) {
+        /* Allow multiple threads to access Xlib */
+        if (XInitThreads() == 0) {
+            ErrorF("XInitThreads failed.\n");
+        }
+
         /*
          * setlocale applies to all threads in the current process.
          * Apply locale specified in LANG environment variable.
          */
-        setlocale(LC_ALL, "");
+        if (!setlocale(LC_ALL, "")) {
+            ErrorF("setlocale failed.\n");
+        }
+
+        /* See if X supports the current locale */
+        if (XSupportsLocale() == FALSE) {
+            ErrorF("Warning: Locale not supported by X, falling back to 'C' locale.\n");
+            setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
 #if CYGDEBUG || YES
     winDebug("InitOutput - Returning.\n");
 #endif
-}
-
-/*
- * winCheckDisplayNumber - Check if another instance of Cygwin/X is
- * already running on the same display number.  If no one exists,
- * make a mutex to prevent new instances from running on the same display.
- *
- * return FALSE if the display number is already used.
- */
-
-static Bool
-winCheckDisplayNumber(void)
-{
-    int nDisp;
-    HANDLE mutex;
-    char name[MAX_PATH];
-    char *pszPrefix = '\0';
-    OSVERSIONINFO osvi = { 0 };
-
-    /* Check display range */
-    nDisp = atoi(display);
-    if (nDisp < 0 || nDisp > 65535) {
-        ErrorF("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-        return FALSE;
-    }
-
-    /* Set first character of mutex name to null */
-    name[0] = '\0';
-
-    /* Get operating system version information */
-    osvi.dwOSVersionInfoSize = sizeof(osvi);
-    GetVersionEx(&osvi);
-
-    /* Want a mutex shared among all terminals on NT > 4.0 */
-    if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT && osvi.dwMajorVersion >= 5) {
-        pszPrefix = "Global\\";
-    }
-
-    /* Setup Cygwin/X specific part of name */
-    snprintf(name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
-
-    /* Windows automatically releases the mutex when this process exits */
-    mutex = CreateMutex(NULL, FALSE, name);
-    if (!mutex) {
-        LPVOID lpMsgBuf;
-
-        /* Display a fancy error message */
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                      FORMAT_MESSAGE_FROM_SYSTEM |
-                      FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL,
-                      GetLastError(),
-                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR) &lpMsgBuf, 0, NULL);
-        ErrorF("winCheckDisplayNumber - CreateMutex failed: %s\n",
-               (LPSTR) lpMsgBuf);
-        LocalFree(lpMsgBuf);
-
-        return FALSE;
-    }
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        ErrorF("winCheckDisplayNumber - "
-               PROJECT_NAME " is already running on display %d\n", nDisp);
-        return FALSE;
-    }
-
-    return TRUE;
 }

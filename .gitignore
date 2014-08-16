@@ -80,3 +80,4 @@ core
 doltcompile
 doltlibtool
 xserver.ent
+test-driver

@@ -30,10 +30,24 @@
  *              Colin Harrison
  */
 
+#ifndef WINVER
+#define WINVER 0x0500
+#endif
+
 /* X headers */
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
+/*
+ * Including any server header might define the macro _XSERVER64 on 64 bit machines.
+ * That macro must _NOT_ be defined for Xlib client code, otherwise bad things happen.
+ * So let's undef that macro if necessary.
+ */
+#ifdef _XSERVER64
+#undef _XSERVER64
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -48,7 +62,6 @@
 #include <X11/X.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <X11/Xlocale.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
@@ -58,9 +71,9 @@
 #include "winwindow.h"
 #include "winprefs.h"
 #include "window.h"
-#include "pixmapstr.h"
-#include "windowstr.h"
 #include "winglobals.h"
+#include "winmultiwindowicons.h"
+#include "windisplay.h"
 
 #ifdef XWIN_MULTIWINDOWEXTWM
 #include <X11/extensions/windowswmstr.h>
@@ -77,6 +90,9 @@
 extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
+extern void winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
+extern void winSetAuthorization(void);
+extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 #ifndef CYGDEBUG
 #define CYGDEBUG NO
@@ -172,6 +188,9 @@ static int
 static int
  winMultiWindowXMsgProcIOErrorHandler(Display * pDisplay);
 
+static void
+winMultiWindowThreadExit(void *arg);
+
 static int
  winRedirectErrorHandler(Display * pDisplay, XErrorEvent * pErr);
 
@@ -189,10 +208,10 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
                           Bool fAllowOtherWM);
 
 static void
- winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
+ winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd);
 
-void
- winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
+static void
+ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -527,6 +546,7 @@ SendXMessage(Display * pDisplay, Window iWin, Atom atmType, long nData)
     XEvent e;
 
     /* Prepare the X event structure */
+    memset(&e, 0, sizeof(e));
     e.type = ClientMessage;
     e.xclient.window = iWin;
     e.xclient.message_type = atmType;
@@ -692,6 +712,9 @@ UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
     winShowWindowOnTaskbar(hWnd,
                            (GetWindowLongPtr(hWnd, GWL_EXSTYLE) &
                             WS_EX_APPWINDOW) ? TRUE : FALSE);
+
+    /* Check urgency hint */
+    winApplyUrgency(pWMInfo->pDisplay, iWindow, hWnd);
 }
 
 #if 0
@@ -744,6 +767,8 @@ winMultiWindowWMProc(void *pArg)
 {
     WMProcArgPtr pProcArg = (WMProcArgPtr) pArg;
     WMInfoPtr pWMInfo = pProcArg->pWMInfo;
+
+    pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
 
     /* Initialize the Window Manager */
     winInitMultiWindowWM(pWMInfo, pProcArg);
@@ -840,8 +865,8 @@ winMultiWindowWMProc(void *pArg)
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateIcon(pWMInfo, pNode->msg.iWindow);
             UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateIcon(pWMInfo, pNode->msg.iWindow);
 
 
             /* Reshape */
@@ -972,6 +997,9 @@ winMultiWindowWMProc(void *pArg)
 #if CYGMULTIWINDOW_DEBUG
     ErrorF("-winMultiWindowWMProc ()\n");
 #endif
+
+    pthread_cleanup_pop(0);
+
     return NULL;
 }
 
@@ -995,6 +1023,8 @@ winMultiWindowXMsgProc(void *pArg)
     int iReturn;
     XIconSize *xis;
 
+    pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
+
     winDebug("winMultiWindowXMsgProc - Hello\n");
 
     /* Check that argument pointer is not invalid */
@@ -1014,17 +1044,6 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     ErrorF("winMultiWindowXMsgProc - pthread_mutex_lock () returned.\n");
-
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winMultiWindowXMsgProc - XInitThreads () failed.  Exiting.\n");
-        pthread_exit(NULL);
-    }
-
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winMultiWindowXMsgProc - Warning: locale not supported by X\n");
-    }
 
     /* Release the server started mutex */
     pthread_mutex_unlock(pProcArg->ppmServerStarted);
@@ -1053,8 +1072,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     /* Setup the display connection string x */
-    snprintf(pszDisplay,
-             512, "127.0.0.1:%s.%d", display, (int) pProcArg->dwScreen);
+    winGetDisplayName(pszDisplay, (int) pProcArg->dwScreen);
 
     /* Print the display connection string */
     ErrorF("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
@@ -1109,7 +1127,7 @@ winMultiWindowXMsgProc(void *pArg)
         xis->max_width = xis->max_height = 48;
         xis->width_inc = xis->height_inc = 16;
         XSetIconSizes(pProcArg->pDisplay,
-                      RootWindow(pProcArg->pDisplay, pProcArg->dwScreen),
+                      XRootWindow(pProcArg->pDisplay, pProcArg->dwScreen),
                       xis, 1);
         XFree(xis);
     }
@@ -1248,6 +1266,10 @@ winMultiWindowXMsgProc(void *pArg)
             }
         }
         else if (event.type == PropertyNotify) {
+            char *atomName =
+                XGetAtomName(pProcArg->pDisplay, event.xproperty.atom);
+            winDebug("winMultiWindowXMsgProc: PropertyNotify %s\n", atomName);
+            XFree(atomName);
             if (event.xproperty.atom == atmWmName) {
                 memset(&msg, 0, sizeof(msg));
 
@@ -1302,7 +1324,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     XCloseDisplay(pProcArg->pDisplay);
-    pthread_exit(NULL);
+    pthread_cleanup_pop(0);
     return NULL;
 }
 
@@ -1408,17 +1430,6 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
     ErrorF("winInitMultiWindowWM - pthread_mutex_lock () returned.\n");
 
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winInitMultiWindowWM - XInitThreads () failed.  Exiting.\n");
-        pthread_exit(NULL);
-    }
-
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winInitMultiWindowWM - Warning: Locale not supported by X.\n");
-    }
-
     /* Release the server started mutex */
     pthread_mutex_unlock(pProcArg->ppmServerStarted);
 
@@ -1446,8 +1457,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     }
 
     /* Setup the display connection string x */
-    snprintf(pszDisplay,
-             512, "127.0.0.1:%s.%d", display, (int) pProcArg->dwScreen);
+    winGetDisplayName(pszDisplay, (int) pProcArg->dwScreen);
 
     /* Print the display connection string */
     ErrorF("winInitMultiWindowWM - DISPLAY=%s\n", pszDisplay);
@@ -1497,7 +1507,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
         if (cursor) {
             XDefineCursor(pWMInfo->pDisplay,
-                          DefaultRootWindow(pWMInfo->pDisplay), cursor);
+                          XDefaultRootWindow(pWMInfo->pDisplay), cursor);
             XFreeCursor(pWMInfo->pDisplay, cursor);
         }
     }
@@ -1606,6 +1616,17 @@ winMultiWindowXMsgProcIOErrorHandler(Display * pDisplay)
 }
 
 /*
+ * winMultiWindowThreadExit - Thread exit handler
+ */
+
+static void
+winMultiWindowThreadExit(void *arg)
+{
+    /* multiwindow client thread has exited, stop server as well */
+    raise(SIGTERM);
+}
+
+/*
  * Catch RedirectError to detect other window manager running
  */
 
@@ -1630,7 +1651,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
      */
     redirectError = FALSE;
     XSetErrorHandler(winRedirectErrorHandler);
-    XSelectInput(pDisplay, RootWindow(pDisplay, dwScreen),
+    XSelectInput(pDisplay, XRootWindow(pDisplay, dwScreen),
                  ResizeRedirectMask | SubstructureRedirectMask |
                  ButtonPressMask);
     XSync(pDisplay, 0);
@@ -1642,7 +1663,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
        If other WMs are not allowed, also select one of the events which only one client
        at a time is allowed to select, so other window managers won't start...
      */
-    XSelectInput(pDisplay, RootWindow(pDisplay, dwScreen),
+    XSelectInput(pDisplay, XRootWindow(pDisplay, dwScreen),
                  SubstructureNotifyMask | (!fAllowOtherWM ? ButtonPressMask :
                                            0));
     XSync(pDisplay, 0);
@@ -1658,6 +1679,40 @@ winDeinitMultiWindowWM(void)
 {
     ErrorF("winDeinitMultiWindowWM - Noting shutdown in progress\n");
     g_shutdown = TRUE;
+}
+
+static void
+winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd)
+{
+    XWMHints *hints = XGetWMHints(pDisplay, iWindow);
+
+    if (hints) {
+        FLASHWINFO fwi;
+
+        fwi.cbSize = sizeof(FLASHWINFO);
+        fwi.hwnd = hWnd;
+
+        winDebug("winApplyUrgency: window 0x%08x has urgency hint %s\n",
+                 iWindow, (hints->flags & XUrgencyHint) ? "on" : "off");
+
+        if (hints->flags & XUrgencyHint) {
+            DWORD count = 3;
+
+            SystemParametersInfo(SPI_GETFOREGROUNDFLASHCOUNT, 0, &count, 0);
+            fwi.dwFlags = FLASHW_TRAY;
+            fwi.uCount = count;
+            fwi.dwTimeout = 0;
+        }
+        else {
+            fwi.dwFlags = FLASHW_STOP;
+            fwi.uCount = 0;
+            fwi.dwTimeout = 0;
+        }
+
+        FlashWindowEx(&fwi);
+
+        XFree(hints);
+    }
 }
 
 /* Windows window styles */
@@ -1678,8 +1733,8 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 {
     static Atom windowState, motif_wm_hints, windowType;
     static Atom hiddenState, fullscreenState, belowState, aboveState,
-        skiptaskbarState;
-    static Atom dockWindow;
+        skiptaskbarState, vertMaxState, horzMaxState;
+    static Atom dockWindow, splashWindow;
     static int generation;
     Atom type, *pAtom = NULL;
     int format;
@@ -1703,14 +1758,20 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         belowState = XInternAtom(pDisplay, "_NET_WM_STATE_BELOW", False);
         aboveState = XInternAtom(pDisplay, "_NET_WM_STATE_ABOVE", False);
         dockWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        splashWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_SPLASH", False);
         skiptaskbarState =
             XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
+        vertMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+        horzMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
     }
 
     if (XGetWindowProperty(pDisplay, iWindow, windowState, 0L,
                            MAXINT, False, XA_ATOM, &type, &format,
                            &nitems, &left,
                            (unsigned char **) &pAtom) == Success) {
+        Bool verMax = FALSE;
+        Bool horMax = FALSE;
+
         if (pAtom ) {
             unsigned long i;
 
@@ -1725,7 +1786,14 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
                     *zstyle = HWND_BOTTOM;
                 else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
+                if (pAtom[i] == vertMaxState)
+                  verMax = TRUE;
+                if (pAtom[i] == horzMaxState)
+                  horMax = TRUE;
             }
+
+            if (verMax && horMax)
+              maxmin |= HINT_MAX;
 
             XFree(pAtom);
         }
@@ -1739,7 +1807,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         if (mwm_hint && nitems == PropMwmHintsElements &&
             (mwm_hint->flags & MwmHintsDecorations)) {
             if (!mwm_hint->decorations)
-                hint |= HINT_NOFRAME;
+                hint |= (HINT_NOFRAME | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
             else if (!(mwm_hint->decorations & MwmDecorAll)) {
                 if (mwm_hint->decorations & MwmDecorBorder)
                     hint |= HINT_BORDER;
@@ -1776,6 +1844,10 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
                 hint = (hint & ~HINT_NOFRAME) | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
                 *zstyle = HWND_TOPMOST;
             }
+            else if (*pAtom == splashWindow) {
+                hint |= (HINT_SKIPTASKBAR | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
+                *zstyle = HWND_TOPMOST;
+            }
         }
         if (pAtom)
             XFree(pAtom);
@@ -1786,9 +1858,12 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         long supplied;
 
         if (normal_hint &&
-            (XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied) ==
-             Success)) {
+            XGetWMNormalHints(pDisplay, iWindow, normal_hint, &supplied)) {
             if (normal_hint->flags & PMaxSize) {
+                /* Ensure default style is used if no other styling */
+                if (!(hint & ~HINT_SKIPTASKBAR))
+                    hint |= HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
+
                 /* Not maximizable if a maximum size is specified */
                 hint |= HINT_NOMAXIMIZE;
 
@@ -1915,58 +1990,4 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     winDebug
         ("winApplyHints: iWindow 0x%08x hints 0x%08x style 0x%08x exstyle 0x%08x\n",
          iWindow, hint, style, exStyle);
-}
-
-void
-winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
-{
-    int iX, iY, iWidth, iHeight;
-    int iDx, iDy;
-    RECT rcNew;
-    WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
-    DrawablePtr pDraw = NULL;
-
-    if (!pWin)
-        return;
-    pDraw = &pWin->drawable;
-    if (!pDraw)
-        return;
-
-    /* Get the X and Y location of the X window */
-    iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
-    iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
-
-    /* Get the height and width of the X window */
-    iWidth = pWin->drawable.width;
-    iHeight = pWin->drawable.height;
-
-    /* Setup a rectangle with the X window position and size */
-    SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
-
-    winDebug("winUpdateWindowPosition - drawable extent (%d, %d)-(%d, %d)\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
-
-    AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
-                       GetWindowLongPtr(hWnd, GWL_EXSTYLE));
-
-    /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
-    if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN)) {
-        iDx = GetSystemMetrics(SM_XVIRTUALSCREEN) - rcNew.left;
-        rcNew.left += iDx;
-        rcNew.right += iDx;
-    }
-
-    if (rcNew.top < GetSystemMetrics(SM_YVIRTUALSCREEN)) {
-        iDy = GetSystemMetrics(SM_YVIRTUALSCREEN) - rcNew.top;
-        rcNew.top += iDy;
-        rcNew.bottom += iDy;
-    }
-
-    winDebug("winUpdateWindowPosition - Window extent (%d, %d)-(%d, %d)\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
-
-    /* Position the Windows window */
-    SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,
-                 rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
-
 }

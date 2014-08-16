@@ -42,6 +42,11 @@
 #include "winmsg.h"
 #include "winmonitors.h"
 #include "inputstr.h"
+#include "wmutil/mouse.h"
+#include "wmutil/keyboard.h"
+#ifdef XWIN_CLIPBOARD
+#include "winclipboard/winclipboard.h"
+#endif
 
 /*
  * Global variables
@@ -916,7 +921,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (wParam) {
         case WIN_E3B_TIMER_ID:
             /* Send delayed button press */
-            winMouseButtonsSendEvent(ButtonPress,
+            winMouseButtonsSendEvent(TRUE,
                                      s_pScreenPriv->iE3BCachedPress);
 
             /* Kill this timer */
@@ -1221,6 +1226,12 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 ShowWindow(s_pScreenPriv->hwndScreen, SW_SHOW);
             s_pScreenPriv->fRootWindowShown = !s_pScreenPriv->fRootWindowShown;
             return 0;
+#endif
+
+#ifdef XWIN_CLIPBOARD
+        case ID_APP_MONITOR_PRIMARY:
+          fPrimarySelection = !fPrimarySelection;
+          return 0;
 #endif
 
         case ID_APP_ABOUT:

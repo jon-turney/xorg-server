@@ -213,6 +213,13 @@ __glXdirectContextCreate(__GLXscreen * screen,
     return context;
 }
 
+void
+FlushContext(__GLXcontext * cx)
+{
+    glFlush();
+    cx->hasUnflushedCommands = GL_FALSE;
+}
+
 /**
  * Create a GL context with the given properties.  This routine is used
  * to implement \c glXCreateContext, \c glXCreateNewContext, and
@@ -413,7 +420,9 @@ __glXDisp_DestroyContext(__GLXclientState * cl, GLbyte * pc)
                          &glxc, &err))
         return err;
 
-    FreeResourceByType(req->context, __glXContextRes, FALSE);
+    glxc->idExists = GL_FALSE;
+    if (!glxc->currentClient)
+        FreeResourceByType(req->context, __glXContextRes, FALSE);
 
     return Success;
 }

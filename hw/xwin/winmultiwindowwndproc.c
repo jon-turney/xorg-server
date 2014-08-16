@@ -41,6 +41,7 @@
 #include "winprefs.h"
 #include "winmsg.h"
 #include "inputstr.h"
+#include "wmutil/keyboard.h"
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
@@ -1045,6 +1046,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove) {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow(pWin, hwnd);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
         }
         /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
@@ -1155,4 +1158,96 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (needRestack)
         winReorderWindowsMultiWindow();
     return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+#if CYGDEBUG
+    winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+    switch (message) {
+    case WM_ERASEBKGND:
+        return TRUE;
+
+    case WM_PAINT:
+        /*
+           We don't have the bits to draw into the window, they went straight into the OpenGL
+           surface
+
+           XXX: For now, just leave it alone, but ideally we want to send an expose event to
+           the window so it really redraws the affected region...
+         */
+    {
+        PAINTSTRUCT ps;
+        HDC hdcUpdate;
+
+        hdcUpdate = BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+        /* XXX: this is exactly what DefWindowProc does? */
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+void
+winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
+{
+    int iX, iY, iWidth, iHeight;
+    int iDx, iDy;
+    RECT rcNew;
+    WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
+    DrawablePtr pDraw = NULL;
+
+    if (!pWin)
+        return;
+    pDraw = &pWin->drawable;
+    if (!pDraw)
+        return;
+
+    /* Get the X and Y location of the X window */
+    iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
+    iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+    /* Get the height and width of the X window */
+    iWidth = pWin->drawable.width;
+    iHeight = pWin->drawable.height;
+
+    /* Setup a rectangle with the X window position and size */
+    SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
+
+    winDebug("winUpdateWindowPosition - drawable extent (%d, %d)-(%d, %d)\n",
+             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
+
+    AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
+                       GetWindowLongPtr(hWnd, GWL_EXSTYLE));
+
+    /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
+    if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN)) {
+        iDx = GetSystemMetrics(SM_XVIRTUALSCREEN) - rcNew.left;
+        rcNew.left += iDx;
+        rcNew.right += iDx;
+    }
+
+    if (rcNew.top < GetSystemMetrics(SM_YVIRTUALSCREEN)) {
+        iDy = GetSystemMetrics(SM_YVIRTUALSCREEN) - rcNew.top;
+        rcNew.top += iDy;
+        rcNew.bottom += iDy;
+    }
+
+    winDebug("winUpdateWindowPosition - Window extent (%d, %d)-(%d, %d)\n",
+             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
+
+    /* Position the Windows window */
+    SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,
+                 rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
+
 }

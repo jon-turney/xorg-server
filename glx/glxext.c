@@ -66,6 +66,7 @@ static DevPrivateKeyRec glxClientPrivateKeyRec;
 ** Forward declarations.
 */
 static int __glXDispatch(ClientPtr);
+static GLboolean __glXFreeContext(__GLXcontext * cx);
 
 /*
 ** Called when the extension is reset.
@@ -134,6 +135,7 @@ DrawableGone(__GLXdrawable * glxPriv, XID xid)
         if (c->currentClient &&
 		(c->drawPriv == glxPriv || c->readPriv == glxPriv)) {
             /* just force a re-bind the next time through */
+            FlushContext(c);
             (*c->loseCurrent) (c);
             lastGLContext = NULL;
         }
@@ -186,7 +188,7 @@ __glXRemoveFromContextList(__GLXcontext * cx)
 /*
 ** Free a context.
 */
-GLboolean
+static GLboolean
 __glXFreeContext(__GLXcontext * cx)
 {
     if (cx->idExists || cx->currentClient)
@@ -291,7 +293,7 @@ glxClientCallback(CallbackListPtr *list, void *closure, void *data)
                 c->loseCurrent(c);
                 lastGLContext = NULL;
                 c->currentClient = NULL;
-                __glXFreeContext(c);
+                FreeResourceByType(c, __glXContextRes, FALSE);
             }
         }
 

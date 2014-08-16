@@ -155,6 +155,14 @@ struct __GLXWinConfig {
     int pixelFormatIndex;
 };
 
+typedef struct  {
+    int notOpenGL;
+    int rgbaFloat;
+    int unsignedRgbaFloat;
+    int unknownPixelType;
+    int unaccelerated;
+} PixelFormatRejectStats;
+
 /* ---------------------------------------------------------------------- */
 /*
  * Various debug helpers
@@ -340,13 +348,16 @@ swap_method_name(int mthd)
 }
 
 static void
-fbConfigsDump(unsigned int n, __GLXconfig * c)
+fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
 {
     LogMessage(X_INFO, "%d fbConfigs\n", n);
+    LogMessage(X_INFO, "ignored pixel formats: %d not OpenGL, %d RBGA float, %d RGBA unsigned float, %d unknown pixel type, %d unaccelerated\n",
+               rejects->notOpenGL, rejects->rgbaFloat, rejects->unsignedRgbaFloat,
+               rejects->unknownPixelType, rejects->unaccelerated);
 
     if (g_iLogVerbose < 3)
         return;
-    ErrorF("%d fbConfigs\n", n);
+
     ErrorF
         ("pxf vis  fb                      render         Ste                     aux    accum        MS    drawable             Group/\n");
     ErrorF
@@ -425,7 +436,8 @@ static HDC glxWinMakeDC(__GLXWinContext * gc, __GLXWinDrawable * draw,
 static void glxWinReleaseDC(HWND hwnd, HDC hdc, __GLXWinDrawable * draw);
 
 static void glxWinCreateConfigs(HDC dc, glxWinScreen * screen);
-static void glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen);
+static void glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen,
+                                   PixelFormatRejectStats * rejects);
 static int fbConfigToPixelFormat(__GLXconfig * mode,
                                  PIXELFORMATDESCRIPTOR * pfdret,
                                  int drawableTypeOverride);
@@ -531,6 +543,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     HWND hwnd;
     HDC hdc;
     HGLRC hglrc;
+    PixelFormatRejectStats rejects;
 
     GLWIN_DEBUG_MSG("glxWinScreenProbe");
 
@@ -704,8 +717,9 @@ glxWinScreenProbe(ScreenPtr pScreen)
         screen->base.pScreen = pScreen;
 
         // Creating the fbConfigs initializes screen->base.fbconfigs and screen->base.numFBConfigs
+        memset(&rejects, 0, sizeof(rejects));
         if (strstr(wgl_extensions, "WGL_ARB_pixel_format")) {
-            glxWinCreateConfigsExt(hdc, screen);
+            glxWinCreateConfigsExt(hdc, screen, &rejects);
 
             /*
                Some graphics drivers appear to advertise WGL_ARB_pixel_format,
@@ -718,6 +732,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
         }
 
         if (screen->base.numFBConfigs <= 0) {
+            memset(&rejects, 0, sizeof(rejects));
             glxWinCreateConfigs(hdc, screen);
             screen->has_WGL_ARB_pixel_format = FALSE;
         }
@@ -737,9 +752,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
         screen->base.numVisuals = 0;
 
         __glXScreenInit(&screen->base, pScreen);
-
-        // Override the GL extensions string set by __glXScreenInit()
-        screen->base.GLextensions = strdup(gl_extensions);
 
         // Generate the GLX extensions string (overrides that set by __glXScreenInit())
         {
@@ -781,7 +793,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     DestroyWindow(hwnd);
 
     // dump out fbConfigs now fbConfigIds and visualIDs have been assigned
-    fbConfigsDump(screen->base.numFBConfigs, screen->base.fbconfigs);
+    fbConfigsDump(screen->base.numFBConfigs, screen->base.fbconfigs, &rejects);
 
     /* Wrap RealizeWindow, UnrealizeWindow and CopyWindow on this screen */
     screen->RealizeWindow = pScreen->RealizeWindow;
@@ -892,13 +904,6 @@ glxWinDrawableSwapBuffers(ClientPtr client, __GLXdrawable * base)
     GLWIN_TRACE_MSG
         ("glxWinSwapBuffers on drawable %p, last context %p (native ctx %p)",
          base, draw->drawContext, draw->drawContext->ctx);
-
-    /*
-       draw->drawContext->base.drawPriv will not be set if the context is not current anymore,
-       but if it is, it should point to this drawable....
-     */
-    assert((draw->drawContext->base.drawPriv == NULL) ||
-           (draw->drawContext->base.drawPriv == base));
 
     dc = glxWinMakeDC(draw->drawContext, draw, &dc, &hwnd);
     if (dc == NULL)
@@ -1123,7 +1128,6 @@ glxWinSetPixelFormat(__GLXWinContext * gc, HDC hdc, int bppOverride,
             fbConfigToPixelFormatIndex(hdc, gc->base.config,
                                        drawableTypeOverride, winScreen);
         if (pixelFormat == 0) {
-            ErrorF("wglChoosePixelFormat error: %s\n", glxWinErrorMessage());
             return FALSE;
         }
 
@@ -1306,7 +1310,7 @@ glxWinDeferredCreateContext(__GLXWinContext * gc, __GLXWinDrawable * draw)
             glxWinScreen *winScreen;
             int pixelFormat;
 
-            // XXX: which DC are supposed to use???
+            // XXX: which DC are we supposed to use???
             HDC screenDC = GetDC(NULL);
 
             if (!(gc->base.config->drawableType & GLX_PBUFFER_BIT)) {
@@ -1319,10 +1323,8 @@ glxWinDeferredCreateContext(__GLXWinContext * gc, __GLXWinDrawable * draw)
 
             pixelFormat =
                 fbConfigToPixelFormatIndex(screenDC, gc->base.config,
-                                           GLX_DRAWABLE_PBUFFER, winScreen);
+                                           GLX_PBUFFER_BIT, winScreen);
             if (pixelFormat == 0) {
-                ErrorF("wglChoosePixelFormat error: %s\n",
-                       glxWinErrorMessage());
                 return;
             }
 
@@ -1761,7 +1763,7 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig * mode,
         SET_ATTR_VALUE(WGL_SWAP_METHOD_ARB, WGL_SWAP_EXCHANGE_ARB);
 
     if (mode->swapMethod == GLX_SWAP_COPY_OML)
-        SET_ATTR_VALUE(WGL_SWAP_COPY_ARB, TRUE);
+        SET_ATTR_VALUE(WGL_SWAP_METHOD_ARB, WGL_SWAP_COPY_ARB);
 
     // XXX: this should probably be the other way around, but that messes up drawableTypeOverride
     if (mode->visualRating == GLX_SLOW_VISUAL_EXT)
@@ -1926,6 +1928,8 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         /* EXT_visual_rating / GLX 1.2 */
         if (pfd.dwFlags & PFD_GENERIC_FORMAT) {
             c->base.visualRating = GLX_SLOW_VISUAL_EXT;
+            GLWIN_DEBUG_MSG("pixelFormat %d is un-accelerated, skipping", i + 1);
+            continue;
         }
         else {
             // PFD_GENERIC_ACCELERATED is not considered, so this may be MCD or ICD acclerated...
@@ -2060,7 +2064,7 @@ getAttrValue(const int attrs[], int values[], unsigned int num, int attr,
 // Create the GLXconfigs using wglGetPixelFormatAttribfvARB() extension
 //
 static void
-glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
+glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * rejects)
 {
     GLXWinConfig *c, *result, *prev = NULL;
     int i = 0;
@@ -2172,6 +2176,7 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
 #define ATTR_VALUE(a, d) getAttrValue(attrs, values, num_attrs, (a), (d))
 
         if (!ATTR_VALUE(WGL_SUPPORT_OPENGL_ARB, 0)) {
+            rejects->notOpenGL++;
             GLWIN_DEBUG_MSG
                 ("pixelFormat %d isn't WGL_SUPPORT_OPENGL_ARB, skipping",
                  i + 1);
@@ -2208,11 +2213,13 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
             break;
 
         case WGL_TYPE_RGBA_FLOAT_ARB:
+            rejects->rgbaFloat++;
             GLWIN_DEBUG_MSG
                 ("pixelFormat %d is WGL_TYPE_RGBA_FLOAT_ARB, skipping", i + 1);
             continue;
 
         case WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT:
+            rejects->unsignedRgbaFloat++;
             GLWIN_DEBUG_MSG
                 ("pixelFormat %d is WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT, skipping",
                  i + 1);
@@ -2225,6 +2232,7 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
             break;
 
         default:
+            rejects->unknownPixelType++;
             ErrorF
                 ("wglGetPixelFormatAttribivARB returned unknown value 0x%x for WGL_PIXEL_TYPE_ARB\n",
                  ATTR_VALUE(WGL_PIXEL_TYPE_ARB, 0));
@@ -2265,7 +2273,10 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
                  ATTR_VALUE(WGL_ACCELERATION_ARB, 0));
 
         case WGL_NO_ACCELERATION_ARB:
+            rejects->unaccelerated++;
             c->base.visualRating = GLX_SLOW_VISUAL_EXT;
+            GLWIN_DEBUG_MSG("pixelFormat %d is un-accelerated, skipping", i + 1);
+            continue;
             break;
 
         case WGL_GENERIC_ACCELERATION_ARB:
@@ -2337,11 +2348,16 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
 
         /* SGIX_pbuffer / GLX 1.3 */
         if (screen->has_WGL_ARB_pbuffer) {
-            c->base.maxPbufferWidth = ATTR_VALUE(WGL_MAX_PBUFFER_WIDTH_ARB, -1);
-            c->base.maxPbufferHeight =
-                ATTR_VALUE(WGL_MAX_PBUFFER_HEIGHT_ARB, -1);
-            c->base.maxPbufferPixels =
-                ATTR_VALUE(WGL_MAX_PBUFFER_PIXELS_ARB, -1);
+            // mesa libGL "can't handle the truth" about max pbuffer size.
+            // We must report 0, which exactly matches what it expects
+            //
+            // ATTR_VALUE(WGL_MAX_PBUFFER_WIDTH_ARB, -1);
+            // ATTR_VALUE(WGL_MAX_PBUFFER_PIXELS_ARB, -1);
+            // ATTR_VALUE(WGL_MAX_PBUFFER_HEIGHT_ARB, -1);
+            //
+            c->base.maxPbufferWidth = 0;
+            c->base.maxPbufferHeight = 0;
+            c->base.maxPbufferPixels = 0;
         }
         else {
             c->base.maxPbufferWidth = -1;
