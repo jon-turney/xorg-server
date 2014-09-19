@@ -315,7 +315,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Access the clipboard */
             if (!OpenClipboard(hwnd)) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
-                       "OpenClipboard () failed: %08lx\n", GetLastError());
+                       "OpenClipboard () failed: %08lx owner %08x\n", GetLastError(), GetClipboardOwner());
 
                 /* Abort */
                 fAbort = TRUE;
@@ -569,9 +569,11 @@ winClipboardFlushXEvents(HWND hwnd,
                    not be performed or server errors prevented the conversion data being returned
             */
             if (event.xselection.property == None) {
+                    char *pszAtomName = XGetAtomName(pDisplay, event.xselection.target);
                     ErrorF("winClipboardFlushXEvents - SelectionNotify - "
-                           "Conversion to format %d refused.\n",
-                           event.xselection.target);
+                           "Conversion to format %d %s refused.\n",
+                           pszAtomName, event.xselection.target);
+                    XFree(pszAtomName);
                     return WIN_XEVENTS_FAILED;
                 }
 
@@ -847,8 +849,8 @@ winClipboardFlushXEvents(HWND hwnd,
 
                 /* Access the Windows clipboard */
                 if (!OpenClipboard(hwnd)) {
-                    ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x\n",
-                           (int) GetLastError());
+                    ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x Owner %08x\n",
+                           (int) GetLastError(), GetClipboardOwner());
                     break;
                 }
 

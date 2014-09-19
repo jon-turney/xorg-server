@@ -501,7 +501,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (WIN_XEVENTS_NOTIFY_TARGETS != iReturn) {
             ErrorF
-                ("winClipboardWindowProc - timed out waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
+                ("winClipboardWindowProc - failed waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
             goto fake_paste;
         }
 
