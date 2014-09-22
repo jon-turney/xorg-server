@@ -134,6 +134,7 @@ typedef struct _WMInfo {
     Atom atmWmDelete;
     Atom atmWmTakeFocus;
     Atom atmPrivMap;
+    Atom atmNetWmName;
     Bool fAllowOtherWM;
 } WMInfoRec, *WMInfoPtr;
 
@@ -164,7 +165,7 @@ static Bool
  InitQueue(WMMsgQueuePtr pQueue);
 
 static void
- GetWindowName(Display * pDpy, Window iWin, char **ppWindowName);
+ GetWindowName(Display * pDpy, Window iWin, char **ppWindowName, Atom atmNetWmName);
 
 static int
  SendXMessage(Display * pDisplay, Window iWin, Atom atmType, long nData);
@@ -450,14 +451,10 @@ Xutf8TextPropertyToString(Display * pDisplay, XTextProperty * xtp)
  */
 
 static void
-GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
+GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName, Atom atmNetWmName)
 {
     int nResult;
-    XTextProperty xtpWindowName;
-    XTextProperty xtpClientMachine;
-    char *pszWindowName;
-    char *pszClientMachine;
-    char hostname[HOST_NAME_MAX + 1];
+    char *pszWindowName = NULL;
 
 #if CYGMULTIWINDOW_DEBUG
     ErrorF("GetWindowName\n");
@@ -466,19 +463,47 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
     /* Intialize ppWindowName to NULL */
     *ppWindowName = NULL;
 
-    /* Try to get window name */
-    nResult = XGetWMName(pDisplay, iWin, &xtpWindowName);
-    if (!nResult || !xtpWindowName.value || !xtpWindowName.nitems) {
-#if CYGMULTIWINDOW_DEBUG
-        ErrorF("GetWindowName - XGetWMName failed.  No name.\n");
-#endif
-        return;
+    /* Try to get window name from _NET_WM_NAME */
+    {
+        char *utf8WindowName;
+        Atom type;
+        int format;
+        unsigned long nitems, after;
+
+        nResult = XGetWindowProperty(pDisplay, iWin, atmNetWmName,
+                                     0, INT_MAX, False,
+                                     AnyPropertyType, &type, &format,
+                                     &nitems, &after,
+                                     (unsigned char **)&utf8WindowName);
+        if ((nResult == Success) && (type != None))
+            {
+                pszWindowName = strdup(utf8WindowName);
+                XFree(utf8WindowName);
+            }
     }
 
-    pszWindowName = Xutf8TextPropertyToString(pDisplay, &xtpWindowName);
-    XFree(xtpWindowName.value);
+    /* Otherwise, try to get window name from WM_NAME */
+    if (!pszWindowName)
+        {
+            XTextProperty xtpWindowName;
+
+            nResult = XGetWMName(pDisplay, iWin, &xtpWindowName);
+            if (!nResult || !xtpWindowName.value || !xtpWindowName.nitems) {
+#if CYGMULTIWINDOW_DEBUG
+                ErrorF("GetWindowName - XGetWMName failed.  No name.\n");
+#endif
+                return;
+            }
+
+            pszWindowName = Xutf8TextPropertyToString(pDisplay, &xtpWindowName);
+            XFree(xtpWindowName.value);
+        }
 
     if (g_fHostInTitle) {
+        XTextProperty xtpClientMachine;
+        char *pszClientMachine;
+        char hostname[HOST_NAME_MAX + 1];
+
         /* Try to get client machine name */
         nResult = XGetWMClientMachine(pDisplay, iWin, &xtpClientMachine);
         if (nResult && xtpClientMachine.value && xtpClientMachine.nitems) {
@@ -615,7 +640,7 @@ UpdateName(WMInfoPtr pWMInfo, Window iWindow)
         char *pszWindowName;
 
         /* Get the X windows window name */
-        GetWindowName(pWMInfo->pDisplay, iWindow, &pszWindowName);
+        GetWindowName(pWMInfo->pDisplay, iWindow, &pszWindowName, pWMInfo->atmNetWmName);
 
         if (pszWindowName) {
             /* Convert from UTF-8 to wide char */
@@ -1016,6 +1041,7 @@ winMultiWindowXMsgProc(void *pArg)
     int iRetries;
     XEvent event;
     Atom atmWmName;
+    Atom atmNetWmName;
     Atom atmWmHints;
     Atom atmWmChange;
     Atom atmNetWmIcon;
@@ -1133,6 +1159,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     atmWmName = XInternAtom(pProcArg->pDisplay, "WM_NAME", False);
+    atmNetWmName = XInternAtom(pProcArg->pDisplay, "_NET_WM_NAME", False);
     atmWmHints = XInternAtom(pProcArg->pDisplay, "WM_HINTS", False);
     atmWmChange = XInternAtom(pProcArg->pDisplay, "WM_CHANGE_STATE", False);
     atmNetWmIcon = XInternAtom(pProcArg->pDisplay, "_NET_WM_ICON", False);
@@ -1270,7 +1297,8 @@ winMultiWindowXMsgProc(void *pArg)
                 XGetAtomName(pProcArg->pDisplay, event.xproperty.atom);
             winDebug("winMultiWindowXMsgProc: PropertyNotify %s\n", atomName);
             XFree(atomName);
-            if (event.xproperty.atom == atmWmName) {
+            if ((event.xproperty.atom == atmWmName) ||
+                (event.xproperty.atom == atmNetWmName)) {
                 memset(&msg, 0, sizeof(msg));
 
                 msg.msg = WM_WM_NAME_EVENT;
@@ -1498,9 +1526,10 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                                        "WM_DELETE_WINDOW", False);
     pWMInfo->atmWmTakeFocus = XInternAtom(pWMInfo->pDisplay,
                                        "WM_TAKE_FOCUS", False);
-
     pWMInfo->atmPrivMap = XInternAtom(pWMInfo->pDisplay,
                                       WINDOWSWM_NATIVE_HWND, False);
+    pWMInfo->atmNetWmName = XInternAtom(pWMInfo->pDisplay,
+                                        "_NET_WM_NAME", False);
 
     if (1) {
         Cursor cursor = XCreateFontCursor(pWMInfo->pDisplay, XC_left_ptr);
