@@ -1757,12 +1757,15 @@ System(const char *cmdline)
 const char*
 Win32TempDir(void)
 {
-    if (getenv("TEMP") != NULL)
-        return getenv("TEMP");
-    else if (getenv("TMP") != NULL)
-        return getenv("TMP");
-    else
-        return "/tmp";
+    const char *temp = getenv("TEMP");
+    if ((temp != NULL) && (access(temp, W_OK | X_OK) == 0))
+        return temp;
+
+    temp = getenv("TMP");
+    if ((temp != NULL) && (access(temp, W_OK | X_OK) == 0))
+        return temp;
+
+    return "/tmp";
 }
 #endif
 
