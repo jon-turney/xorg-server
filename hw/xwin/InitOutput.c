@@ -343,7 +343,8 @@ winCheckMount(void)
         else
             binary = TRUE;
 
-        if (strcmp(ent->mnt_type, "vfat") == 0)
+        if ((strcmp(ent->mnt_type, "vfat") == 0) ||
+            (strcmp(ent->mnt_type, "exfat") == 0))
             fat = TRUE;
         else
             fat = FALSE;

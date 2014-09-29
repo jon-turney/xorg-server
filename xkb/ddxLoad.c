@@ -200,7 +200,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 #endif
     }
     else {
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__CYGWIN__)
         LogMessage(X_ERROR, "XKB: Could not invoke xkbcomp\n");
 #else
         LogMessage(X_ERROR, "Could not open file %s\n", tmpname);
