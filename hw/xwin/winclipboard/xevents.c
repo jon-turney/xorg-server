@@ -567,7 +567,7 @@ winClipboardFlushXEvents(HWND hwnd,
             if (event.xselection.property == None) {
                     char *pszAtomName = XGetAtomName(pDisplay, event.xselection.target);
                     ErrorF("winClipboardFlushXEvents - SelectionNotify - "
-                           "Conversion to format %d %s refused.\n",
+                           "Conversion to format %s %d refused.\n",
                            pszAtomName, event.xselection.target);
                     XFree(pszAtomName);
                     return WIN_XEVENTS_FAILED;
