@@ -1574,9 +1574,7 @@ winMultiWindowXMsgProcErrorHandler(Display * pDisplay, XErrorEvent * pErr)
     char pszErrorMsg[100];
 
     XGetErrorText(pDisplay, pErr->error_code, pszErrorMsg, sizeof(pszErrorMsg));
-#if CYGMULTIWINDOW_DEBUG
     ErrorF("winMultiWindowXMsgProcErrorHandler - ERROR: %s\n", pszErrorMsg);
-#endif
 
     return 0;
 }
