@@ -291,6 +291,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
         /* Display the usage message if the argument is malformed */
         if (i + 1 >= argc) {
+            ErrorF("ddxProcessArgument - screen - Missing screen number\n");
+            UseMsg();
+            FatalError("-screen missing screen number\n");
             return 0;
         }
 
