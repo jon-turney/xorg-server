@@ -369,6 +369,83 @@ xorg_backtrace(void)
         return;
 }
 
+/* Cygwin-specific crash-reporter glue */
+
+#include <X11/Xwindows.h>
+#include <sys/cygwin.h>
+
+typedef int (*PFNCYGWINCRASHREPORTERINIT)(const char *, const char *);
+typedef void (*PFNCYGWINCRASHREPORTERREPORT)(EXCEPTION_POINTERS *ep);
+
+PFNCYGWINCRASHREPORTERREPORT crashreporter_report = NULL;
+
+#define CRASHREPORT_URL "http://www.dronecode.org.uk/cgi-bin/addreport.php"
+
+void
+xorg_crashreport_init(const char *logfile)
+{
+    /* Initialize crashreporter, if available */
+    HMODULE h = LoadLibrary("cygwin-crashreporter-hooks.dll");
+    if (h)
+        {
+            int result = 0;
+            PFNCYGWINCRASHREPORTERINIT crashreporter_init = (PFNCYGWINCRASHREPORTERINIT) GetProcAddress (h, "CygwinCrashReporterInit");
+            crashreporter_report = (PFNCYGWINCRASHREPORTERREPORT) GetProcAddress (h, "CygwinCrashReporterReport");
+
+            if (crashreporter_init && crashreporter_report)
+                {
+                    char *windows_logfile = cygwin_create_path(CCP_POSIX_TO_WIN_A, logfile);
+
+                    result = (*crashreporter_init) (CRASHREPORT_URL, windows_logfile);
+
+                    if (!result)
+                        ErrorF("Failed to initialize crashreporting\n");
+                    else
+                        DebugF("crashreporting initialized, status %d\n", result);
+
+                    free(windows_logfile);
+                }
+            else
+                {
+                    ErrorF("Could not locate crashreporting functions\n");
+                }
+
+            if (!result)
+                FreeLibrary (h);
+        }
+    else
+        {
+            DebugF("Could not load crashreporter dll\n");
+        }
+}
+
+#ifdef CW_EXCEPTION_RECORD_FROM_SIGINFO_T
+#include <ucontext.h>
+#endif
+
+void
+xorg_crashreport(int signo, siginfo_t *sip, void *sigcontext)
+{
+    if (crashreporter_report)
+        {
+#ifdef CW_EXCEPTION_RECORD_FROM_SIGINFO_T
+            ucontext_t *ucontext = (ucontext_t *)sigcontext;
+            EXCEPTION_RECORD er;
+            int res = !cygwin_internal(CW_EXCEPTION_RECORD_FROM_SIGINFO_T, sip, &er);
+
+            if (ucontext && res)
+                {
+                    EXCEPTION_POINTERS ep;
+                    ep.ExceptionRecord = &er;
+                    ep.ContextRecord = (CONTEXT *)(&ucontext->uc_mcontext);
+                    crashreporter_report(&ep);
+                }
+            else
+#endif
+                crashreporter_report(NULL);
+        }
+}
+
 #endif
 #endif
 #endif
