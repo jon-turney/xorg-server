@@ -79,14 +79,10 @@ OsVendorFatalError(const char *f, va_list args)
         }
     }
 
-    /* Don't give duplicate warning if UseMsg was called */
+    /* Don't give warning if it's been silenced */
     if (g_fSilentFatalError)
         return;
 
-    if (!g_fLogInited) {
-        g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
-    }
     LogClose(EXIT_ERR_ABORT);
 
     /* Format the error message */
