@@ -652,6 +652,9 @@ LogPrintMarkers(void);
 extern _X_EXPORT void
 xorg_backtrace(void);
 
+extern _X_EXPORT void
+xorg_crashreport(void);
+
 extern _X_EXPORT int
 os_move_fd(int fd);
 

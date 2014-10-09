@@ -144,6 +144,8 @@ OsSigHandler(int signo)
     /* log, cleanup, and abort */
     xorg_backtrace();
 
+    xorg_crashreport();
+
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));
 }

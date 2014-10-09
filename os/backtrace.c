@@ -369,6 +369,13 @@ xorg_backtrace(void)
         return;
 }
 
+/* Cygwin-specific reporter script which uses exec_wrapper */
+void
+xorg_crashreport(void)
+{
+    return xorg_backtrace_exec_wrapper(BINDIR "/xorg-crashreport");
+}
+
 #endif
 #endif
 #endif
