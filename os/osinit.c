@@ -110,7 +110,7 @@ OsRegisterSigWrapper(OsSigWrapperPtr newSigWrapper)
 #if !defined(WIN32) || defined(__CYGWIN__)
 static void
 #ifdef SA_SIGINFO
-OsSigHandler(int signo, siginfo_t * sip, void *unused)
+OsSigHandler(int signo, siginfo_t * sip, void *sigcontext)
 #else
 OsSigHandler(int signo)
 #endif
@@ -159,6 +159,10 @@ OsSigHandler(int signo)
 
     /* log, cleanup, and abort */
     xorg_backtrace();
+
+#if defined(__CYGWIN__)
+    xorg_crashreport(signo, sip, sigcontext);
+#endif
 
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));

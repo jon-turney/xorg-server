@@ -170,6 +170,10 @@ main(int argc, char *argv[], char *envp[])
 {
     int iReturn;
 
+#ifdef __CYGWIN__
+    xorg_crashreport_init(NULL);
+#endif
+
     /* Create & acquire the termination mutex */
     iReturn = pthread_mutex_init(&g_pmTerminating, NULL);
     if (iReturn != 0) {
@@ -659,6 +663,10 @@ OsVendorInit(void)
         g_fLogInited = TRUE;
         g_pszLogFile = LogInit(g_pszLogFile, ".old");
 
+#ifdef __CYGWIN__
+        /* Tell crashreporter logfile name */
+        xorg_crashreport_init(g_pszLogFile);
+#endif
     }
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
