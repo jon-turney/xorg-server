@@ -219,7 +219,7 @@ ddxGiveUp(enum ExitCode error)
 #endif
 
     if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
         g_fLogInited = TRUE;
     }
     LogClose(error);
@@ -662,7 +662,7 @@ OsVendorInit(void)
          * avoid the second call 
          */
         g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
     }
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
@@ -904,7 +904,7 @@ ddxUseMsg(void)
 
     /* Log file will not be opened for UseMsg unless we open it now */
     if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+        g_pszLogFile = LogInit(g_pszLogFile, ".old");
         g_fLogInited = TRUE;
     }
     LogClose(EXIT_NO_ERROR);
