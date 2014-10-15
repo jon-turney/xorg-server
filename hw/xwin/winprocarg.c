@@ -1213,6 +1213,9 @@ winOS(void)
         if (osvi.dwMajorVersion <= 4)
             prodName = "Windows NT";
         else if (osvi.dwMajorVersion == 6) {
+            if (osvi.dwMinorVersion == 4) {
+                prodName = "Windows 10";
+            }
             if (osvi.dwMinorVersion == 3) {
                 if (osvi.wProductType == VER_NT_WORKSTATION)
                     prodName = "Windows 8.1";
