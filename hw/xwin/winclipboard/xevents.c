@@ -375,6 +375,26 @@ winClipboardFlushXEvents(HWND hwnd,
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
                        "GetClipboardData () failed: %08lx\n", GetLastError());
 
+                unsigned int format = 0;
+
+                do {
+                    format = EnumClipboardFormats(format);
+                    if (GetLastError() != ERROR_SUCCESS) {
+                        winDebug
+                            ("winClipboardFlushXEvents - SelectionRequest - EnumClipboardFormats failed %x\n",
+                             GetLastError());
+                    }
+                    if (format > 0xc000) {
+                        char buff[256];
+
+                        GetClipboardFormatName(format, buff, 256);
+                        winDebug("winClipboardFlushXEvents - SelectionRequest - %d %s\n", format,
+                                 buff);
+                    }
+                    else if (format > 0)
+                        winDebug("winClipboardFlushXEvents - SelectionRequest - %d\n", format);
+                } while (format != 0);
+
                 /* Abort */
                 fAbort = TRUE;
                 goto winClipboardFlushXEvents_SelectionRequest_Done;
