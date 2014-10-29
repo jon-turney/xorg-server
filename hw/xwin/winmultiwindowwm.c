@@ -130,11 +130,15 @@ typedef struct _WMMsgQueueRec {
 typedef struct _WMInfo {
     Display *pDisplay;
     WMMsgQueueRec wmMsgQueue;
+    Atom atmUTF8String;
     Atom atmWmProtos;
     Atom atmWmDelete;
     Atom atmWmTakeFocus;
     Atom atmPrivMap;
     Atom atmNetWmName;
+    Atom atmCurrentDesktop;
+    Atom atmNumberDesktops;
+    Atom atmDesktopNames;
     Bool fAllowOtherWM;
 } WMInfoRec, *WMInfoPtr;
 
@@ -1437,6 +1441,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     int iRetries = 0;
     char pszDisplay[512];
     int iReturn;
+    int data;
+    const char buf[] = "Desktop";
 
     winDebug("winInitMultiWindowWM - Hello\n");
 
@@ -1520,6 +1526,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
            "successfully opened the display.\n");
 
     /* Create some atoms */
+    pWMInfo->atmUTF8String = XInternAtom(pWMInfo->pDisplay,
+                                       "UTF8_STRING", False);
     pWMInfo->atmWmProtos = XInternAtom(pWMInfo->pDisplay,
                                        "WM_PROTOCOLS", False);
     pWMInfo->atmWmDelete = XInternAtom(pWMInfo->pDisplay,
@@ -1530,6 +1538,30 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                                       WINDOWSWM_NATIVE_HWND, False);
     pWMInfo->atmNetWmName = XInternAtom(pWMInfo->pDisplay,
                                         "_NET_WM_NAME", False);
+    pWMInfo->atmCurrentDesktop = XInternAtom(pWMInfo->pDisplay,
+                                             "_NET_CURRENT_DESKTOP", False);
+    pWMInfo->atmNumberDesktops = XInternAtom(pWMInfo->pDisplay,
+                                             "_NET_NUMBER_OF_DESKTOPS", False);
+    pWMInfo->atmDesktopNames = XInternAtom(pWMInfo->pDisplay,
+                                           "_NET_DESKTOP_NAMES", False);
+
+    /*
+      Set root window properties for describing multiple desktops to describe
+      the one desktop we have
+    */
+    data = 0;
+    XChangeProperty(pWMInfo->pDisplay, XDefaultRootWindow(pWMInfo->pDisplay),
+                    pWMInfo->atmCurrentDesktop, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *) &data, 1);
+
+    data = 1;
+    XChangeProperty(pWMInfo->pDisplay, XDefaultRootWindow(pWMInfo->pDisplay),
+                    pWMInfo->atmNumberDesktops, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *) &data, 1);
+
+    XChangeProperty(pWMInfo->pDisplay, XDefaultRootWindow(pWMInfo->pDisplay),
+                    pWMInfo->atmDesktopNames, pWMInfo->atmUTF8String, 8,
+                    PropModeReplace, (unsigned char *) buf, strlen(buf));
 
     if (1) {
         Cursor cursor = XCreateFontCursor(pWMInfo->pDisplay, XC_left_ptr);
