@@ -1409,11 +1409,8 @@ recv_alive_msg(unsigned length)
 static void
 XdmcpFatal(const char *type, ARRAY8Ptr status)
 {
-    char *text = malloc(status->length + 1);
-    strncpy(text, status->data, status->length);
-    text[status->length] = 0;
-    FatalError("XDMCP fatal error: %s %s\n", type, text);
-    free(text);
+    FatalError("XDMCP fatal error: %s %*.*s\n", type,
+               status->length, status->length, status->data);
 }
 
 static void
