@@ -78,6 +78,18 @@ static const char *szSelectionNames[CLIP_NUM_SELECTIONS] =
 
 static unsigned int lastOwnedSelectionIndex = CLIP_OWN_NONE;
 
+static const char *
+GetWindowName(HWND hWnd)
+{
+    static char *pBuf = NULL;
+    int len = GetWindowTextLength(hWnd);
+    len++;
+    pBuf = realloc(pBuf, len + 1);
+    GetWindowText(hWnd, pBuf, len);
+    pBuf[len] = 0;
+    return pBuf;
+}
+
 static void
 MonitorSelection(XFixesSelectionNotifyEvent * e, unsigned int i)
 {
@@ -313,7 +325,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Access the clipboard */
             if (!OpenClipboard(hwnd)) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
-                       "OpenClipboard () failed: %08lx owner %08x\n", GetLastError(), GetClipboardOwner());
+                       "OpenClipboard () failed: %08lx owner %08x\n", GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
 
                 /* Abort */
                 fAbort = TRUE;
@@ -374,6 +386,26 @@ winClipboardFlushXEvents(HWND hwnd,
             if (!hGlobal) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
                        "GetClipboardData () failed: %08lx\n", GetLastError());
+
+                unsigned int format = 0;
+
+                do {
+                    format = EnumClipboardFormats(format);
+                    if (GetLastError() != ERROR_SUCCESS) {
+                        winDebug
+                            ("winClipboardFlushXEvents - SelectionRequest - EnumClipboardFormats failed %x\n",
+                             GetLastError());
+                    }
+                    if (format > 0xc000) {
+                        char buff[256];
+
+                        GetClipboardFormatName(format, buff, 256);
+                        winDebug("winClipboardFlushXEvents - SelectionRequest - %d %s\n", format,
+                                 buff);
+                    }
+                    else if (format > 0)
+                        winDebug("winClipboardFlushXEvents - SelectionRequest - %d\n", format);
+                } while (format != 0);
 
                 /* Abort */
                 fAbort = TRUE;
@@ -845,7 +877,7 @@ winClipboardFlushXEvents(HWND hwnd,
                 /* Access the Windows clipboard */
                 if (!OpenClipboard(hwnd)) {
                     ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x Owner %08x\n",
-                           (int) GetLastError(), GetClipboardOwner());
+                           (int) GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
                     break;
                 }
 
