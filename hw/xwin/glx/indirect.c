@@ -87,6 +87,7 @@
 #include <wgl_ext_api.h>
 #include <winglobals.h>
 #include <indirect.h>
+#include <setjmp.h>
 
 #define NUM_ELEMENTS(x) (sizeof(x)/ sizeof(x[1]))
 
@@ -479,6 +480,30 @@ glxLogExtensions(const char *prefix, const char *extensions)
     free(str);
 }
 
+static jmp_buf jmp_sig;
+static struct sigaction old_act;
+extern Bool install_os_signal_handler;
+
+static void
+glxWinScreenProbeSigHandler(int signo, siginfo_t * sip, void *context)
+{
+    // log a message
+    ErrorFSigSafe("segfault in WGL during glxWinScreenProbe()\n");
+
+    // show a messagebox
+    MessageBox(NULL,
+               "Windows OpenGL has been disabled as a crash occurred during initialization.\n"
+               "\n"
+               "Please try updating the display driver.\n"
+               "\n"
+               "You can disable the use of Windows OpenGL by starting the X server using the -nowgl option.",
+               XVENDORNAMESHORT,
+               MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND);
+
+    // continue via longjmp()
+    longjmp(jmp_sig, 1);
+}
+
 /* This is called by GlxExtensionInit() asking the GLX provider if it can handle the screen... */
 static __GLXscreen *
 glxWinScreenProbe(ScreenPtr pScreen)
@@ -511,8 +536,11 @@ glxWinScreenProbe(ScreenPtr pScreen)
         return NULL;
 
     // Select the native GL implementation (WGL)
-    if (glWinSelectImplementation(1))
+    if (glWinSelectImplementation(1)) {
+        LogMessage(X_ERROR, "AIGLX: WGL not available\n");
+        free(screen);
         return NULL;
+    }
 
     // create window class
 #define WIN_GL_TEST_WINDOW_CLASS "XWinGLTest"
@@ -523,7 +551,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
             WNDCLASSEX wc;
 
             wc.cbSize = sizeof(WNDCLASSEX);
-            wc.style = CS_HREDRAW | CS_VREDRAW;
+            wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             wc.lpfnWndProc = DefWindowProc;
             wc.cbClsExtra = 0;
             wc.cbWndExtra = 0;
@@ -538,22 +566,79 @@ glxWinScreenProbe(ScreenPtr pScreen)
         }
     }
 
+    // The following tests seem particularly prone to crashing somewhere in the
+    // display driver's OpenGL implementation.  So temporarily install a special
+    // SIGSEGV handler so can catch that and offer some remedial advice...
+    if (install_os_signal_handler)
+        {
+            struct sigaction act;
+            sigemptyset(&act.sa_mask);
+            act.sa_sigaction = glxWinScreenProbeSigHandler;
+            act.sa_flags = SA_SIGINFO;
+            sigaction(SIGSEGV, &act, &old_act);
+
+            if (setjmp(jmp_sig)) {
+                LogMessage(X_ERROR, "AIGLX: Not using WGL due to SEGV\n");
+                goto error;
+            }
+        }
+
     // create an invisible window for a scratch DC
     hwnd = CreateWindowExA(0,
                            WIN_GL_TEST_WINDOW_CLASS,
                            "XWin GL Renderer Capabilities Test Window",
                            0, 0, 0, 0, 0, NULL, NULL, GetModuleHandle(NULL),
                            NULL);
-    if (hwnd == NULL)
+    if (hwnd == NULL) {
         LogMessage(X_ERROR,
                    "AIGLX: Couldn't create a window for render capabilities testing\n");
+        goto error;
+    }
 
     hdc = GetDC(hwnd);
+    if (!hdc) {
+        LogMessage(X_ERROR, "AIGLX: Couldn't create a DC for render capabilities testing\n");
+        goto error;
+    }
 
-    // we must set a pixel format before we can create a context, just use the first one...
-    SetPixelFormat(hdc, 1, NULL);
+    // we must set a pixel format before we can create a context
+    {
+        PIXELFORMATDESCRIPTOR pfd = {
+            sizeof(PIXELFORMATDESCRIPTOR),
+            1,
+            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DEPTH_DONTCARE | PFD_DOUBLEBUFFER_DONTCARE | PFD_STEREO_DONTCARE,
+            PFD_TYPE_RGBA,
+            24,
+            0, 0, 0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0, 0, 0, 0,
+            0,
+            0,
+            0,
+            PFD_MAIN_PLANE,
+            0,
+            0, 0, 0
+        };
+        int iPixelFormat = ChoosePixelFormat(hdc, &pfd);
+        if (iPixelFormat == 0) {
+            LogMessage(X_ERROR, "AIGLX: ChoosePixelFormat failed\n");
+            goto error;
+        }
+
+        if (!SetPixelFormat(hdc, iPixelFormat, NULL)) {
+            LogMessage(X_ERROR, "AIGLX: SetPixelFormat %d failed\n", iPixelFormat);
+            goto error;
+        }
+        LogMessage(X_INFO, "AIGLX: Testing pixelFormatIndex %d\n",iPixelFormat);
+    }
+
     hglrc = wglCreateContext(hdc);
-    wglMakeCurrent(hdc, hglrc);
+    if (!wglMakeCurrent(hdc, hglrc)) {
+        ErrorF("glxWinScreenProbe: wglMakeCurrent error: %08x dc %p ctx %p\n",
+               (unsigned)GetLastError(), hdc, hglrc);
+    }
 
     // initialize wgl extension proc pointers (don't call them before here...)
     // (but we need to have a current context for them to be resolvable)
@@ -565,6 +650,8 @@ glxWinScreenProbe(ScreenPtr pScreen)
     gl_renderer = (const char *) glGetString(GL_RENDERER);
     ErrorF("GL_RENDERER:    %s\n", gl_renderer);
     gl_extensions = (const char *) glGetString(GL_EXTENSIONS);
+    if (!gl_extensions)
+        gl_extensions = "";
     wgl_extensions = wglGetExtensionsStringARBWrapper(hdc);
     if (!wgl_extensions)
         wgl_extensions = "";
@@ -574,10 +661,15 @@ glxWinScreenProbe(ScreenPtr pScreen)
         glxLogExtensions("WGL_EXTENSIONS: ", wgl_extensions);
     }
 
-    if (strcasecmp(gl_renderer, "GDI Generic") == 0) {
-        free(screen);
+    if (!gl_renderer) {
         LogMessage(X_ERROR,
-                   "AIGLX: Won't use generic native renderer as it is not accelerated\n");
+                   "AIGLX: Native renderer not identified\n");
+        goto error;
+    }
+
+    if (strcasecmp(gl_renderer, "GDI Generic") == 0) {
+        LogMessage(X_ERROR,
+                   "AIGLX: Won't use the generic native renderer as it is not accelerated\n");
         goto error;
     }
 
@@ -688,7 +780,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
            If we still didn't get any fbConfigs, we can't provide GLX for this screen
          */
         if (screen->base.numFBConfigs <= 0) {
-            free(screen);
             LogMessage(X_ERROR,
                        "AIGLX: No fbConfigs could be made from native OpenGL pixel formats\n");
             goto error;
@@ -753,9 +844,17 @@ glxWinScreenProbe(ScreenPtr pScreen)
     // Note that WGL is active on this screen
     winSetScreenAiglxIsActive(pScreen);
 
+    // Restore the previous sighandler
+    sigaction(SIGSEGV, &old_act, NULL);
+
     return &screen->base;
 
  error:
+    // Restore the previous sighandler
+    sigaction(SIGSEGV, &old_act, NULL);
+
+    free(screen);
+
     // Something went wrong and we can't use the native GL implementation
     // so make sure the mesa GL implementation is selected instead
     glWinSelectImplementation(0);
