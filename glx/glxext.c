@@ -293,7 +293,7 @@ glxClientCallback(CallbackListPtr *list, void *closure, void *data)
                 c->loseCurrent(c);
                 lastGLContext = NULL;
                 c->currentClient = NULL;
-                FreeResourceByType(c, __glXContextRes, FALSE);
+                FreeResourceByType(c->id, __glXContextRes, FALSE);
             }
         }
 
