@@ -27,8 +27,8 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.16.2, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2014-11-10"
+AC_INIT([xorg-server], 1.16.3, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2014-12-20"
 RELEASE_NAME="Marionberry Pie"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
@@ -2632,6 +2632,7 @@ hw/kdrive/linux/Makefile
 hw/kdrive/src/Makefile
 hw/xwayland/Makefile
 test/Makefile
+test/xi1/Makefile
 test/xi2/Makefile
 xserver.ent
 xorg-server.pc
