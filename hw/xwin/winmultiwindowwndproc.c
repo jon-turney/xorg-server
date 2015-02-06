@@ -770,18 +770,18 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             ErrorF("\nCYGWINDOWING Dump:\n"
                    "\tdrawable: (%hd, %hd) - %hdx%hd\n", pDraw->x,
                    pDraw->y, pDraw->width, pDraw->height);
-            ErrorF("\twindPlace: (%ld, %ld) - %ldx%ld\n", pRect->left,
+            ErrorF("\twindPlace: (%d, %d) - %dx%d\n", pRect->left,
                    pRect->top, pRect->right - pRect->left,
                    pRect->bottom - pRect->top);
             if (GetClientRect(hwnd, &rc)) {
                 pRect = &rc;
-                ErrorF("\tClientRect: (%ld, %ld) - %ldx%ld\n", pRect->left,
+                ErrorF("\tClientRect: (%d, %d) - %dx%d\n", pRect->left,
                        pRect->top, pRect->right - pRect->left,
                        pRect->bottom - pRect->top);
             }
             if (GetWindowRect(hwnd, &rc)) {
                 pRect = &rc;
-                ErrorF("\tWindowRect: (%ld, %ld) - %ldx%ld\n", pRect->left,
+                ErrorF("\tWindowRect: (%d, %d) - %dx%d\n", pRect->left,
                        pRect->top, pRect->right - pRect->left,
                        pRect->bottom - pRect->top);
             }

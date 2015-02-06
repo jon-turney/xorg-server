@@ -357,7 +357,7 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
     }
 
     winDebug("winCreateBoundingWindowWindowed - WindowClient "
-             "w %ld h %ld r %ld l %ld b %ld t %ld\n",
+             "w %d h %d r %d l %d b %d t %d\n",
              rcClient.right - rcClient.left,
              rcClient.bottom - rcClient.top,
              rcClient.right, rcClient.left, rcClient.bottom, rcClient.top);

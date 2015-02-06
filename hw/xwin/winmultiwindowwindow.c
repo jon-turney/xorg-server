@@ -256,8 +256,8 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
 #endif
 
 #if CYGWINDOWING_DEBUG
-        ErrorF("\tMoveWindow to (%ld, %ld) - %ldx%ld\n", rcNew.left, rcNew.top,
-               rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+        ErrorF("\tMoveWindow to (%d, %d) - %dx%d\n", rcNew.left, rcNew.top,
+               rcNew.right - rcNew.left, rcNew.obottom - rcNew.top);
 #endif
         /* Change the position and dimensions of the Windows window */
         MoveWindow(hWnd,
