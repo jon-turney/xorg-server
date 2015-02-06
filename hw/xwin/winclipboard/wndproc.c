@@ -196,7 +196,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         winDebug("winClipboardWindowProc - WM_CHANGECBCHAIN: wParam(%x) "
                  "lParam(%x) s_hwndNextViewer(%p)\n",
-                 wParam, lParam, s_hwndNextViewer);
+                 (int)wParam, (int)lParam, s_hwndNextViewer);
 
         if ((HWND) wParam == s_hwndNextViewer) {
             s_hwndNextViewer = (HWND) lParam;
@@ -441,7 +441,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         int best_target = 0;
 
         winDebug("winClipboardWindowProc - WM_RENDERFORMAT %d - Hello.\n",
-                 wParam);
+                 (int)wParam);
 
         /* Flag whether to convert to Unicode or not */
         fConvertToUnicode = (CF_UNICODETEXT == wParam);
