@@ -257,7 +257,7 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
 
 #if CYGWINDOWING_DEBUG
         ErrorF("\tMoveWindow to (%d, %d) - %dx%d\n", rcNew.left, rcNew.top,
-               rcNew.right - rcNew.left, rcNew.obottom - rcNew.top);
+               rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
 #endif
         /* Change the position and dimensions of the Windows window */
         MoveWindow(hWnd,
@@ -993,8 +993,9 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
     vlist[2] = pDraw->width + dW;
     vlist[3] = pDraw->height + dH;
 #if CYGWINDOWING_DEBUG
-    ErrorF("\tConfigureWindow to (%ld, %ld) - %ldx%ld\n", vlist[0], vlist[1],
-           vlist[2], vlist[3]);
+    ErrorF("\tConfigureWindow to (%u, %u) - %ux%u\n",
+           (unsigned int)vlist[0], (unsigned int)vlist[1],
+           (unsigned int)vlist[2], (unsigned int)vlist[3]);
 #endif
     return ConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight,
                            vlist, wClient(pWin));
