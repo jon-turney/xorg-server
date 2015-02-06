@@ -80,6 +80,7 @@ extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
 extern void winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
+extern void winSetAuthorization(void);
 
 #ifndef CYGDEBUG
 #define CYGDEBUG NO
