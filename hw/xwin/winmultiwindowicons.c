@@ -45,6 +45,9 @@
 #include "winmsg.h"
 #include "winmultiwindowicons.h"
 #include "winglobals.h"
+
+extern void winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
+
 /*
  * global variables
  */

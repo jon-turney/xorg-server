@@ -27,8 +27,8 @@
 #ifndef WINMULTIWINDOWICONS_H
 #define WINMULTIWINDOWICONS_H
 
-void
- winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
+//void
+// winUpdateIcon(HWND hWnd, Display * pDisplay, Window id, HICON hIconNew);
 
 void
  winInitGlobalIcons(void);
