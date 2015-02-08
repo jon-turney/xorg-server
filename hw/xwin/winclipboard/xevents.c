@@ -258,6 +258,7 @@ winClipboardFlushXEvents(HWND hwnd,
                     atomUTF8String,
                     XA_STRING
                 };
+                winDebug("SelectionRequest - populating targets\n");
 
                 /* Try to change the property */
                 iReturn = XChangeProperty(pDisplay,
@@ -502,6 +503,7 @@ winClipboardFlushXEvents(HWND hwnd,
              * client when we abort.
              */
             if (fAbort) {
+                winDebug("SelectionRequest - aborting\n");
                 /* Setup selection notify event */
                 eventSelection.type = SelectionNotify;
                 eventSelection.send_event = True;
