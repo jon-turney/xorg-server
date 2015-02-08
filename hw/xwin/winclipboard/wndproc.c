@@ -331,6 +331,36 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                      "Clipboard does not contain CF_TEXT nor "
                      "CF_UNICODETEXT.\n");
 
+            winDebug("winClipboardWindowProc: %d formats\n",
+                     CountClipboardFormats());
+
+            if (OpenClipboard(hwnd)) {
+                unsigned int format = 0;
+
+                do {
+                    format = EnumClipboardFormats(format);
+                    if (GetLastError() != ERROR_SUCCESS) {
+                        winDebug
+                            ("winClipboardWindowProc: EnumClipboardFormats failed %x\n",
+                             GetLastError());
+                    }
+                    if (format > 0xc000) {
+                        char buff[256];
+
+                        GetClipboardFormatName(format, buff, 256);
+                        winDebug("winClipboardWindowProc: %d %s\n", format,
+                                 buff);
+                    }
+                    else if (format > 0)
+                        winDebug("winClipboardWindowProc: %d\n", format);
+                } while (format != 0);
+                CloseClipboard();
+            }
+            else {
+                winDebug
+                    ("WindowProc: could not open clipboard to enumerate formats\n");
+            }
+
             /*
              * We need to make sure that the X Server has processed
              * previous XSetSelectionOwner messages.
