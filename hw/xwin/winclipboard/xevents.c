@@ -117,6 +117,8 @@ winClipboardGetLastOwnedSelectionAtom(ClipboardAtoms *atoms)
     if (lastOwnedSelectionIndex == CLIP_OWN_NONE)
         return None;
 
+    winDebug("GetLastOwnedSelectionAtom: selection %s owned by XID %lx\n", szSelectionNames[lastOwnedSelectionIndex], s_iOwners[lastOwnedSelectionIndex]);
+
     if (lastOwnedSelectionIndex == CLIP_OWN_PRIMARY)
         return XA_PRIMARY;
 
