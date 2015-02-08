@@ -289,6 +289,8 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
         tvTimeout.tv_usec = 100;
 #endif
 
+        winDebug("winClipboardProc - Waiting in select\n");
+
         /* Wait for a Windows event or an X event */
         iReturn = select(iMaxDescriptor,        /* Highest fds number */
                          &fdsRead,      /* Read mask */
@@ -319,6 +321,8 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
                    "Bailing.\n", iReturn);
             break;
         }
+
+        winDebug("winClipboardProc - select returned %d\n", iReturn);
 
         if (FD_ISSET(iConnectionNumber, &fdsRead)) {
             winDebug
