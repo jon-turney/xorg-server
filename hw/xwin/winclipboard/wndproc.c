@@ -373,7 +373,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             iReturn = XGetSelectionOwner(pDisplay, XA_PRIMARY);
             if (iReturn == iWindow) {
                 winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-                         "PRIMARY selection is owned by us.\n");
+                         "PRIMARY selection is owned by us, releasing\n");
                 XSetSelectionOwner(pDisplay, XA_PRIMARY, None, CurrentTime);
             }
             else if (BadWindow == iReturn || BadAtom == iReturn)
@@ -507,7 +507,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (WIN_XEVENTS_NOTIFY_TARGETS != iReturn) {
             ErrorF
-                ("winClipboardWindowProc - timed out waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
+                ("winClipboardWindowProc - failed waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
             goto fake_paste;
         }
 

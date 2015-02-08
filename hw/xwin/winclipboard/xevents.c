@@ -600,7 +600,8 @@ winClipboardFlushXEvents(HWND hwnd,
                 winDebug("SelectionNotify - returned data %d left %d\n",
                          xtpText.nitems, ulReturnBytesLeft);
                 pszAtomName = XGetAtomName(pDisplay, xtpText.encoding);
-                winDebug("Notify atom name %s\n", pszAtomName);
+                winDebug("SelectionNotify -  encoding atom name %s\n",
+                         pszAtomName);
                 XFree(pszAtomName);
                 pszAtomName = NULL;
             }
