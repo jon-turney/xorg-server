@@ -231,12 +231,14 @@ winClipboardFlushXEvents(HWND hwnd,
         {
             char *pszAtomName = NULL;
 
-            winDebug("SelectionRequest - target %d\n",
-                     event.xselectionrequest.target);
+            pszAtomName = XGetAtomName(pDisplay,
+                                       event.xselectionrequest.selection);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Selection %d = %s\n", event.xselectionrequest.selection, pszAtomName);
+            XFree(pszAtomName);
 
             pszAtomName = XGetAtomName(pDisplay,
                                        event.xselectionrequest.target);
-            winDebug("SelectionRequest - Target atom name %s\n", pszAtomName);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Target %d = %s\n", event.xselectionrequest.target, pszAtomName);
             XFree(pszAtomName);
             pszAtomName = NULL;
         }
