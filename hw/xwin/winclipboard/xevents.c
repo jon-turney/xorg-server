@@ -78,6 +78,18 @@ static const char *szSelectionNames[CLIP_NUM_SELECTIONS] =
 
 static unsigned int lastOwnedSelectionIndex = CLIP_OWN_NONE;
 
+static const char *
+GetWindowName(HWND hWnd)
+{
+    static char *pBuf = NULL;
+    int len = GetWindowTextLength(hWnd);
+    len++;
+    pBuf = realloc(pBuf, len + 1);
+    GetWindowText(hWnd, pBuf, len);
+    pBuf[len] = 0;
+    return pBuf;
+}
+
 static void
 MonitorSelection(XFixesSelectionNotifyEvent * e, unsigned int i)
 {
@@ -314,7 +326,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Access the clipboard */
             if (!OpenClipboard(hwnd)) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
-                       "OpenClipboard () failed: %08lx\n", GetLastError());
+                       "OpenClipboard () failed: %08lx owner %p '%s'\n", GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
 
                 /* Abort */
                 fAbort = TRUE;
@@ -845,8 +857,8 @@ winClipboardFlushXEvents(HWND hwnd,
 
                 /* Access the Windows clipboard */
                 if (!OpenClipboard(hwnd)) {
-                    ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x\n",
-                           (int) GetLastError());
+                    ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x Owner %p '%s'\n",
+                           (int) GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
                     break;
                 }
 
