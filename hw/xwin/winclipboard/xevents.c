@@ -78,6 +78,18 @@ static const char *szSelectionNames[CLIP_NUM_SELECTIONS] =
 
 static unsigned int lastOwnedSelectionIndex = CLIP_OWN_NONE;
 
+static const char *
+GetWindowName(HWND hWnd)
+{
+    static char *pBuf = NULL;
+    int len = GetWindowTextLength(hWnd);
+    len++;
+    pBuf = realloc(pBuf, len + 1);
+    GetWindowText(hWnd, pBuf, len);
+    pBuf[len] = 0;
+    return pBuf;
+}
+
 static void
 MonitorSelection(XFixesSelectionNotifyEvent * e, unsigned int i)
 {
@@ -116,6 +128,8 @@ winClipboardGetLastOwnedSelectionAtom(ClipboardAtoms *atoms)
 {
     if (lastOwnedSelectionIndex == CLIP_OWN_NONE)
         return None;
+
+    winDebug("GetLastOwnedSelectionAtom: selection %s owned by XID %lx\n", szSelectionNames[lastOwnedSelectionIndex], s_iOwners[lastOwnedSelectionIndex]);
 
     if (lastOwnedSelectionIndex == CLIP_OWN_PRIMARY)
         return XA_PRIMARY;
@@ -231,12 +245,14 @@ winClipboardFlushXEvents(HWND hwnd,
         {
             char *pszAtomName = NULL;
 
-            winDebug("SelectionRequest - target %d\n",
-                     event.xselectionrequest.target);
+            pszAtomName = XGetAtomName(pDisplay,
+                                       event.xselectionrequest.selection);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Selection %d = %s\n", event.xselectionrequest.selection, pszAtomName);
+            XFree(pszAtomName);
 
             pszAtomName = XGetAtomName(pDisplay,
                                        event.xselectionrequest.target);
-            winDebug("SelectionRequest - Target atom name %s\n", pszAtomName);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Target %d = %s\n", event.xselectionrequest.target, pszAtomName);
             XFree(pszAtomName);
             pszAtomName = NULL;
         }
@@ -258,6 +274,7 @@ winClipboardFlushXEvents(HWND hwnd,
                     atomUTF8String,
                     XA_STRING
                 };
+                winDebug("winClipboardFlushXEvents - SelectionRequest - populating targets\n");
 
                 /* Try to change the property */
                 iReturn = XChangeProperty(pDisplay,
@@ -309,7 +326,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Access the clipboard */
             if (!OpenClipboard(hwnd)) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
-                       "OpenClipboard () failed: %08lx\n", GetLastError());
+                       "OpenClipboard () failed: %08lx owner %p '%s'\n", GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
 
                 /* Abort */
                 fAbort = TRUE;
@@ -368,8 +385,28 @@ winClipboardFlushXEvents(HWND hwnd,
                 hGlobal = GetClipboardData(CF_TEXT);
             }
             if (!hGlobal) {
+                unsigned int format = 0;
+
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
                        "GetClipboardData () failed: %08lx\n", GetLastError());
+
+                do {
+                    format = EnumClipboardFormats(format);
+                    if (GetLastError() != ERROR_SUCCESS) {
+                        winDebug
+                            ("winClipboardFlushXEvents - SelectionRequest - EnumClipboardFormats failed %x\n",
+                             GetLastError());
+                    }
+                    if (format > 0xc000) {
+                        char buff[256];
+
+                        GetClipboardFormatName(format, buff, 256);
+                        winDebug("winClipboardFlushXEvents - SelectionRequest - %d %s\n", format,
+                                 buff);
+                    }
+                    else if (format > 0)
+                        winDebug("winClipboardFlushXEvents - SelectionRequest - %d\n", format);
+                } while (format != 0);
 
                 /* Abort */
                 fAbort = TRUE;
@@ -502,6 +539,7 @@ winClipboardFlushXEvents(HWND hwnd,
              * client when we abort.
              */
             if (fAbort) {
+                winDebug("winClipboardFlushXEvents - SelectionRequest - aborting\n");
                 /* Setup selection notify event */
                 eventSelection.type = SelectionNotify;
                 eventSelection.send_event = True;
@@ -560,9 +598,11 @@ winClipboardFlushXEvents(HWND hwnd,
                    not be performed or server errors prevented the conversion data being returned
             */
             if (event.xselection.property == None) {
+                    char *pszAtomName = XGetAtomName(pDisplay, event.xselection.target);
                     ErrorF("winClipboardFlushXEvents - SelectionNotify - "
-                           "Conversion to format %d refused.\n",
-                           event.xselection.target);
+                           "Conversion to format %s %d refused.\n",
+                           pszAtomName, event.xselection.target);
+                    XFree(pszAtomName);
                     return WIN_XEVENTS_FAILED;
                 }
 
@@ -594,7 +634,8 @@ winClipboardFlushXEvents(HWND hwnd,
                 winDebug("SelectionNotify - returned data %d left %d\n",
                          xtpText.nitems, ulReturnBytesLeft);
                 pszAtomName = XGetAtomName(pDisplay, xtpText.encoding);
-                winDebug("Notify atom name %s\n", pszAtomName);
+                winDebug("SelectionNotify -  encoding atom name %s\n",
+                         pszAtomName);
                 XFree(pszAtomName);
                 pszAtomName = NULL;
             }
@@ -774,10 +815,19 @@ winClipboardFlushXEvents(HWND hwnd,
             return WIN_XEVENTS_NOTIFY_DATA;
 
         case SelectionClear:
-            winDebug("SelectionClear - doing nothing\n");
+            winDebug("winClipboardFlushXEvents - SelectionClear - doing nothing\n");
             break;
 
         case PropertyNotify:
+        {
+            char *pszAtomName;
+
+            pszAtomName = XGetAtomName(pDisplay, event.xproperty.atom);
+            winDebug("winClipboardFlushXEvents - PropertyNotify - ATOM: %s %s\n",
+                     pszAtomName,
+                     event.xproperty.state == PropertyNewValue ? "PropertyNewValue" : "PropertyDelete");
+            XFree(pszAtomName);
+        }
             break;
 
         case MappingNotify:
@@ -827,8 +877,8 @@ winClipboardFlushXEvents(HWND hwnd,
 
                 /* Access the Windows clipboard */
                 if (!OpenClipboard(hwnd)) {
-                    ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x\n",
-                           (int) GetLastError());
+                    ErrorF("winClipboardFlushXEvents - OpenClipboard () failed: %08x Owner %p '%s'\n",
+                           (int) GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
                     break;
                 }
 

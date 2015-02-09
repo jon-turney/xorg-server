@@ -148,6 +148,11 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static ClipboardAtoms *atoms;
     static Bool fRunning;
 
+#if CYGDEBUG
+    winDebugWin32Message("winClipboardWindowProc", hwnd, message, wParam,
+                         lParam);
+#endif
+
     /* Branch on message type */
     switch (message) {
     case WM_DESTROY:
@@ -357,6 +362,36 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                      "Clipboard does not contain CF_TEXT nor "
                      "CF_UNICODETEXT.\n");
 
+            winDebug("winClipboardWindowProc: %d formats\n",
+                     CountClipboardFormats());
+
+            if (OpenClipboard(hwnd)) {
+                unsigned int format = 0;
+
+                do {
+                    format = EnumClipboardFormats(format);
+                    if (GetLastError() != ERROR_SUCCESS) {
+                        winDebug
+                            ("winClipboardWindowProc: EnumClipboardFormats failed %x\n",
+                             GetLastError());
+                    }
+                    if (format > 0xc000) {
+                        char buff[256];
+
+                        GetClipboardFormatName(format, buff, 256);
+                        winDebug("winClipboardWindowProc: %d %s\n", format,
+                                 buff);
+                    }
+                    else if (format > 0)
+                        winDebug("winClipboardWindowProc: %d\n", format);
+                } while (format != 0);
+                CloseClipboard();
+            }
+            else {
+                winDebug
+                    ("WindowProc: could not open clipboard to enumerate formats\n");
+            }
+
             /*
              * We need to make sure that the X Server has processed
              * previous XSetSelectionOwner messages.
@@ -369,7 +404,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             iReturn = XGetSelectionOwner(pDisplay, XA_PRIMARY);
             if (iReturn == iWindow) {
                 winDebug("winClipboardWindowProc - WM_DRAWCLIPBOARD - "
-                         "PRIMARY selection is owned by us.\n");
+                         "PRIMARY selection is owned by us, releasing\n");
                 XSetSelectionOwner(pDisplay, XA_PRIMARY, None, CurrentTime);
             }
             else if (BadWindow == iReturn || BadAtom == iReturn)
@@ -503,7 +538,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (WIN_XEVENTS_NOTIFY_TARGETS != iReturn) {
             ErrorF
-                ("winClipboardWindowProc - timed out waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
+                ("winClipboardWindowProc - failed waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
             goto fake_paste;
         }
 

@@ -25,6 +25,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <windows.h>
 
 #if 1
 int
@@ -49,4 +50,9 @@ ErrorF(const char *format, ...)
   count = vfprintf(stderr, format, ap);
   va_end(ap);
   return count;
+}
+
+void winDebugWin32Message(const char *function, HWND hwnd, UINT message,
+                          WPARAM wParam, LPARAM lParam)
+{
 }
