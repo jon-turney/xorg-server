@@ -178,7 +178,7 @@ winRandRScreenSetSize(ScreenPtr pScreen,
          */
         AdjustWindowRectEx(&rcClient, dwStyle, FALSE, dwExStyle);
 
-        ErrorF("winRandRScreenSetSize new window area w: %ld h: %ld\n",
+        ErrorF("winRandRScreenSetSize new window area w: %d h: %d\n",
                rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
 
         SetWindowPos(pScreenPriv->hwndScreen, NULL,

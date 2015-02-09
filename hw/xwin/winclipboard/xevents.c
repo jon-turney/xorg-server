@@ -119,7 +119,7 @@ MonitorSelection(XFixesSelectionNotifyEvent * e, unsigned int i)
 
     /* Save new selection owner or None */
     s_iOwners[i] = e->owner;
-    winDebug("MonitorSelection - %s - Now owned by XID %x\n",
+    winDebug("MonitorSelection - %s - Now owned by XID %lx\n",
              szSelectionNames[i], e->owner);
 }
 
@@ -186,7 +186,7 @@ winClipboardSelectionNotifyTargets(HWND hwnd, Window iWindow, Display *pDisplay,
         Atom atom = prop[i];
         char *pszAtomName = XGetAtomName(pDisplay, atom);
         data->targetList[i] = atom;
-        winDebug("winClipboardFlushXEvents - SelectionNotify - target[%d] %d = %s\n", i, atom, pszAtomName);
+        winDebug("winClipboardFlushXEvents - SelectionNotify - target[%d] %ld = %s\n", i, atom, pszAtomName);
         XFree(pszAtomName);
       }
 
@@ -247,12 +247,12 @@ winClipboardFlushXEvents(HWND hwnd,
 
             pszAtomName = XGetAtomName(pDisplay,
                                        event.xselectionrequest.selection);
-            winDebug("winClipboardFlushXEvents - SelectionRequest - Selection %d = %s\n", event.xselectionrequest.selection, pszAtomName);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Selection %ld = %s\n", event.xselectionrequest.selection, pszAtomName);
             XFree(pszAtomName);
 
             pszAtomName = XGetAtomName(pDisplay,
                                        event.xselectionrequest.target);
-            winDebug("winClipboardFlushXEvents - SelectionRequest - Target %d = %s\n", event.xselectionrequest.target, pszAtomName);
+            winDebug("winClipboardFlushXEvents - SelectionRequest - Target %ld = %s\n", event.xselectionrequest.target, pszAtomName);
             XFree(pszAtomName);
             pszAtomName = NULL;
         }
@@ -326,7 +326,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Access the clipboard */
             if (!OpenClipboard(hwnd)) {
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
-                       "OpenClipboard () failed: %08lx owner %p '%s'\n", GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
+                       "OpenClipboard () failed: %08x owner %p '%s'\n", (unsigned int)GetLastError(), GetClipboardOwner(), GetWindowName(GetClipboardOwner()));
 
                 /* Abort */
                 fAbort = TRUE;
@@ -388,7 +388,7 @@ winClipboardFlushXEvents(HWND hwnd,
                 unsigned int format = 0;
 
                 ErrorF("winClipboardFlushXEvents - SelectionRequest - "
-                       "GetClipboardData () failed: %08lx\n", GetLastError());
+                       "GetClipboardData () failed: %08x\n", (unsigned int)GetLastError());
 
                 do {
                     format = EnumClipboardFormats(format);
@@ -600,7 +600,7 @@ winClipboardFlushXEvents(HWND hwnd,
             if (event.xselection.property == None) {
                     char *pszAtomName = XGetAtomName(pDisplay, event.xselection.target);
                     ErrorF("winClipboardFlushXEvents - SelectionNotify - "
-                           "Conversion to format %s %d refused.\n",
+                           "Conversion to format %s %ld refused.\n",
                            pszAtomName, event.xselection.target);
                     XFree(pszAtomName);
                     return WIN_XEVENTS_FAILED;
@@ -631,7 +631,7 @@ winClipboardFlushXEvents(HWND hwnd,
             {
                 char *pszAtomName = NULL;
 
-                winDebug("SelectionNotify - returned data %d left %d\n",
+                winDebug("SelectionNotify - returned data %lu left %lu\n",
                          xtpText.nitems, ulReturnBytesLeft);
                 pszAtomName = XGetAtomName(pDisplay, xtpText.encoding);
                 winDebug("SelectionNotify -  encoding atom name %s\n",
@@ -747,7 +747,7 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Check that global memory was allocated */
             if (!hGlobal) {
                 ErrorF("winClipboardFlushXEvents - SelectionNotify "
-                       "GlobalAlloc failed, aborting: %ld\n", GetLastError());
+                       "GlobalAlloc failed, aborting: %08x\n", (unsigned int)GetLastError());
 
                 /* Abort */
                 fAbort = TRUE;

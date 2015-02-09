@@ -49,8 +49,8 @@
  * References to external symbols
  */
 
-extern void winDebug(const char *format, ...);
-extern void ErrorF(const char *format, ...);
+extern void winDebug(const char *format, ...) _X_ATTRIBUTE_PRINTF(1, 2);
+extern void ErrorF(const char *format, ...) _X_ATTRIBUTE_PRINTF(1, 2);
 extern void winDebugWin32Message(const char *function, HWND hwnd, UINT message,
                                  WPARAM wParam, LPARAM lParam);
 
