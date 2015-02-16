@@ -1206,6 +1206,14 @@ winOS(void)
 
         if (osvi.dwMajorVersion <= 4)
             prodName = "Windows NT";
+        else if (osvi.dwMajorVersion == 10) {
+            if (osvi.dwMinorVersion == 0) {
+                if (osvi.wProductType == VER_NT_WORKSTATION)
+                    prodName = "Windows 10";
+                else
+                    prodName = "Windows Server 10"; // or 2016???
+            }
+        }
         else if (osvi.dwMajorVersion == 6) {
             if (osvi.dwMinorVersion == 4) {
                 if (osvi.wProductType == VER_NT_WORKSTATION)
