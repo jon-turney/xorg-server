@@ -71,6 +71,11 @@ SOFTWARE.
 #endif
 #include <pthread.h>
 
+#if defined(WIN32) || defined(__CYGWIN__)
+#define WIN32_LEAN_AND_MEAN
+#include <X11/Xwindows.h>
+#endif
+
 extern char *display;
 
 #ifdef RLIMIT_DATA
@@ -123,7 +128,7 @@ OsSigHandler(int signo)
         }
     }
 
-    ErrorF("Fatal signal received in thread 0x%x\n", pthread_self());
+    ErrorF("Fatal signal received in thread 0x%x [0x%x]\n", pthread_self(), GetCurrentThreadId());
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {
