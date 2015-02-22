@@ -1071,6 +1071,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Perform some one time initialization */
     if (1 == serverGeneration) {
+        const char *locale;
+
         /* Allow multiple threads to access Xlib */
         if (XInitThreads() == 0) {
             ErrorF("XInitThreads failed.\n");
@@ -1080,13 +1082,14 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
          * setlocale applies to all threads in the current process.
          * Apply locale specified in LANG environment variable.
          */
-        if (!setlocale(LC_ALL, "")) {
+        locale = setlocale(LC_ALL, "");
+        if (!locale) {
             ErrorF("setlocale failed.\n");
         }
 
         /* See if X supports the current locale */
         if (XSupportsLocale() == FALSE) {
-            ErrorF("Warning: Locale not supported by X, falling back to 'C' locale.\n");
+            ErrorF("Warning: Locale '%s' not supported by X, falling back to 'C' locale.\n", locale);
             setlocale(LC_ALL, "C");
         }
     }

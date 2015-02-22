@@ -55,7 +55,10 @@ winRandRGetInfo(ScreenPtr pScreen, Rotation * pRotations)
 
     /* Delete previous mode */
     if (output->modes[0])
-        RRModeDestroy(output->modes[0]);
+        {
+            RRModeDestroy(output->modes[0]);
+            RRModeDestroy(output->crtc->mode);
+        }
 
     /* Register current mode */
     {
@@ -76,6 +79,8 @@ winRandRGetInfo(ScreenPtr pScreen, Rotation * pRotations)
 
         output->modes[0] = mode;
         output->numModes = 1;
+
+        mode = RRModeGet(&modeInfo, name);
         output->crtc->mode = mode;
     }
 
@@ -258,6 +263,12 @@ winRandRInit(ScreenPtr pScreen)
         RROutputSetSubpixelOrder(output, PictureGetSubpixelOrder(pScreen));
 
         output->crtc = crtc;
+
+        /* Set crtc outputs (should use RRCrtcNotify?) */
+        crtc->outputs = malloc(sizeof(RROutputPtr));
+        crtc->outputs[0] = output;
+        crtc->numOutputs = 1;
+
         pRRScrPriv->primaryOutput = output;
 
         /* Ensure we have space for exactly one mode */
