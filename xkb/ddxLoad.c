@@ -115,10 +115,14 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
     const char *xkbbindirsep = emptystring;
 
 #if defined(WIN32) || defined(__CYGWIN__)
+    int status;
     /* WIN32 has no popen. The input must be stored in a file which is
        used as input for xkbcomp. xkbcomp does not read from stdin. */
     char tmpname[PATH_MAX];
     const char *xkmfile = tmpname;
+    /* Temporary file used to hold stdout and stderr from xkbcomp */
+    char tmpname2[PATH_MAX];
+    const char *stderrfile = tmpname2;
 #else
     const char *xkmfile = "-";
 #endif
@@ -131,6 +135,9 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
     strcpy(tmpname, Win32TempDir());
     strcat(tmpname, PATHSEPARATOR "xkb_XXXXXX");
     (void) mktemp(tmpname);
+    strcpy(tmpname2, Win32TempDir());
+    strcat(tmpname2, PATHSEPARATOR "xkb_XXXXXX");
+    (void) mktemp(tmpname2);
 #endif
 
     if (XkbBaseDirectory != NULL) {
@@ -172,6 +179,11 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
     out = Popen(buf, "w");
 #else
     out = fopen(tmpname, "w");
+
+    buf = realloc(buf, strlen(buf) + strlen(stderrfile) + 8);
+    strcat(buf, " >");
+    strcat(buf, stderrfile);
+    strcat(buf, " 2>&1");
 #endif
 
     if (out != NULL) {
@@ -181,7 +193,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 #if !defined(WIN32) && !defined(__CYGWIN__)
         if (Pclose(out) == 0)
 #else
-        if (fclose(out) == 0 && System(buf) >= 0)
+        if (fclose(out) == 0 && (status = System(buf)) == 0)
 #endif
         {
             if (xkbDebugFlags)
@@ -189,14 +201,31 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
             free(buf);
 #if defined(WIN32) || defined(__CYGWIN__)
             unlink(tmpname);
+            unlink(tmpname2);
 #endif
             return xnfstrdup(keymap);
         }
         else
             LogMessage(X_ERROR, "Error compiling keymap (%s)\n", keymap);
 #if defined(WIN32) || defined(__CYGWIN__)
+        LogMessage(X_ERROR, "xkbcomp exit status 0x%x\n", status);
+
+        {
+            char *lineptr = NULL;
+            size_t n = 0;
+            FILE *in = fopen(tmpname2, "r");
+            if (in)
+                {
+                    while (getline(&lineptr, &n, in) > 0)
+                        LogMessage(X_ERROR, "%s", lineptr);
+
+                    fclose(in);
+                }
+        }
+
         /* remove the temporary file */
         unlink(tmpname);
+        unlink(tmpname2);
 #endif
     }
     else {
