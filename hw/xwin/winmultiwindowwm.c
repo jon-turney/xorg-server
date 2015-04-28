@@ -503,27 +503,39 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName, Atom atmNetW
             XFree(xtpWindowName.value);
         }
 
+    /* return the window name, unless... */
+    *ppWindowName = pszWindowName;
+
     if (g_fHostInTitle) {
         XTextProperty xtpClientMachine;
-        char *pszClientMachine;
-        char hostname[HOST_NAME_MAX + 1];
 
         /* Try to get client machine name */
         nResult = XGetWMClientMachine(pDisplay, iWin, &xtpClientMachine);
         if (nResult && xtpClientMachine.value && xtpClientMachine.nitems) {
+            char *pszClientMachine;
+            char *pszClientHostname;
+            char *dot;
+            char hostname[HOST_NAME_MAX + 1];
+
             pszClientMachine =
                 Xutf8TextPropertyToString(pDisplay, &xtpClientMachine);
             XFree(xtpClientMachine.value);
 
+            /* If client machine name looks like a FQDN, find the hostname */
+            pszClientHostname = strdup(pszClientMachine);
+            dot = strchr(pszClientHostname, '.');
+            if (dot)
+                *dot = '\0';
+
             /*
-               If we have a client machine name
-               and it's not the local host name
+               If we have a client machine hostname
+               and it's not the local hostname
                and it's not already in the window title...
              */
-            if (strlen(pszClientMachine) &&
+            if (strlen(pszClientHostname) &&
                 !gethostname(hostname, HOST_NAME_MAX + 1) &&
-                strcmp(hostname, pszClientMachine) &&
-                (strstr(pszWindowName, pszClientMachine) == 0)) {
+                strcmp(hostname, pszClientHostname) &&
+                (strstr(pszWindowName, pszClientHostname) == 0)) {
                 /* ... add '@<clientmachine>' to end of window name */
                 *ppWindowName =
                     malloc(strlen(pszWindowName) +
@@ -533,15 +545,12 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName, Atom atmNetW
                 strcat(*ppWindowName, pszClientMachine);
 
                 free(pszWindowName);
-                free(pszClientMachine);
-
-                return;
             }
+
+            free(pszClientMachine);
+            free(pszClientHostname);
         }
     }
-
-    /* otherwise just return the window name */
-    *ppWindowName = pszWindowName;
 }
 
 /*
