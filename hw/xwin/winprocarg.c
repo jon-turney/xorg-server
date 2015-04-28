@@ -1018,9 +1018,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-logfile")) {
         CHECK_ARGS(1);
         g_pszLogFile = argv[++i];
-#ifdef RELOCATE_PROJECTROOT
-        g_fLogFileChanged = TRUE;
-#endif
         return 2;
     }
 

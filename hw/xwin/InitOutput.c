@@ -616,13 +616,13 @@ winFixupPaths(void)
             winMsg(X_ERROR, "Can not determine HOME directory\n");
         }
     }
-    if (!g_fLogFileChanged) {
+    if (!g_fLogFile) {
         static char buffer[MAX_PATH];
         DWORD size = GetTempPath(sizeof(buffer), buffer);
 
         if (size && size < sizeof(buffer)) {
             snprintf(buffer + size, sizeof(buffer) - size,
-                     "XWin.%s.log", display);
+                     g_pszLogFileFormat, display);
             buffer[sizeof(buffer) - 1] = 0;
             g_pszLogFile = buffer;
             winMsg(X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
@@ -654,7 +654,10 @@ OsVendorInit(void)
 #endif
 
     if (serverGeneration == 1) {
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
+        if (g_pszLogFile)
+            g_pszLogFile = LogInit(g_pszLogFile, ".old");
+        else
+            g_pszLogFile = LogInit(g_pszLogFileFormat, ".old");
 
         /* Tell crashreporter logfile name */
         xorg_crashreport_init(g_pszLogFile);
