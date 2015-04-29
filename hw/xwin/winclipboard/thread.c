@@ -55,6 +55,7 @@
 #ifdef HAS_WINSOCK
 #include <X11/Xwinsock.h>
 #else
+#include <sys/select.h>
 #include <errno.h>
 #endif
 
