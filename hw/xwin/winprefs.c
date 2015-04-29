@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #ifdef __CYGWIN__
 #include <sys/resource.h>
+#include <sys/select.h>
 #include <sys/wait.h>
 #include <pthread.h>
 #endif

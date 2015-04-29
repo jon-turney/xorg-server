@@ -45,6 +45,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/select.h>
 #include <limits.h>
 
 #include <X11/Xatom.h>
