@@ -180,6 +180,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 #else
     out = fopen(tmpname, "w");
 
+    buf = realloc(buf, strlen(buf) + strlen(stderrfile) + 8);
     strcat(buf, " >");
     strcat(buf, stderrfile);
     strcat(buf, " 2>&1");
