@@ -139,6 +139,11 @@ typedef struct _WMInfo {
     Atom atmCurrentDesktop;
     Atom atmNumberDesktops;
     Atom atmDesktopNames;
+    Atom atmWmState;
+    Atom atmNetWmState;
+    Atom atmHiddenState;
+    Atom atmVertMaxState;
+    Atom atmHorzMaxState;
     Bool fAllowOtherWM;
 } WMInfoRec, *WMInfoPtr;
 
@@ -216,7 +221,7 @@ static void
  winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd);
 
 static void
- winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle);
+ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle);
 
 /*
  * Local globals
@@ -729,7 +734,7 @@ UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
         return;
 
     /* Determine the Window style, which determines borders and clipping region... */
-    winApplyHints(pWMInfo->pDisplay, iWindow, hWnd, &zstyle);
+    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle);
     winUpdateWindowPosition(hWnd, &zstyle);
 
     /* Apply the updated window style, without changing it's show or activation state */
@@ -800,7 +805,101 @@ UpdateState(WMInfoPtr pWMInfo, Window iWindow, int state)
             break;
         }
 
-    // XXX: should also set WM_STATE, _NET_WM_STATE property
+    // Update WM_STATE property
+    {
+        // ZoomState is obsolete in ICCCM, so map it to NormalState
+        int icccm_state = state;
+        int icccm_current_state = current_state;
+
+        if (icccm_state == ZoomState)
+            icccm_state = NormalState;
+
+        if (icccm_current_state == ZoomState)
+            icccm_current_state = NormalState;
+
+        // Don't change property unnecessarily
+        //
+        // (Note that we do not take notice of WM_STATE PropertyNotify, only
+        // WM_CHANGE_STATE ClientMessage, so this should not cause the state to
+        // change itself)
+        if (icccm_current_state != icccm_state)
+            {
+                struct
+                {
+                    CARD32 state;
+                    XID     icon;
+                } wmstate;
+
+                wmstate.state = icccm_state;
+                wmstate.icon = None;
+
+                XChangeProperty(pWMInfo->pDisplay, iWindow, pWMInfo->atmWmState,
+                                pWMInfo->atmWmState, 32, PropModeReplace,
+                                (unsigned char *) &wmstate,
+                                sizeof(wmstate)/sizeof(int));
+            }
+    }
+
+    // Update _NET_WM_STATE property
+    if (state == WithdrawnState) {
+        XDeleteProperty(pWMInfo->pDisplay, iWindow, pWMInfo->atmNetWmState);
+    }
+    else {
+        Atom type, *pAtom = NULL;
+        int format;
+        unsigned long nitems = 0, left;
+
+        XGetWindowProperty(pWMInfo->pDisplay, iWindow,
+                           pWMInfo->atmNetWmState, 0L,
+                           MAXINT, False, XA_ATOM, &type, &format,
+                           &nitems, &left,
+                           (unsigned char **) &pAtom);
+        {
+            unsigned long i, o = 0;
+            Atom netwmstate[nitems + 2];
+            Bool changed = FALSE;
+
+            // Make a copy with _NET_WM_HIDDEN, _NET_WM_MAXIMIZED_{VERT,HORZ}
+            // removed
+            for (i = 0; i < nitems; i++) {
+                if ((pAtom[i] != pWMInfo->atmHiddenState) &&
+                    (pAtom[i] != pWMInfo->atmVertMaxState) &&
+                    (pAtom[i] != pWMInfo->atmHorzMaxState))
+                    netwmstate[o++] = pAtom[i];
+            }
+            XFree(pAtom);
+
+            // if iconized, add _NET_WM_HIDDEN
+            if (state == IconicState) {
+                netwmstate[o++] = pWMInfo->atmHiddenState;
+            }
+
+            // if maximized, add  _NET_WM_MAXIMIZED_{VERT,HORZ}
+            if (state == ZoomState) {
+                netwmstate[o++] = pWMInfo->atmVertMaxState;
+                netwmstate[o++] = pWMInfo->atmHorzMaxState;
+            }
+
+            // Don't change property unnecessarily
+            if (nitems != o)
+                changed = TRUE;
+            else
+                for (i = 0; i < nitems; i++)
+                    {
+                        if (pAtom[i] != netwmstate[i])
+                            {
+                                changed = TRUE;
+                                break;
+                            }
+                    }
+
+            if (changed)
+                XChangeProperty(pWMInfo->pDisplay, iWindow,
+                                pWMInfo->atmNetWmState, XA_ATOM, 32,
+                                PropModeReplace, (unsigned char *) &netwmstate,
+                                o);
+        }
+    }
 }
 
 #if 0
@@ -1228,16 +1327,6 @@ winMultiWindowXMsgProc(void *pArg)
     atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
     atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
 
-    /*
-       iiimxcf had a bug until 2009-04-27, assuming that the
-       WM_STATE atom exists, causing clients to fail with
-       a BadAtom X error if it doesn't.
-
-       Since this is on in the default Solaris 10 install,
-       workaround this by making sure it does exist...
-     */
-    XInternAtom(pProcArg->pDisplay, "WM_STATE", 0);
-
     /* Loop until we explicitly break out */
     while (1) {
         if (g_shutdown)
@@ -1601,6 +1690,16 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                                              "_NET_NUMBER_OF_DESKTOPS", False);
     pWMInfo->atmDesktopNames = XInternAtom(pWMInfo->pDisplay,
                                            "_NET_DESKTOP_NAMES", False);
+    pWMInfo->atmWmState = XInternAtom(pWMInfo->pDisplay,
+                                      "WM_STATE", False);
+    pWMInfo->atmNetWmState = XInternAtom(pWMInfo->pDisplay,
+                                         "_NET_WM_STATE", False);
+    pWMInfo->atmHiddenState = XInternAtom(pWMInfo->pDisplay,
+                                          "_NET_WM_STATE_HIDDEN", False);
+    pWMInfo->atmVertMaxState = XInternAtom(pWMInfo->pDisplay,
+                                        "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    pWMInfo->atmHorzMaxState = XInternAtom(pWMInfo->pDisplay,
+                                        "_NET_WM_STATE_MAXIMIZED_HORZ", False);
 
     /*
       Set root window properties for describing multiple desktops to describe
@@ -1845,11 +1944,10 @@ winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd)
 #define HINT_MIN	(1L<<1)
 
 static void
-winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
+winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
 {
-    static Atom windowState, motif_wm_hints, windowType;
-    static Atom hiddenState, fullscreenState, belowState, aboveState,
-        skiptaskbarState, vertMaxState, horzMaxState;
+    static Atom motif_wm_hints, windowType;
+    static Atom fullscreenState, belowState, aboveState, skiptaskbarState;
     static Atom dockWindow, splashWindow;
     static int generation;
     Atom type, *pAtom = NULL;
@@ -1857,6 +1955,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     unsigned long hint = 0, maxmin = 0, nitems = 0, left = 0;
     unsigned long style, exStyle;
     MwmHints *mwm_hint = NULL;
+    Display *pDisplay = pWMInfo->pDisplay;
 
     if (!hWnd)
         return;
@@ -1865,10 +1964,8 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
 
     if (generation != serverGeneration) {
         generation = serverGeneration;
-        windowState = XInternAtom(pDisplay, "_NET_WM_STATE", False);
         motif_wm_hints = XInternAtom(pDisplay, "_MOTIF_WM_HINTS", False);
         windowType = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE", False);
-        hiddenState = XInternAtom(pDisplay, "_NET_WM_STATE_HIDDEN", False);
         fullscreenState =
             XInternAtom(pDisplay, "_NET_WM_STATE_FULLSCREEN", False);
         belowState = XInternAtom(pDisplay, "_NET_WM_STATE_BELOW", False);
@@ -1877,11 +1974,9 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         splashWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_SPLASH", False);
         skiptaskbarState =
             XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
-        vertMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-        horzMaxState = XInternAtom(pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
     }
 
-    if (XGetWindowProperty(pDisplay, iWindow, windowState, 0L,
+    if (XGetWindowProperty(pDisplay, iWindow, pWMInfo->atmNetWmState, 0L,
                            MAXINT, False, XA_ATOM, &type, &format,
                            &nitems, &left,
                            (unsigned char **) &pAtom) == Success) {
@@ -1894,7 +1989,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
             for (i = 0; i < nitems; i++) {
                 if (pAtom[i] == skiptaskbarState)
                     hint |= HINT_SKIPTASKBAR;
-                if (pAtom[i] == hiddenState)
+                if (pAtom[i] == pWMInfo->atmHiddenState)
                     maxmin |= HINT_MIN;
                 else if (pAtom[i] == fullscreenState)
                     maxmin |= HINT_MAX;
@@ -1902,9 +1997,9 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
                     *zstyle = HWND_BOTTOM;
                 else if (pAtom[i] == aboveState)
                     *zstyle = HWND_TOPMOST;
-                if (pAtom[i] == vertMaxState)
+                if (pAtom[i] == pWMInfo->atmVertMaxState)
                   verMax = TRUE;
-                if (pAtom[i] == horzMaxState)
+                if (pAtom[i] == pWMInfo->atmHorzMaxState)
                   horMax = TRUE;
             }
 
