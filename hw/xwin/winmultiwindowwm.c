@@ -131,6 +131,7 @@ typedef struct _WMInfo {
     xcb_atom_t atmCurrentDesktop;
     xcb_atom_t atmNumberDesktops;
     xcb_atom_t atmDesktopNames;
+    xcb_atom_t atmWmState;
     xcb_ewmh_connection_t ewmh;
 } WMInfoRec, *WMInfoPtr;
 
@@ -741,45 +742,142 @@ static void
 UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
 {
     HWND hWnd;
-    int current_state;
+    int current_state = -1;
 
     winDebug("UpdateState: iWindow 0x%08x %d\n", (int)iWindow, state);
 
     hWnd = getHwnd(pWMInfo, iWindow);
-    if (!hWnd)
-        return;
-
-    // Keep track of the Window state, do nothing if it's not changing
-    current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
-
-    if (current_state == state)
-        return;
-
-    SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
-
-    switch (state)
+    if (hWnd)
         {
-        case XCB_ICCCM_WM_STATE_ICONIC:
-            ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
-            break;
+            // Keep track of the Window state, do nothing if it's not changing
+            current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
+
+            if (current_state == state)
+                return;
+
+            SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
+
+            switch (state)
+                {
+                case XCB_ICCCM_WM_STATE_ICONIC:
+                    ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
+                    break;
 
 #define XCB_ICCCM_WM_STATE_ZOOM 2
-        case XCB_ICCCM_WM_STATE_ZOOM:
-            // ZoomState should only come internally, not from a client
-            // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
-            // already displayed correctly.
-            break;
+                case XCB_ICCCM_WM_STATE_ZOOM:
+                    // ZoomState should only come internally, not from a client
+                    // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
+                    // already displayed correctly.
+                    break;
 
-        case XCB_ICCCM_WM_STATE_NORMAL:
-            ShowWindow(hWnd, SW_SHOWNA);
-            break;
+                case XCB_ICCCM_WM_STATE_NORMAL:
+                    ShowWindow(hWnd, SW_SHOWNA);
+                    break;
 
-        case XCB_ICCCM_WM_STATE_WITHDRAWN:
-            ShowWindow(hWnd, SW_HIDE);
-            break;
+                case XCB_ICCCM_WM_STATE_WITHDRAWN:
+                    ShowWindow(hWnd, SW_HIDE);
+                    break;
+                }
         }
 
-    // XXX: should also set WM_STATE, _NET_WM_STATE property
+    // Update WM_STATE property
+    {
+        // ZoomState is obsolete in ICCCM, so map it to NormalState
+        int icccm_state = state;
+        int icccm_current_state = current_state;
+
+        if (icccm_state == XCB_ICCCM_WM_STATE_ZOOM)
+            icccm_state = XCB_ICCCM_WM_STATE_NORMAL;
+
+        if (icccm_current_state == XCB_ICCCM_WM_STATE_ZOOM)
+            icccm_current_state = XCB_ICCCM_WM_STATE_NORMAL;
+
+        // Don't change property unnecessarily
+        //
+        // (Note that we do not take notice of WM_STATE PropertyNotify, only
+        // WM_CHANGE_STATE ClientMessage, so this should not cause the state to
+        // change itself)
+        if (icccm_current_state != icccm_state)
+            {
+                struct
+                {
+                    CARD32 state;
+                    XID     icon;
+                } wmstate;
+
+                wmstate.state = icccm_state;
+                wmstate.icon = None;
+
+                xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
+                                    iWindow, pWMInfo->atmWmState,
+                                    pWMInfo->atmWmState, 32,
+                                    sizeof(wmstate)/sizeof(int),
+                                    (unsigned char *) &wmstate);
+            }
+    }
+
+    // Update _NET_WM_STATE property
+    if (state == XCB_ICCCM_WM_STATE_WITHDRAWN) {
+        xcb_delete_property(pWMInfo->conn, iWindow, pWMInfo->ewmh._NET_WM_STATE);
+    }
+    else {
+        xcb_get_property_cookie_t cookie;
+        xcb_get_property_reply_t *reply;
+
+        cookie = xcb_get_property(pWMInfo->conn, FALSE, iWindow,
+                                  pWMInfo->ewmh._NET_WM_STATE,
+                                  XCB_ATOM_ATOM,
+                                  0, INT_MAX);
+        reply = xcb_get_property_reply(pWMInfo->conn, cookie, NULL);
+        if (reply) {
+            int nitems = xcb_get_property_value_length(reply)/sizeof(xcb_atom_t);
+            xcb_atom_t *pAtom = xcb_get_property_value(reply);
+            unsigned long i, o = 0;
+            xcb_atom_t netwmstate[nitems + 2];
+            Bool changed = FALSE;
+
+            // Make a copy with _NET_WM_HIDDEN, _NET_WM_MAXIMIZED_{VERT,HORZ}
+            // removed
+            for (i = 0; i < nitems; i++) {
+                if ((pAtom[i] != pWMInfo->ewmh._NET_WM_STATE_HIDDEN) &&
+                    (pAtom[i] != pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT) &&
+                    (pAtom[i] != pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ))
+                    netwmstate[o++] = pAtom[i];
+            }
+            free(reply);
+
+            // if iconized, add _NET_WM_HIDDEN
+            if (state == XCB_ICCCM_WM_STATE_ICONIC) {
+                netwmstate[o++] = pWMInfo->ewmh._NET_WM_STATE_HIDDEN;
+            }
+
+            // if maximized, add  _NET_WM_MAXIMIZED_{VERT,HORZ}
+            if (state == XCB_ICCCM_WM_STATE_ZOOM) {
+                netwmstate[o++] = pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT;
+                netwmstate[o++] = pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ;
+            }
+
+            // Don't change property unnecessarily
+            if (nitems != o)
+                changed = TRUE;
+            else
+                for (i = 0; i < nitems; i++)
+                    {
+                        if (pAtom[i] != netwmstate[i])
+                            {
+                                changed = TRUE;
+                                break;
+                            }
+                    }
+
+            if (changed)
+                xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
+                                    iWindow,
+                                    pWMInfo->ewmh._NET_WM_STATE,
+                                    XCB_ATOM_ATOM, 32,
+                                    o, (unsigned char *) &netwmstate);
+        }
+    }
 }
 
 #if 0
@@ -1200,16 +1298,6 @@ winMultiWindowXMsgProc(void *pArg)
     atmWindowType = intern_atom(pProcArg->conn, "_NET_WM_WINDOW_TYPE");
     atmNormalHints = intern_atom(pProcArg->conn, "WM_NORMAL_HINTS");
 
-    /*
-       iiimxcf had a bug until 2009-04-27, assuming that the
-       WM_STATE atom exists, causing clients to fail with
-       a BadAtom X error if it doesn't.
-
-       Since this is on in the default Solaris 10 install,
-       workaround this by making sure it does exist...
-     */
-    intern_atom(pProcArg->conn, "WM_STATE");
-
     /* Loop until we explicitly break out */
     while (1) {
         xcb_generic_event_t *event;
@@ -1307,6 +1395,16 @@ winMultiWindowXMsgProc(void *pArg)
                     free(reply);
                 }
             }
+        }
+        else if (type == XCB_UNMAP_NOTIFY) {
+            xcb_unmap_notify_event_t *notify = (xcb_unmap_notify_event_t *)event;
+
+            memset(&msg, 0, sizeof(msg));
+            msg.msg = WM_WM_CHANGE_STATE;
+            msg.iWindow = notify->window;
+            msg.dwID = XCB_ICCCM_WM_STATE_WITHDRAWN;
+
+            winSendMessageToWM(pProcArg->pWMInfo, &msg);
         }
         else if (type == XCB_CONFIGURE_NOTIFY) {
             if (!send_event) {
@@ -1563,6 +1661,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     pWMInfo->atmCurrentDesktop = intern_atom(pWMInfo->conn, "_NET_CURRENT_DESKTOP");
     pWMInfo->atmNumberDesktops = intern_atom(pWMInfo->conn, "_NET_NUMBER_OF_DESKTOPS");
     pWMInfo->atmDesktopNames = intern_atom(pWMInfo->conn, "__NET_DESKTOP_NAMES");
+    pWMInfo->atmWmState = intern_atom(pWMInfo->conn, "WM_STATE");
 
     /* Initialization for the xcb_ewmh and EWMH atoms */
     {
