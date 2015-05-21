@@ -755,6 +755,54 @@ UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
     winApplyUrgency(pWMInfo->pDisplay, iWindow, hWnd);
 }
 
+/*
+ * Updates the state of a HWND
+ */
+
+static void
+UpdateState(WMInfoPtr pWMInfo, Window iWindow, int state)
+{
+    HWND hWnd;
+    int current_state;
+
+    winDebug("UpdateState: iWindow 0x%08x %d\n", (int)iWindow, state);
+
+    hWnd = getHwnd(pWMInfo, iWindow);
+    if (!hWnd)
+        return;
+
+    // Keep track of the Window state, do nothing if it's not changing
+    current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
+
+    if (current_state == state)
+        return;
+
+    SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
+
+    switch (state)
+        {
+        case IconicState:
+            ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
+            break;
+
+        case ZoomState:
+            // ZoomState should only come internally, not from a client
+            // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
+            // already displayed correctly.
+            break;
+
+        case NormalState:
+            ShowWindow(hWnd, SW_SHOWNA);
+            break;
+
+        case WithdrawnState:
+            ShowWindow(hWnd, SW_HIDE);
+            break;
+        }
+
+    // XXX: should also set WM_STATE, _NET_WM_STATE property
+}
+
 #if 0
 /*
  * Fix up any differences between the X11 and Win32 window stacks
@@ -1006,8 +1054,7 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_CHANGE_STATE:
-            /* Minimize the window in Windows */
-            winMinimizeWindow(pNode->msg.iWindow);
+            UpdateState(pWMInfo, pNode->msg.iWindow, pNode->msg.dwID);
             break;
 
         default:
@@ -1359,6 +1406,7 @@ winMultiWindowXMsgProc(void *pArg)
 
             msg.msg = WM_WM_CHANGE_STATE;
             msg.iWindow = event.xclient.window;
+            msg.dwID = event.xclient.data.l[0];
 
             winSendMessageToWM(pProcArg->pWMInfo, &msg);
         }
