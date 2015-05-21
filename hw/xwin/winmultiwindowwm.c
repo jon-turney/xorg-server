@@ -735,21 +735,51 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
 
 /*
  * Updates the state of a HWND
- * (only minimization supported at the moment)
  */
 
 static void
-UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow)
+UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
 {
     HWND hWnd;
+    int current_state;
 
-    winDebug("UpdateState: iWindow 0x%08x\n", (int)iWindow);
+    winDebug("UpdateState: iWindow 0x%08x %d\n", (int)iWindow, state);
 
     hWnd = getHwnd(pWMInfo, iWindow);
     if (!hWnd)
         return;
 
-    ShowWindow(hWnd, SW_MINIMIZE);
+    // Keep track of the Window state, do nothing if it's not changing
+    current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
+
+    if (current_state == state)
+        return;
+
+    SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
+
+    switch (state)
+        {
+        case XCB_ICCCM_WM_STATE_ICONIC:
+            ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
+            break;
+
+#define XCB_ICCCM_WM_STATE_ZOOM 2
+        case XCB_ICCCM_WM_STATE_ZOOM:
+            // ZoomState should only come internally, not from a client
+            // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
+            // already displayed correctly.
+            break;
+
+        case XCB_ICCCM_WM_STATE_NORMAL:
+            ShowWindow(hWnd, SW_SHOWNA);
+            break;
+
+        case XCB_ICCCM_WM_STATE_WITHDRAWN:
+            ShowWindow(hWnd, SW_HIDE);
+            break;
+        }
+
+    // XXX: should also set WM_STATE, _NET_WM_STATE property
 }
 
 #if 0
@@ -971,7 +1001,7 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_CHANGE_STATE:
-            UpdateState(pWMInfo, pNode->msg.iWindow);
+            UpdateState(pWMInfo, pNode->msg.iWindow, pNode->msg.dwID);
             break;
 
         default:
@@ -1361,9 +1391,9 @@ winMultiWindowXMsgProc(void *pArg)
                 ErrorF("winMultiWindowXMsgProc - WM_CHANGE_STATE - IconicState\n");
 
                 memset(&msg, 0, sizeof(msg));
-
                 msg.msg = WM_WM_CHANGE_STATE;
                 msg.iWindow = client_msg->window;
+                msg.dwID = client_msg->data.data32[0];
 
                 winSendMessageToWM(pProcArg->pWMInfo, &msg);
             }
