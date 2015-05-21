@@ -58,6 +58,7 @@
 #endif
 #define WIN_WID_PROP		"cyg_wid_prop_rl"
 #define WIN_NEEDMANAGE_PROP	"cyg_override_redirect_prop_rl"
+#define WIN_STATE_PROP		"cyg_state_prop_rl"
 #ifndef CYGMULTIWINDOW_DEBUG
 #define CYGMULTIWINDOW_DEBUG    NO
 #endif
@@ -147,9 +148,6 @@ winInitWM(void **ppWMInfo,
 
 void
  winDeinitMultiWindowWM(void);
-
-void
- winMinimizeWindow(Window id);
 
 void
  winPropertyStoreInit(void);

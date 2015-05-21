@@ -295,6 +295,31 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
                                             MOUSE_POLLING_INTERVAL, NULL);
 }
 
+static
+void
+winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
+{
+    wmMsg->msg = WM_WM_CHANGE_STATE;
+    if (IsIconic(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 3; // IconicState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsZoomed(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 2; // ZoomState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsWindowVisible(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 1; // NormalState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+     }
+    else {
+        /* Only the client, not the user can Withdraw windows, so it doesn't make
+           much sense to handle that state here, and anything else is an
+           unanticapted state. */
+        ErrorF("winAdjustXWindowState - Unknown state for %p\n", wmMsg->hwndWindow);
+    }
+}
+
 /*
  * winTopLevelWindowProc - Window procedure for all top-level Windows windows.
  */
@@ -869,6 +894,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         RemoveProp(hwnd, WIN_WINDOW_PROP);
         RemoveProp(hwnd, WIN_WID_PROP);
         RemoveProp(hwnd, WIN_NEEDMANAGE_PROP);
+        RemoveProp(hwnd, WIN_STATE_PROP);
 
         break;
 
@@ -1017,6 +1043,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Adjust the X Window to the moved Windows window */
         hasEnteredSizeMove = FALSE;
         winAdjustXWindow(pWin, hwnd);
+        if (fWMMsgInitialized)
+            winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         return 0;
 
     case WM_SIZE:
@@ -1046,6 +1074,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove) {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow(pWin, hwnd);
+            if (fWMMsgInitialized)
+                winAdjustXWindowState(s_pScreenPriv, &wmMsg);
             if (wParam == SIZE_MINIMIZED)
                 winReorderWindowsMultiWindow();
         }
