@@ -768,41 +768,41 @@ static void
 UpdateState(WMInfoPtr pWMInfo, Window iWindow, int state)
 {
     HWND hWnd;
-    int current_state;
+    int current_state = -1;
 
     winDebug("UpdateState: iWindow 0x%08x %d\n", (int)iWindow, state);
 
     hWnd = getHwnd(pWMInfo, iWindow);
-    if (!hWnd)
-        return;
-
-    // Keep track of the Window state, do nothing if it's not changing
-    current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
-
-    if (current_state == state)
-        return;
-
-    SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
-
-    switch (state)
+    if (hWnd)
         {
-        case IconicState:
-            ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
-            break;
+            // Keep track of the Window state, do nothing if it's not changing
+            current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
 
-        case ZoomState:
-            // ZoomState should only come internally, not from a client
-            // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
-            // already displayed correctly.
-            break;
+            if (current_state == state)
+                return;
 
-        case NormalState:
-            ShowWindow(hWnd, SW_SHOWNA);
-            break;
+            SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
 
-        case WithdrawnState:
-            ShowWindow(hWnd, SW_HIDE);
-            break;
+            switch (state)
+                {
+                case IconicState:
+                    ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
+                    break;
+
+                case ZoomState:
+                    // ZoomState should only come internally, not from a client
+                    // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
+                    // already displayed correctly.
+                    break;
+
+                case NormalState:
+                    ShowWindow(hWnd, SW_SHOWNA);
+                    break;
+
+                case WithdrawnState:
+                    ShowWindow(hWnd, SW_HIDE);
+                    break;
+                }
         }
 
     // Update WM_STATE property
@@ -1418,6 +1418,13 @@ winMultiWindowXMsgProc(void *pArg)
                                True, StructureNotifyMask, &event_send);
                 }
             }
+        }
+        else if (event.type == UnmapNotify) {
+            msg.msg = WM_WM_CHANGE_STATE;
+            msg.iWindow = event.xunmap.window;
+            msg.dwID = WithdrawnState;
+
+            winSendMessageToWM(pProcArg->pWMInfo, &msg);
         }
         else if (event.type == ConfigureNotify) {
             if (!event.xconfigure.send_event) {
