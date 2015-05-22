@@ -763,42 +763,42 @@ static void
 UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
 {
     HWND hWnd;
-    int current_state;
+    int current_state = -1;
 
     winDebug("UpdateState: iWindow 0x%08x %d\n", (int)iWindow, state);
 
     hWnd = getHwnd(pWMInfo, iWindow);
-    if (!hWnd)
-        return;
-
-    // Keep track of the Window state, do nothing if it's not changing
-    current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
-
-    if (current_state == state)
-        return;
-
-    SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
-
-    switch (state)
+    if (hWnd)
         {
-        case XCB_ICCCM_WM_STATE_ICONIC:
-            ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
-            break;
+            // Keep track of the Window state, do nothing if it's not changing
+            current_state = (intptr_t)GetProp(hWnd, WIN_STATE_PROP);
+
+            if (current_state == state)
+                return;
+
+            SetProp(hWnd, WIN_STATE_PROP, (HANDLE)(intptr_t)state);
+
+            switch (state)
+                {
+                case XCB_ICCCM_WM_STATE_ICONIC:
+                    ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
+                    break;
 
 #define XCB_ICCCM_WM_STATE_ZOOM 2
-        case XCB_ICCCM_WM_STATE_ZOOM:
-            // ZoomState should only come internally, not from a client
-            // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
-            // already displayed correctly.
-            break;
+                case XCB_ICCCM_WM_STATE_ZOOM:
+                    // ZoomState should only come internally, not from a client
+                    // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
+                    // already displayed correctly.
+                    break;
 
-        case XCB_ICCCM_WM_STATE_NORMAL:
-            ShowWindow(hWnd, SW_SHOWNA);
-            break;
+                case XCB_ICCCM_WM_STATE_NORMAL:
+                    ShowWindow(hWnd, SW_SHOWNA);
+                    break;
 
-        case XCB_ICCCM_WM_STATE_WITHDRAWN:
-            ShowWindow(hWnd, SW_HIDE);
-            break;
+                case XCB_ICCCM_WM_STATE_WITHDRAWN:
+                    ShowWindow(hWnd, SW_HIDE);
+                    break;
+                }
         }
 
     // Update WM_STATE property
@@ -1453,6 +1453,16 @@ winMultiWindowXMsgProc(void *pArg)
                     free(reply);
                 }
             }
+        }
+        else if (type == XCB_UNMAP_NOTIFY) {
+            xcb_unmap_notify_event_t *notify = (xcb_unmap_notify_event_t *)event;
+
+            memset(&msg, 0, sizeof(msg));
+            msg.msg = WM_WM_CHANGE_STATE;
+            msg.iWindow = notify->window;
+            msg.dwID = XCB_ICCCM_WM_STATE_WITHDRAWN;
+
+            winSendMessageToWM(pProcArg->pWMInfo, &msg);
         }
         else if (type == XCB_CONFIGURE_NOTIFY) {
             if (!send_event) {
