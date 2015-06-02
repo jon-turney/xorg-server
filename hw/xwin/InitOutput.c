@@ -220,10 +220,6 @@ ddxGiveUp(enum ExitCode error)
     }
 #endif
 
-    if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
-        g_fLogInited = TRUE;
-    }
     LogClose(error);
 
     /*
@@ -620,13 +616,13 @@ winFixupPaths(void)
             winMsg(X_ERROR, "Can not determine HOME directory\n");
         }
     }
-    if (!g_fLogFileChanged) {
+    if (!g_fLogFile) {
         static char buffer[MAX_PATH];
         DWORD size = GetTempPath(sizeof(buffer), buffer);
 
         if (size && size < sizeof(buffer)) {
             snprintf(buffer + size, sizeof(buffer) - size,
-                     "XWin.%s.log", display);
+                     g_pszLogFileFormat, display);
             buffer[sizeof(buffer) - 1] = 0;
             g_pszLogFile = buffer;
             winMsg(X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
@@ -657,18 +653,16 @@ OsVendorInit(void)
         OsVendorVErrorFProc = OsVendorVErrorF;
 #endif
 
-    if (!g_fLogInited) {
-        /* keep this order. If LogInit fails it calls Abort which then calls
-         * ddxGiveUp where LogInit is called again and creates an infinite
-         * recursion. If we set g_fLogInited to TRUE before the init we
-         * avoid the second call
-         */
-        g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
+    if (serverGeneration == 1) {
+        if (g_pszLogFile)
+            g_pszLogFile = LogInit(g_pszLogFile, ".old");
+        else
+            g_pszLogFile = LogInit(g_pszLogFileFormat, ".old");
 
         /* Tell crashreporter logfile name */
         xorg_crashreport_init(g_pszLogFile);
     }
+
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
     LogSetParameter(XLOG_FILE_VERBOSITY, g_iLogVerbose);
@@ -914,24 +908,7 @@ winUseMsg(void)
 void
 ddxUseMsg(void)
 {
-    /* Set a flag so that FatalError won't give duplicate warning message */
-    g_fSilentFatalError = TRUE;
-
     winUseMsg();
-
-    /* Log file will not be opened for UseMsg unless we open it now */
-    if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
-        g_fLogInited = TRUE;
-    }
-    LogClose(EXIT_NO_ERROR);
-
-    /* Notify user where UseMsg text can be found. */
-    if (!g_fNoHelpMessageBox)
-        winMessageBoxF("The " PROJECT_NAME " help text has been printed to "
-                       "%s.\n"
-                       "Please open %s to read the help text.\n",
-                       MB_ICONINFORMATION, g_pszLogFile, g_pszLogFile);
 }
 
 /* See Porting Layer Definition - p. 20 */

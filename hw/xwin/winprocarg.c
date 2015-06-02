@@ -292,6 +292,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
         /* Display the usage message if the argument is malformed */
         if (i + 1 >= argc) {
+            ErrorF("ddxProcessArgument - screen - Missing screen number\n");
+            UseMsg();
+            FatalError("-screen missing screen number\n");
             return 0;
         }
 
@@ -1019,9 +1022,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-logfile")) {
         CHECK_ARGS(1);
         g_pszLogFile = argv[++i];
-#ifdef RELOCATE_PROJECTROOT
-        g_fLogFileChanged = TRUE;
-#endif
         return 2;
     }
 
