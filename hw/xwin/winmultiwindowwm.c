@@ -189,7 +189,7 @@ static Bool
 CheckAnotherWindowManager(xcb_connection_t *conn, DWORD dwScreen);
 
 static void
- winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle);
+ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, Bool onCreate);
 
 static void
  winApplyUrgency(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd);
@@ -697,7 +697,7 @@ UpdateIcon(WMInfoPtr pWMInfo, xcb_window_t iWindow)
  */
 
 static void
-UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
+UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, Bool onCreate)
 {
     HWND hWnd;
     HWND zstyle = HWND_NOTOPMOST;
@@ -708,7 +708,7 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow)
         return;
 
     /* Determine the Window style, which determines borders and clipping region... */
-    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle);
+    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, onCreate);
     winUpdateWindowPosition(hWnd, &zstyle);
 
     /* Apply the updated window style, without changing it's show or activation state */
@@ -1007,7 +1007,7 @@ winMultiWindowWMProc(void *pArg)
                                 sizeof(HWND)/4, &(pNode->msg.hwndWindow));
 
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
 
 
@@ -1094,7 +1094,7 @@ winMultiWindowWMProc(void *pArg)
             if (IsOverrideRedirect(pWMInfo->conn, pNode->msg.iWindow))
               break;
 
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, FALSE);
             }
             break;
 
@@ -1891,7 +1891,7 @@ winApplyUrgency(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd)
 #define HINT_MIN	(1L<<1)
 
 static void
-winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
+winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, Bool onCreate)
 {
 
     xcb_connection_t *conn = pWMInfo->conn;
@@ -2058,6 +2058,12 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle)
 
         style = STYLE_NONE;
         style = winOverrideStyle(res_name, res_class, window_name);
+        /*
+           It only makes sense to apply minimize/maximize override when the
+           window is mapped, as otherwise the state can't be changed.
+        */
+        if (!onCreate)
+            style &= ~(STYLE_MAXIMIZE | STYLE_MINIMIZE);
 
 #define APPLICATION_ID_FORMAT	"%s.xwin.%s"
 #define APPLICATION_ID_UNKNOWN "unknown"
