@@ -221,7 +221,7 @@ static void
  winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd);
 
 static void
- winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle);
+ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle, Bool onCreate);
 
 /*
  * Local globals
@@ -743,7 +743,7 @@ UpdateIcon(WMInfoPtr pWMInfo, Window iWindow)
  */
 
 static void
-UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
+UpdateStyle(WMInfoPtr pWMInfo, Window iWindow, Bool onCreate)
 {
     HWND hWnd;
     HWND zstyle = HWND_NOTOPMOST;
@@ -754,7 +754,7 @@ UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
         return;
 
     /* Determine the Window style, which determines borders and clipping region... */
-    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle);
+    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, onCreate);
     winUpdateWindowPosition(hWnd, &zstyle);
 
     /* Apply the updated window style, without changing it's show or activation state */
@@ -1053,7 +1053,7 @@ winMultiWindowWMProc(void *pArg)
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
 
 
@@ -1142,7 +1142,7 @@ winMultiWindowWMProc(void *pArg)
             if (attr.override_redirect)
               break;
 
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, FALSE);
             }
             break;
 
@@ -1945,7 +1945,7 @@ winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd)
 #define HINT_MIN	(1L<<1)
 
 static void
-winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
+winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle, Bool onCreate)
 {
     static Atom motif_wm_hints, windowType;
     static Atom fullscreenState, belowState, aboveState, skiptaskbarState;
@@ -2129,6 +2129,13 @@ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
                 free(application_id);
             if (window_name)
                 XFree(window_name);
+
+            /*
+               It only makes sense to apply minimize/maximize override when the
+               window is mapped, as otherwise the state can't be changed.
+            */
+            if (!onCreate)
+                style &= ~(STYLE_MAXIMIZE | STYLE_MINIMIZE);
         }
         else {
             style = STYLE_NONE;
