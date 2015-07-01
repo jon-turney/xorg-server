@@ -917,18 +917,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             /* Flag that this window needs to be made active when clicked */
             SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
 
-            /* Set the transient style flags */
-            if (GetParent(hwnd))
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-            /* Set the window standard style flags */
-            else
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                 & ~WS_CAPTION & ~WS_SIZEBOX);
-
             winUpdateWindowPosition(hwnd, &zstyle);
 
             {
