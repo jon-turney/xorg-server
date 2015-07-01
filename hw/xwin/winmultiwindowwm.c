@@ -2169,6 +2169,11 @@ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
 
     style &= ~WS_CAPTION & ~WS_SIZEBOX; /* Just in case */
 
+    if (GetParent(hWnd))
+        style |= WS_SYSMENU;
+    else
+        style |= WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+
     if (!(hint & ~HINT_SKIPTASKBAR))    /* No hints, default */
         style = style | WS_CAPTION | WS_SIZEBOX;
     else if (hint & HINT_NOFRAME)       /* No frame, no decorations */
