@@ -796,56 +796,6 @@ winReorderWindowsMultiWindow(void)
 }
 
 /*
- * winMinimizeWindow - Minimize in response to WM_CHANGE_STATE
- */
-
-void
-winMinimizeWindow(Window id)
-{
-    WindowPtr pWin;
-    winPrivWinPtr pWinPriv;
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    win32RootlessWindowPtr pRLWinPriv;
-#endif
-    HWND hWnd;
-    ScreenPtr pScreen = NULL;
-    winPrivScreenPtr pScreenPriv = NULL;
-
-#if CYGWINDOWING_DEBUG
-    ErrorF("winMinimizeWindow\n");
-#endif
-
-    dixLookupResourceByType((void *) &pWin, id, RT_WINDOW, NullClient,
-                            DixUnknownAccess);
-    if (!pWin) {
-        ErrorF("%s: NULL pWin. Leaving\n", __FUNCTION__);
-        return;
-    }
-
-    pScreen = pWin->drawable.pScreen;
-    if (pScreen)
-        pScreenPriv = winGetScreenPriv(pScreen);
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    if (pScreenPriv && pScreenPriv->pScreenInfo->fInternalWM) {
-        pRLWinPriv =
-            (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
-        hWnd = pRLWinPriv->hWnd;
-    }
-    else
-#else
-    if (pScreenPriv)
-#endif
-    {
-        pWinPriv = winGetWindowPriv(pWin);
-        hWnd = pWinPriv->hWnd;
-    }
-
-    ShowWindow(hWnd, SW_MINIMIZE);
-}
-
-/*
  * CopyWindow - See Porting Layer Definition - p. 39
  */
 void

@@ -146,9 +146,6 @@ void
  winDeinitMultiWindowWM(void);
 
 void
- winMinimizeWindow(Window id);
-
-void
  winPropertyStoreInit(void);
 
 void
