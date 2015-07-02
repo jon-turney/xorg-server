@@ -2134,6 +2134,7 @@ FormatUInt64Hex(uint64_t num, char *string)
     string[len] = '\0';
 }
 
+#if !defined(WIN32) || defined(__CYGWIN__)
 /* Move a file descriptor out of the way of our select mask; this
  * is useful for file descriptors which will never appear in the
  * select mask to avoid reducing the number of clients that can
@@ -2157,3 +2158,4 @@ os_move_fd(int fd)
     close(fd);
     return newfd;
 }
+#endif
