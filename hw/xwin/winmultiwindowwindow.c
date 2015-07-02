@@ -588,9 +588,13 @@ winCreateWindowsTopLevelWindow(WindowPtr pWin)
 
     if (winMultiWindowGetTransientFor(pWin, &daddyId)) {
         if (daddyId) {
-            hFore = GetForegroundWindow();
-            if (hFore && (daddyId != (Window) (INT_PTR) GetProp(hFore, WIN_WID_PROP)))
-                hFore = NULL;
+            WindowPtr pParent;
+            int res = dixLookupWindow(&pParent, daddyId, serverClient, DixReadAccess);
+            if (res == Success)
+                {
+                    winPrivWinPtr pParentPriv = winGetWindowPriv(pParent);
+                    hFore = pParentPriv->hWnd;
+                }
         }
     }
     else {
