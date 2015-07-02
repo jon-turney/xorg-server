@@ -243,11 +243,11 @@ MessageName(winWMMessagePtr msg)
     case WM_WM_MAP:
       return "WM_WM_MAP";
       break;
-    case WM_WM_MAP2:
-      return "WM_WM_MAP2";
+    case WM_WM_MAP_UNMANAGED:
+      return "WM_WM_MAP_UNMANAGED";
       break;
-    case WM_WM_MAP3:
-      return "WM_WM_MAP3";
+    case WM_WM_MAP_MANAGED:
+      return "WM_WM_MAP_MANAGED";
       break;
     case WM_WM_HINTS_EVENT:
       return "WM_WM_HINTS_EVENT";
@@ -1042,7 +1042,7 @@ winMultiWindowWMProc(void *pArg)
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
 
-        case WM_WM_MAP2:
+        case WM_WM_MAP_UNMANAGED:
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
@@ -1051,7 +1051,7 @@ winMultiWindowWMProc(void *pArg)
 
             break;
 
-        case WM_WM_MAP3:
+        case WM_WM_MAP_MANAGED:
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
