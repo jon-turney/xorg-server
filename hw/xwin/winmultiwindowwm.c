@@ -2169,6 +2169,9 @@ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle, Bool 
             (hint & ~HINT_BORDER & ~HINT_CAPTION & ~HINT_SIZEBOX) |
             HINT_NOFRAME;
 
+    if (style & STYLE_SKIPTASKBAR)
+        hint |= HINT_SKIPTASKBAR;
+
     /* Now apply styles to window */
     style = GetWindowLongPtr(hWnd, GWL_STYLE);
     if (!style)
