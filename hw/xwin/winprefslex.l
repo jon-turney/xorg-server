@@ -77,6 +77,7 @@ BOTTOM                  { return BOTTOM; }
 NOTITLE                 { return NOTITLE; }
 OUTLINE                 { return OUTLINE; }
 NOFRAME                 { return NOFRAME; }
+SKIPTASKBAR             { return SKIPTASKBAR; }
 ROOTMENU                { return ROOTMENU; }
 DEFAULTSYSMENU          { return DEFAULTSYSMENU; }
 SYSMENU                 { return SYSMENU; }
