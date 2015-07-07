@@ -117,6 +117,7 @@ extern int yylex(void);
 %token NOTITLE
 %token OUTLINE
 %token NOFRAME
+%token SKIPTASKBAR
 %token DEFAULTSYSMENU
 %token SYSMENU
 %token ROOTMENU
@@ -140,6 +141,7 @@ extern int yylex(void);
 %token <sVal> STRING
 %type <uVal>  group1
 %type <uVal>  group2
+%type <uVal>  group3
 %type <uVal>  stylecombo
 %type <iVal>  atspot
 
@@ -246,10 +248,24 @@ group2:	NOTITLE { $$=STYLE_NOTITLE; }
 	| NOFRAME { $$=STYLE_NOFRAME; }
 	;
 
+group3: SKIPTASKBAR { $$=STYLE_SKIPTASKBAR; }
+	;
+
 stylecombo:	group1 { $$=$1; }
 	| group2 { $$=$1; }
+	| group3 { $$=$1; }
 	| group1 group2 { $$=$1|$2; }
+	| group1 group3 { $$=$1|$2; }
 	| group2 group1 { $$=$1|$2; }
+	| group2 group3 { $$=$1|$2; }
+	| group3 group1 { $$=$1|$2; }
+	| group3 group2 { $$=$1|$2; }
+	| group1 group2 group3 { $$=$1|$2|$3; }
+	| group1 group3 group2 { $$=$1|$2|$3; }
+	| group2 group1 group3 { $$=$1|$2|$3; }
+	| group2 group3 group1 { $$=$1|$2|$3; }
+	| group3 group1 group2 { $$=$1|$2|$3; }
+	| group3 group2 group1 { $$=$1|$2|$3; }
 	;
 
 styleline:	STRING stylecombo NEWLINE newline_or_nada { AddStyleLine($1, $2); free($1); }
