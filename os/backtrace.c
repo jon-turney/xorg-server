@@ -415,7 +415,7 @@ xorg_crashreport_init(const char *logfile)
         }
     else
         {
-            ErrorF("Could not load crashreporter dll\n");
+            DebugF("Could not load crashreporter dll\n");
         }
 }
 

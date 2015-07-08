@@ -128,7 +128,7 @@ OsSigHandler(int signo)
         }
     }
 
-    ErrorF("Fatal signal received in thread 0x%x [0x%x]\n", pthread_self(), GetCurrentThreadId());
+    ErrorFSigSafe("Fatal signal received in thread 0x%x [0x%x]\n", pthread_self(), GetCurrentThreadId());
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {

@@ -905,77 +905,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* else: Wait for WM_EXITSIZEMOVE */
         return 0;
 
-    case WM_SHOWWINDOW:
-        /* Bail out if the window is being hidden */
-        if (!wParam)
-            return 0;
-
-        /* */
-        if (!pWin->overrideRedirect) {
-            HWND zstyle = HWND_NOTOPMOST;
-
-            /* Flag that this window needs to be made active when clicked */
-            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
-
-            /* Set the transient style flags */
-            if (GetParent(hwnd))
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-            /* Set the window standard style flags */
-            else
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                 & ~WS_CAPTION & ~WS_SIZEBOX);
-
-            winUpdateWindowPosition(hwnd, &zstyle);
-
-            {
-                WinXWMHints hints;
-
-                if (winMultiWindowGetWMHints(pWin, &hints)) {
-                    /*
-                       Give the window focus, unless it has an InputHint
-                       which is FALSE (this is used by e.g. glean to
-                       avoid every test window grabbing the focus)
-                     */
-                    if (!((hints.flags & InputHint) && (!hints.input))) {
-                        SetForegroundWindow(hwnd);
-                    }
-                }
-            }
-            wmMsg.msg = WM_WM_MAP3;
-        }
-        else {                  /* It is an overridden window so make it top of Z stack */
-
-            HWND forHwnd = GetForegroundWindow();
-
-#if CYGWINDOWING_DEBUG
-            ErrorF("overridden window is shown\n");
-#endif
-            if (forHwnd != NULL) {
-                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
-                    XMING_SIGNATURE) {
-                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    else
-                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                }
-            }
-            wmMsg.msg = WM_WM_MAP2;
-        }
-
-        /* Tell our Window Manager thread to map the window */
-        if (fWMMsgInitialized)
-            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
-
-        winStartMousePolling(s_pScreenPriv);
-
-        return 0;
-
     case WM_SIZING:
         /* Need to legalize the size according to WM_NORMAL_HINTS */
         /* for applications like xterm */
@@ -1028,12 +957,71 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
         }
+
+      /* Window is being shown */
+      if (pWinPos->flags & SWP_SHOWWINDOW) {
+        if (!pWin->overrideRedirect) {
+            HWND zstyle = HWND_NOTOPMOST;
+
+            /* Flag that this window needs to be made active when clicked */
+            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
+
+            winUpdateWindowPosition(hwnd, &zstyle);
+
+            {
+                WinXWMHints hints;
+
+                if (winMultiWindowGetWMHints(pWin, &hints)) {
+                    /*
+                       Give the window focus, unless it has an InputHint
+                       which is FALSE (this is used by e.g. glean to
+                       avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input))) {
+                        SetForegroundWindow(hwnd);
+                    }
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_MANAGED;
+        }
+        else {                  /* It is an overridden window so make it top of Z stack */
+            HWND forHwnd = GetForegroundWindow();
+
+            if (forHwnd != NULL) {
+                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
+                    XMING_SIGNATURE) {
+                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    else
+                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_UNMANAGED;
+        }
+
+        /* Tell our Window Manager thread to map the window */
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+        winStartMousePolling(s_pScreenPriv);
+      }
+
+      /* Window is being hidden */
+      if (pWinPos->flags & SWP_HIDEWINDOW) {
+          /* Tell our Window Manager thread to unmap the window */
+          wmMsg.msg = WM_WM_UNMAP;
+
+          if (fWMMsgInitialized)
+              winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+      }
     }
-        /*
-         * Pass the message to DefWindowProc to let the function
-         * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
-         */
-        break;
+    /*
+     * Pass the message to DefWindowProc to let the function
+     * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
+     */
+    break;
 
     case WM_ENTERSIZEMOVE:
         hasEnteredSizeMove = TRUE;

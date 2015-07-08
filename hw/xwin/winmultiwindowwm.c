@@ -221,7 +221,7 @@ static void
  winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd);
 
 static void
- winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle);
+ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle, Bool onCreate);
 
 /*
  * Local globals
@@ -236,6 +236,64 @@ static pthread_t g_winMultiWindowXMsgProcThread;
 static Bool g_shutdown = FALSE;
 static Bool redirectError = FALSE;
 static Bool g_fAnotherWMRunning = FALSE;
+
+/*
+ * Translate msg id to text, for debug purposes
+ */
+
+static const char *
+MessageName(winWMMessagePtr msg)
+{
+  switch (msg->msg)
+    {
+    case WM_WM_MOVE:
+      return "WM_WM_MOVE";
+      break;
+    case WM_WM_SIZE:
+      return "WM_WM_SIZE";
+      break;
+    case WM_WM_RAISE:
+      return "WM_WM_RAISE";
+      break;
+    case WM_WM_LOWER:
+      return "WM_WM_LOWER";
+      break;
+    case WM_WM_UNMAP:
+      return "WM_WM_UNMAP";
+      break;
+    case WM_WM_KILL:
+      return "WM_WM_KILL";
+      break;
+    case WM_WM_ACTIVATE:
+      return "WM_WM_ACTIVATE";
+      break;
+    case WM_WM_NAME_EVENT:
+      return "WM_WM_NAME_EVENT";
+      break;
+    case WM_WM_ICON_EVENT:
+      return "WM_WM_ICON_EVENT";
+      break;
+    case WM_WM_CHANGE_STATE:
+      return "WM_WM_CHANGE_STATE";
+      break;
+    case WM_WM_MAP:
+      return "WM_WM_MAP";
+      break;
+    case WM_WM_MAP_UNMANAGED:
+      return "WM_WM_MAP_UNMANAGED";
+      break;
+    case WM_WM_MAP_MANAGED:
+      return "WM_WM_MAP_MANAGED";
+      break;
+    case WM_WM_HINTS_EVENT:
+      return "WM_WM_HINTS_EVENT";
+      break;
+    default:
+      return "Unknown Message";
+      break;
+    }
+}
+
 
 /*
  * PushMessage - Push a message onto the queue
@@ -258,44 +316,6 @@ PushMessage(WMMsgQueuePtr pQueue, WMMsgNodePtr pNode)
     if (pQueue->pHead == NULL) {
         pQueue->pHead = pNode;
     }
-
-#if 0
-    switch (pNode->msg.msg) {
-    case WM_WM_MOVE:
-        ErrorF("\tWM_WM_MOVE\n");
-        break;
-    case WM_WM_SIZE:
-        ErrorF("\tWM_WM_SIZE\n");
-        break;
-    case WM_WM_RAISE:
-        ErrorF("\tWM_WM_RAISE\n");
-        break;
-    case WM_WM_LOWER:
-        ErrorF("\tWM_WM_LOWER\n");
-        break;
-    case WM_WM_MAP:
-        ErrorF("\tWM_WM_MAP\n");
-        break;
-    case WM_WM_MAP2:
-        ErrorF("\tWM_WM_MAP2\n");
-        break;
-    case WM_WM_MAP3:
-        ErrorF("\tWM_WM_MAP3\n");
-        break;
-    case WM_WM_UNMAP:
-        ErrorF("\tWM_WM_UNMAP\n");
-        break;
-    case WM_WM_KILL:
-        ErrorF("\tWM_WM_KILL\n");
-        break;
-    case WM_WM_ACTIVATE:
-        ErrorF("\tWM_WM_ACTIVATE\n");
-        break;
-    default:
-        ErrorF("\tUnknown Message.\n");
-        break;
-    }
-#endif
 
     /* Increase the count of elements in the queue by one */
     ++(pQueue->nQueueSize);
@@ -723,7 +743,7 @@ UpdateIcon(WMInfoPtr pWMInfo, Window iWindow)
  */
 
 static void
-UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
+UpdateStyle(WMInfoPtr pWMInfo, Window iWindow, Bool onCreate)
 {
     HWND hWnd;
     HWND zstyle = HWND_NOTOPMOST;
@@ -734,7 +754,7 @@ UpdateStyle(WMInfoPtr pWMInfo, Window iWindow)
         return;
 
     /* Determine the Window style, which determines borders and clipping region... */
-    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle);
+    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, onCreate);
     winUpdateWindowPosition(hWnd, &zstyle);
 
     /* Apply the updated window style, without changing it's show or activation state */
@@ -981,26 +1001,21 @@ winMultiWindowWMProc(void *pArg)
         }
 
 #if CYGMULTIWINDOW_DEBUG
-        ErrorF("winMultiWindowWMProc - %d ms MSG: %d ID: %d\n",
-               GetTickCount(), (int) pNode->msg.msg, (int) pNode->msg.dwID);
+        ErrorF("winMultiWindowWMProc - MSG: %s (%d) ID: %d\n",
+               MessageName(&(pNode->msg)), (int)pNode->msg.msg, (int)pNode->msg.dwID);
 #endif
 
         /* Branch on the message type */
         switch (pNode->msg.msg) {
 #if 0
         case WM_WM_MOVE:
-            ErrorF("\tWM_WM_MOVE\n");
             break;
 
         case WM_WM_SIZE:
-            ErrorF("\tWM_WM_SIZE\n");
             break;
 #endif
 
         case WM_WM_RAISE:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_RAISE\n");
-#endif
             /* Raise the window */
             XRaiseWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
 #if 0
@@ -1009,18 +1024,12 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_LOWER:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_LOWER\n");
-#endif
 
             /* Lower the window */
             XLowerWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
             break;
 
         case WM_WM_MAP:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_MAP\n");
-#endif
             /* Put a note as to the HWND associated with this Window */
             XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
@@ -1030,27 +1039,21 @@ winMultiWindowWMProc(void *pArg)
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
 
-        case WM_WM_MAP2:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_MAP2\n");
-#endif
+        case WM_WM_MAP_UNMANAGED:
             XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             break;
 
-        case WM_WM_MAP3:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_MAP3\n");
-#endif
+        case WM_WM_MAP_MANAGED:
             /* Put a note as to the HWND associated with this Window */
             XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
 
 
@@ -1067,18 +1070,12 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_UNMAP:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_UNMAP\n");
-#endif
 
             /* Unmap the window */
             XUnmapWindow(pWMInfo->pDisplay, pNode->msg.iWindow);
             break;
 
         case WM_WM_KILL:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_KILL\n");
-#endif
             {
                 /* --- */
                 if (IsWmProtocolAvailable(pWMInfo->pDisplay,
@@ -1093,9 +1090,6 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_ACTIVATE:
-#if CYGMULTIWINDOW_DEBUG
-            ErrorF("\tWM_WM_ACTIVATE\n");
-#endif
             /* Set the input focus */
 
             /*
@@ -1148,7 +1142,7 @@ winMultiWindowWMProc(void *pArg)
             if (attr.override_redirect)
               break;
 
-            UpdateStyle(pWMInfo, pNode->msg.iWindow);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, FALSE);
             }
             break;
 
@@ -1747,7 +1741,7 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
     WMMsgNodePtr pNode;
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF("winSendMessageToWM ()\n");
+    ErrorF("winSendMessageToWM %s\n", MessageName(pMsg));
 #endif
 
     pNode = malloc(sizeof(WMMsgNodeRec));
@@ -1951,7 +1945,7 @@ winApplyUrgency(Display * pDisplay, Window iWindow, HWND hWnd)
 #define HINT_MIN	(1L<<1)
 
 static void
-winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
+winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle, Bool onCreate)
 {
     static Atom motif_wm_hints, windowType;
     static Atom fullscreenState, belowState, aboveState, skiptaskbarState;
@@ -2135,6 +2129,13 @@ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
                 free(application_id);
             if (window_name)
                 XFree(window_name);
+
+            /*
+               It only makes sense to apply minimize/maximize override when the
+               window is mapped, as otherwise the state can't be changed.
+            */
+            if (!onCreate)
+                style &= ~(STYLE_MAXIMIZE | STYLE_MINIMIZE);
         }
         else {
             style = STYLE_NONE;
@@ -2168,12 +2169,20 @@ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle)
             (hint & ~HINT_BORDER & ~HINT_CAPTION & ~HINT_SIZEBOX) |
             HINT_NOFRAME;
 
+    if (style & STYLE_SKIPTASKBAR)
+        hint |= HINT_SKIPTASKBAR;
+
     /* Now apply styles to window */
     style = GetWindowLongPtr(hWnd, GWL_STYLE);
     if (!style)
         return;                 /* GetWindowLongPointer returns 0 on failure, we hope this isn't a valid style */
 
     style &= ~WS_CAPTION & ~WS_SIZEBOX; /* Just in case */
+
+    if (GetParent(hWnd))
+        style |= WS_SYSMENU;
+    else
+        style |= WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
 
     if (!(hint & ~HINT_SKIPTASKBAR))    /* No hints, default */
         style = style | WS_CAPTION | WS_SIZEBOX;

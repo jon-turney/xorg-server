@@ -87,6 +87,7 @@
 #include <wgl_ext_api.h>
 #include <winglobals.h>
 #include <indirect.h>
+#include <setjmp.h>
 
 #define NUM_ELEMENTS(x) (sizeof(x)/ sizeof(x[1]))
 
@@ -479,6 +480,7 @@ glxLogExtensions(const char *prefix, const char *extensions)
     free(str);
 }
 
+static jmp_buf jmp_sig;
 static struct sigaction old_act;
 extern Bool install_os_signal_handler;
 
@@ -490,7 +492,7 @@ glxWinScreenProbeSigHandler(int signo, siginfo_t * sip, void *context)
 
     // show a messagebox
     MessageBox(NULL,
-               "A crash occurred while initializing Windows OpenGL.\n"
+               "Windows OpenGL has been disabled as a crash occurred during initialization.\n"
                "\n"
                "Please try updating the display driver.\n"
                "\n"
@@ -498,8 +500,8 @@ glxWinScreenProbeSigHandler(int signo, siginfo_t * sip, void *context)
                XVENDORNAMESHORT,
                MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND);
 
-    // and pass on to previous sighandler
-    (*old_act.sa_sigaction)(signo, sip, context);
+    // continue via longjmp()
+    longjmp(jmp_sig, 1);
 }
 
 /* This is called by GlxExtensionInit() asking the GLX provider if it can handle the screen... */
@@ -566,7 +568,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
     // The following tests seem particularly prone to crashing somewhere in the
     // display driver's OpenGL implementation.  So temporarily install a special
-    // SIGSEGV handler so we can offer some remedial advice...
+    // SIGSEGV handler so can catch that and offer some remedial advice...
     if (install_os_signal_handler)
         {
             struct sigaction act;
@@ -574,6 +576,11 @@ glxWinScreenProbe(ScreenPtr pScreen)
             act.sa_sigaction = glxWinScreenProbeSigHandler;
             act.sa_flags = SA_SIGINFO;
             sigaction(SIGSEGV, &act, &old_act);
+
+            if (setjmp(jmp_sig)) {
+                LogMessage(X_ERROR, "AIGLX: Not using WGL due to SEGV\n");
+                goto error;
+            }
         }
 
     // create an invisible window for a scratch DC
