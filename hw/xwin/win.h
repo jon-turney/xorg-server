@@ -292,8 +292,6 @@ typedef Bool (*winCreatePrimarySurfaceProcPtr) (ScreenPtr);
 
 typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
 
-typedef Bool (*winFinishCreateWindowsWindowProcPtr) (WindowPtr pWin);
-
 typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
 
 /*
@@ -540,13 +538,7 @@ typedef struct _winPrivScreenRec {
     winDestroyColormapProcPtr pwinDestroyColormap;
     winCreatePrimarySurfaceProcPtr pwinCreatePrimarySurface;
     winReleasePrimarySurfaceProcPtr pwinReleasePrimarySurface;
-
     winCreateScreenResourcesProc pwinCreateScreenResources;
-
-#ifdef XWIN_MULTIWINDOW
-    /* Window Procedures for MultiWindow mode */
-    winFinishCreateWindowsWindowProcPtr pwinFinishCreateWindowsWindow;
-#endif
 
     /* Window Procedures for Rootless mode */
     CreateWindowProcPtr CreateWindow;

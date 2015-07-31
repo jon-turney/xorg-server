@@ -484,7 +484,6 @@ winCreateWindowsWindow(WindowPtr pWin)
     HWND hFore = NULL;
 
     winWindowPriv(pWin);
-    winPrivScreenPtr pScreenPriv = pWinPriv->pScreenPriv;
     WinXSizeHints hints;
     Window daddyId;
     DWORD dwStyle, dwExStyle;
@@ -597,9 +596,6 @@ winCreateWindowsWindow(WindowPtr pWin)
 
     /* Flag that this Windows window handles its own activation */
     SetProp(hWnd, WIN_NEEDMANAGE_PROP, (HANDLE) 0);
-
-    /* Call engine-specific create window procedure */
-    (*pScreenPriv->pwinFinishCreateWindowsWindow) (pWin);
 }
 
 Bool winInDestroyWindowsWindow = FALSE;
