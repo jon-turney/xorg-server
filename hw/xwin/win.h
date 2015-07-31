@@ -288,8 +288,6 @@ typedef Bool (*winCreateColormapProcPtr) (ColormapPtr pColormap);
 
 typedef Bool (*winDestroyColormapProcPtr) (ColormapPtr pColormap);
 
-typedef Bool (*winHotKeyAltTabProcPtr) (ScreenPtr);
-
 typedef Bool (*winCreatePrimarySurfaceProcPtr) (ScreenPtr);
 
 typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
@@ -540,7 +538,6 @@ typedef struct _winPrivScreenRec {
     winStoreColorsProcPtr pwinStoreColors;
     winCreateColormapProcPtr pwinCreateColormap;
     winDestroyColormapProcPtr pwinDestroyColormap;
-    winHotKeyAltTabProcPtr pwinHotKeyAltTab;
     winCreatePrimarySurfaceProcPtr pwinCreatePrimarySurface;
     winReleasePrimarySurfaceProcPtr pwinReleasePrimarySurface;
 
