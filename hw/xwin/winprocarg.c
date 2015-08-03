@@ -135,6 +135,7 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fRootless = FALSE;
 #ifdef XWIN_MULTIWINDOW
     defaultScreenInfo.fMultiWindow = FALSE;
+    defaultScreenInfo.fCompositeWM = FALSE;
 #endif
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
     defaultScreenInfo.fMultiMonitorOverride = FALSE;
@@ -614,6 +615,16 @@ ddxProcessArgument(int argc, char *argv[], int i)
             screenInfoPtr->fMultipleMonitors = TRUE;
 #endif
         screenInfoPtr->fMultiWindow = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-compositewm' argument
+     */
+    if (IS_OPTION("-compositewm")) {
+        screenInfoPtr->fCompositeWM = TRUE;
 
         /* Indicate that we have processed this argument */
         return 1;

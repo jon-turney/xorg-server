@@ -66,6 +66,7 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
+#include <X11/extensions/Xcomposite.h>
 #include <X11/Xwindows.h>
 
 /* Local headers */
@@ -145,6 +146,7 @@ typedef struct _WMInfo {
     Atom atmVertMaxState;
     Atom atmHorzMaxState;
     Bool fAllowOtherWM;
+    Bool fCompositeWM;
 } WMInfoRec, *WMInfoPtr;
 
 typedef struct _WMProcArgRec {
@@ -1321,6 +1323,39 @@ winMultiWindowXMsgProc(void *pArg)
     atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
     atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
 
+
+    /*
+      Enable Composite extension and redirect subwindows of the root window
+     */
+    if (pProcArg->pWMInfo->fCompositeWM)
+        {
+            int composite_event_base, composite_error_base;
+            if (XCompositeQueryExtension(pProcArg->pDisplay,
+                                         &composite_event_base,
+                                         &composite_error_base))
+                {
+                    XCompositeRedirectSubwindows(pProcArg->pDisplay,
+                                                 XRootWindow(pProcArg->pDisplay,
+                                                             pProcArg->dwScreen),
+                                                 CompositeRedirectAutomatic);
+
+                    /*
+                      We use automatic updating of the root window for two
+                      reasons:
+
+                      1) redirected window contents are mirrored to the root
+                      window so that the root window draws correctly when shown.
+
+                      2) updating the root window causes damage against the
+                      shadow framebuffer, which ultimately causes WM_PAINT to be
+                      sent to the affected window(s) to cause the damage regions
+                      to be redrawn.
+                    */
+
+                    ErrorF("Using Composite redirection\n");
+                }
+        }
+
     /* Loop until we explicitly break out */
     while (1) {
         if (g_shutdown)
@@ -1518,7 +1553,7 @@ winInitWM(void **ppWMInfo,
           pthread_t * ptWMProc,
           pthread_t * ptXMsgProc,
           pthread_mutex_t * ppmServerStarted,
-          int dwScreen, HWND hwndScreen, BOOL allowOtherWM)
+          int dwScreen, HWND hwndScreen, BOOL allowOtherWM, BOOL compositeWM)
 {
     WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
     WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
@@ -1541,6 +1576,7 @@ winInitWM(void **ppWMInfo,
     /* Set a return pointer to the Window Manager info structure */
     *ppWMInfo = pWMInfo;
     pWMInfo->fAllowOtherWM = allowOtherWM;
+    pWMInfo->fCompositeWM = compositeWM;
 
     /* Setup the argument structure for the thread function */
     pArg->dwScreen = dwScreen;
