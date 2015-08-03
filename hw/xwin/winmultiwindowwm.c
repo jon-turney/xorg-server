@@ -63,6 +63,7 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/composite.h>
 
 #include <X11/Xwindows.h>
 
@@ -133,6 +134,7 @@ typedef struct _WMInfo {
     xcb_atom_t atmDesktopNames;
     xcb_atom_t atmWmState;
     xcb_ewmh_connection_t ewmh;
+    Bool fCompositeWM;
 } WMInfoRec, *WMInfoPtr;
 
 typedef struct _WMProcArgRec {
@@ -1192,6 +1194,8 @@ winMultiWindowXMsgProc(void *pArg)
     xcb_atom_t atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints;
     int iReturn;
     xcb_auth_info_t *auth_info;
+    xcb_screen_t *root_screen;
+    xcb_window_t root_window_id;
 
     pthread_cleanup_push(&winMultiWindowThreadExit, NULL);
 
@@ -1266,11 +1270,11 @@ winMultiWindowXMsgProc(void *pArg)
         pthread_exit(NULL);
     }
 
-    {
-        /* Get root window id */
-        xcb_screen_t *root_screen = xcb_aux_get_screen(pProcArg->conn, pProcArg->dwScreen);
-        xcb_window_t root_window_id = root_screen->root;
+    /* Get root window id */
+    root_screen = xcb_aux_get_screen(pProcArg->conn, pProcArg->dwScreen);
+    root_window_id = root_screen->root;
 
+    {
         /* Set WM_ICON_SIZE property indicating desired icon sizes */
         typedef struct {
             uint32_t min_width, min_height;
@@ -1297,6 +1301,41 @@ winMultiWindowXMsgProc(void *pArg)
     atmMotifWmHints = intern_atom(pProcArg->conn, "_MOTIF_WM_HINTS");
     atmWindowType = intern_atom(pProcArg->conn, "_NET_WM_WINDOW_TYPE");
     atmNormalHints = intern_atom(pProcArg->conn, "WM_NORMAL_HINTS");
+
+    /*
+      Enable Composite extension and redirect subwindows of the root window
+     */
+    if (pProcArg->pWMInfo->fCompositeWM) {
+        const char *extension_name = "Composite";
+        xcb_query_extension_cookie_t cookie;
+        xcb_query_extension_reply_t *reply;
+
+        cookie = xcb_query_extension(pProcArg->conn, strlen(extension_name), extension_name);
+        reply = xcb_query_extension_reply(pProcArg->conn, cookie, NULL);
+
+        if (reply && (reply->present)) {
+            xcb_composite_redirect_subwindows(pProcArg->conn,
+                                              root_window_id,
+                                              XCB_COMPOSITE_REDIRECT_AUTOMATIC);
+
+            /*
+              We use automatic updating of the root window for two
+              reasons:
+
+              1) redirected window contents are mirrored to the root
+              window so that the root window draws correctly when shown.
+
+              2) updating the root window causes damage against the
+              shadow framebuffer, which ultimately causes WM_PAINT to be
+              sent to the affected window(s) to cause the damage regions
+              to be redrawn.
+            */
+
+            ErrorF("Using Composite redirection\n");
+
+            free(reply);
+        }
+    }
 
     /* Loop until we explicitly break out */
     while (1) {
@@ -1517,7 +1556,7 @@ winInitWM(void **ppWMInfo,
           pthread_t * ptWMProc,
           pthread_t * ptXMsgProc,
           pthread_mutex_t * ppmServerStarted,
-          int dwScreen, HWND hwndScreen)
+          int dwScreen, HWND hwndScreen, Bool compositeWM)
 {
     WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
     WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
@@ -1539,6 +1578,7 @@ winInitWM(void **ppWMInfo,
 
     /* Set a return pointer to the Window Manager info structure */
     *ppWMInfo = pWMInfo;
+    pWMInfo->fCompositeWM = compositeWM;
 
     /* Setup the argument structure for the thread function */
     pArg->dwScreen = dwScreen;
