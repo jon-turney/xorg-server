@@ -170,6 +170,12 @@ on its own is equivalent to \fB\-resize=randr\fP
 .B \-hostintitle
 Add the host name to the window title for X applications which are running
 on remote hosts, when that information is available and it's useful to do so.
+.TP 8
+.B \-compositewm
+Experimental.
+Use Composite extension redirection to maintain a bitmap image of each top-level
+X window, so window contents which are occluded show correctly in task bar and
+task switcher previews.
 
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
