@@ -386,6 +386,7 @@ typedef struct {
     Bool fRootless;
 #ifdef XWIN_MULTIWINDOW
     Bool fMultiWindow;
+    Bool fCompositeWM;
 #endif
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
     Bool fMultiMonitorOverride;
