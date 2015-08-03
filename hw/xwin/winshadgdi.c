@@ -62,6 +62,9 @@ static Bool
  winBltExposedRegionsShadowGDI(ScreenPtr pScreen);
 
 static Bool
+ winBltExposedWindowRegionShadowGDI(ScreenPtr pScreen, WindowPtr pWin);
+
+static Bool
  winActivateAppShadowGDI(ScreenPtr pScreen);
 
 static Bool
@@ -814,6 +817,61 @@ winBltExposedRegionsShadowGDI(ScreenPtr pScreen)
 }
 
 /*
+ * Blt exposed region to the given HWND
+ */
+
+static Bool
+winBltExposedWindowRegionShadowGDI(ScreenPtr pScreen, WindowPtr pWin)
+{
+    winScreenPriv(pScreen);
+    winPrivWinPtr pWinPriv = winGetWindowPriv(pWin);
+
+    HWND hWnd = pWinPriv->hWnd;
+    HDC hdcUpdate;
+    PAINTSTRUCT ps;
+
+    hdcUpdate = BeginPaint(hWnd, &ps);
+    /* Avoid the BitBlt if the PAINTSTRUCT region is bogus */
+    if (ps.rcPaint.right == 0 && ps.rcPaint.bottom == 0 &&
+        ps.rcPaint.left == 0 && ps.rcPaint.top == 0) {
+        EndPaint(hWnd, &ps);
+        return 0;
+    }
+
+    /* Try to copy from the shadow buffer to the invalidated region */
+    /* XXX: looks like those coordinates should get transformed ??? */
+    if (!BitBlt(hdcUpdate,
+                ps.rcPaint.left, ps.rcPaint.top,
+                ps.rcPaint.right - ps.rcPaint.left,
+                ps.rcPaint.bottom - ps.rcPaint.top,
+                pScreenPriv->hdcShadow,
+                ps.rcPaint.left + pWin->drawable.x,
+                ps.rcPaint.top + pWin->drawable.y,
+                SRCCOPY)) {
+        LPVOID lpMsgBuf;
+
+        /* Display an error message */
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                      FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                      NULL,
+                      GetLastError(),
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      (LPTSTR) &lpMsgBuf, 0, NULL);
+
+        ErrorF("winBltExposedWindowRegionShadowGDI - BitBlt failed: %s\n",
+               (LPSTR) lpMsgBuf);
+        LocalFree(lpMsgBuf);
+    }
+    }
+
+    /* EndPaint frees the DC */
+    EndPaint(hWnd, &ps);
+
+    return TRUE;
+}
+
+/*
  * Do any engine-specific appliation-activation processing
  */
 
@@ -1160,6 +1218,7 @@ winSetEngineFunctionsShadowGDI(ScreenPtr pScreen)
         pScreenPriv->pwinCreateBoundingWindow = winCreateBoundingWindowWindowed;
     pScreenPriv->pwinFinishScreenInit = winFinishScreenInitFB;
     pScreenPriv->pwinBltExposedRegions = winBltExposedRegionsShadowGDI;
+    pScreenPriv->pwinBltExposedWindowRegion = winBltExposedWindowRegionShadowGDI;
     pScreenPriv->pwinActivateApp = winActivateAppShadowGDI;
     pScreenPriv->pwinRedrawScreen = winRedrawScreenShadowGDI;
     pScreenPriv->pwinRealizeInstalledPalette =

@@ -272,6 +272,8 @@ typedef Bool (*winFinishScreenInitProcPtr) (int, ScreenPtr, int, char **);
 
 typedef Bool (*winBltExposedRegionsProcPtr) (ScreenPtr);
 
+typedef Bool (*winBltExposedWindowRegionProcPtr) (ScreenPtr, WindowPtr);
+
 typedef Bool (*winActivateAppProcPtr) (ScreenPtr);
 
 typedef Bool (*winRedrawScreenProcPtr) (ScreenPtr pScreen);
@@ -528,6 +530,7 @@ typedef struct _winPrivScreenRec {
     winCreateBoundingWindowProcPtr pwinCreateBoundingWindow;
     winFinishScreenInitProcPtr pwinFinishScreenInit;
     winBltExposedRegionsProcPtr pwinBltExposedRegions;
+    winBltExposedWindowRegionProcPtr pwinBltExposedWindowRegion;
     winActivateAppProcPtr pwinActivateApp;
     winRedrawScreenProcPtr pwinRedrawScreen;
     winRealizeInstalledPaletteProcPtr pwinRealizeInstalledPalette;
