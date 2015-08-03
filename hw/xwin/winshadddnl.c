@@ -1203,6 +1203,7 @@ winSetEngineFunctionsShadowDDNL(ScreenPtr pScreen)
         pScreenPriv->pwinCreateBoundingWindow = winCreateBoundingWindowWindowed;
     pScreenPriv->pwinFinishScreenInit = winFinishScreenInitFB;
     pScreenPriv->pwinBltExposedRegions = winBltExposedRegionsShadowDDNL;
+    pScreenPriv->pwinBltExposedWindowRegion = NULL;
     pScreenPriv->pwinActivateApp = winActivateAppShadowDDNL;
     pScreenPriv->pwinRedrawScreen = winRedrawScreenShadowDDNL;
     pScreenPriv->pwinRealizeInstalledPalette
