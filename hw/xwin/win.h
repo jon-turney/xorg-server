@@ -397,6 +397,7 @@ typedef struct {
 #endif
     Bool fRootless;
     Bool fMultiWindow;
+    Bool fCompositeWM;
     Bool fMultiMonitorOverride;
     Bool fMultipleMonitors;
     Bool fLessPointer;
