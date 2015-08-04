@@ -2072,8 +2072,11 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
                 if (!(hint & ~HINT_SKIPTASKBAR))
                     hint |= HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
 
-                /* Not maximizable if a maximum size is specified */
-                hint |= HINT_NOMAXIMIZE;
+                /* Not maximizable if a maximum size is specified, and that size
+                   is smaller (in either dimension) than the screen size */
+                if ((size_hints.max_width < GetSystemMetrics(SM_CXVIRTUALSCREEN))
+                    || (size_hints.max_height < GetSystemMetrics(SM_CYVIRTUALSCREEN)))
+                    hint |= HINT_NOMAXIMIZE;
 
                 if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
                     /*
