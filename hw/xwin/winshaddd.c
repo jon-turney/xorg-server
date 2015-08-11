@@ -1208,14 +1208,8 @@ winSetEngineFunctionsShadowDD(ScreenPtr pScreen)
     pScreenPriv->pwinStoreColors = winStoreColorsShadowDD;
     pScreenPriv->pwinCreateColormap = winCreateColormapShadowDD;
     pScreenPriv->pwinDestroyColormap = winDestroyColormapShadowDD;
-    pScreenPriv->pwinHotKeyAltTab =
-        (winHotKeyAltTabProcPtr) (void (*)(void)) NoopDDA;
     pScreenPriv->pwinCreatePrimarySurface = winCreatePrimarySurfaceShadowDD;
     pScreenPriv->pwinReleasePrimarySurface = winReleasePrimarySurfaceShadowDD;
-#ifdef XWIN_MULTIWINDOW
-    pScreenPriv->pwinFinishCreateWindowsWindow =
-        (winFinishCreateWindowsWindowProcPtr) (void (*)(void)) NoopDDA;
-#endif
 
     return TRUE;
 }
