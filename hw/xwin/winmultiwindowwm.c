@@ -2053,7 +2053,7 @@ winApplyHints(WMInfoPtr pWMInfo, Window iWindow, HWND hWnd, HWND * zstyle, Bool 
                            (unsigned char **) &pAtom) == Success) {
         if (pAtom && nitems == 1) {
             if (*pAtom == dockWindow) {
-                hint = (hint & ~HINT_NOFRAME) | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
+                hint = (hint & ~HINT_NOFRAME) | HINT_SKIPTASKBAR | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
                 *zstyle = HWND_TOPMOST;
             }
             else if (*pAtom == splashWindow) {
