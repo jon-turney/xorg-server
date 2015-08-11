@@ -223,7 +223,7 @@ winSetEngine(ScreenPtr pScreen)
         return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
 }
 
 /*

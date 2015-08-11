@@ -163,7 +163,6 @@
 #include "mipointer.h"
 #include "X11/keysym.h"
 #include "micoord.h"
-#include "dix.h"
 #include "miline.h"
 #include "shadow.h"
 #include "fb.h"
@@ -273,6 +272,8 @@ typedef Bool (*winFinishScreenInitProcPtr) (int, ScreenPtr, int, char **);
 
 typedef Bool (*winBltExposedRegionsProcPtr) (ScreenPtr);
 
+typedef Bool (*winBltExposedWindowRegionProcPtr) (ScreenPtr, WindowPtr);
+
 typedef Bool (*winActivateAppProcPtr) (ScreenPtr);
 
 typedef Bool (*winRedrawScreenProcPtr) (ScreenPtr pScreen);
@@ -288,36 +289,11 @@ typedef Bool (*winCreateColormapProcPtr) (ColormapPtr pColormap);
 
 typedef Bool (*winDestroyColormapProcPtr) (ColormapPtr pColormap);
 
-typedef Bool (*winHotKeyAltTabProcPtr) (ScreenPtr);
-
 typedef Bool (*winCreatePrimarySurfaceProcPtr) (ScreenPtr);
 
 typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
 
-typedef Bool (*winFinishCreateWindowsWindowProcPtr) (WindowPtr pWin);
-
 typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
-
-/*
- * GC (graphics context) privates
- */
-
-typedef struct {
-    HDC hdc;
-    HDC hdcMem;
-} winPrivGCRec, *winPrivGCPtr;
-
-/*
- * Pixmap privates
- */
-
-typedef struct {
-    HDC hdcSelected;
-    HBITMAP hBitmap;
-    BYTE *pbBits;
-    DWORD dwScanlineBytes;
-    BITMAPINFOHEADER *pbmih;
-} winPrivPixmapRec, *winPrivPixmapPtr;
 
 /*
  * Colormap privates
@@ -329,6 +305,7 @@ typedef struct {
     RGBQUAD rgbColors[WIN_NUM_PALETTE_ENTRIES];
     PALETTEENTRY peColors[WIN_NUM_PALETTE_ENTRIES];
 } winPrivCmapRec, *winPrivCmapPtr;
+
 
 /*
  * Windows Cursor handling.
@@ -412,6 +389,7 @@ typedef struct {
     Bool fRootless;
 #ifdef XWIN_MULTIWINDOW
     Bool fMultiWindow;
+    Bool fCompositeWM;
 #endif
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
     Bool fMultiMonitorOverride;
@@ -534,6 +512,7 @@ typedef struct _winPrivScreenRec {
     winCreateBoundingWindowProcPtr pwinCreateBoundingWindow;
     winFinishScreenInitProcPtr pwinFinishScreenInit;
     winBltExposedRegionsProcPtr pwinBltExposedRegions;
+    winBltExposedWindowRegionProcPtr pwinBltExposedWindowRegion;
     winActivateAppProcPtr pwinActivateApp;
     winRedrawScreenProcPtr pwinRedrawScreen;
     winRealizeInstalledPaletteProcPtr pwinRealizeInstalledPalette;
@@ -541,16 +520,9 @@ typedef struct _winPrivScreenRec {
     winStoreColorsProcPtr pwinStoreColors;
     winCreateColormapProcPtr pwinCreateColormap;
     winDestroyColormapProcPtr pwinDestroyColormap;
-    winHotKeyAltTabProcPtr pwinHotKeyAltTab;
     winCreatePrimarySurfaceProcPtr pwinCreatePrimarySurface;
     winReleasePrimarySurfaceProcPtr pwinReleasePrimarySurface;
-
     winCreateScreenResourcesProc pwinCreateScreenResources;
-
-#ifdef XWIN_MULTIWINDOW
-    /* Window Procedures for MultiWindow mode */
-    winFinishCreateWindowsWindowProcPtr pwinFinishCreateWindowsWindow;
-#endif
 
     /* Window Procedures for Rootless mode */
     CreateWindowProcPtr CreateWindow;

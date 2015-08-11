@@ -294,22 +294,16 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                  * the display dimensions change.
                  */
 
-                /*
-                 * NOTE: The non-DirectDraw engines set the ReleasePrimarySurface
-                 * and CreatePrimarySurface function pointers to point
-                 * to the no operation function, NoopDDA.  This allows us
-                 * to blindly call these functions, even if they are not
-                 * relevant to the current engine (e.g., Shadow GDI).
-                 */
-
                 winDebug
                     ("winWindowProc - WM_DISPLAYCHANGE - Releasing and recreating primary surface\n");
 
                 /* Release the old primary surface */
-                (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
+                if (*s_pScreenPriv->pwinReleasePrimarySurface)
+                    (*s_pScreenPriv->pwinReleasePrimarySurface) (s_pScreen);
 
                 /* Create the new primary surface */
-                (*s_pScreenPriv->pwinCreatePrimarySurface) (s_pScreen);
+                if (*s_pScreenPriv->pwinCreatePrimarySurface)
+                    (*s_pScreenPriv->pwinCreatePrimarySurface) (s_pScreen);
             }
         }
 
@@ -1109,14 +1103,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Release all pressed shift keys */
         if (wParam == VK_SHIFT)
             winFixShiftKeys(iScanCode);
-        return 0;
-
-    case WM_HOTKEY:
-        if (s_pScreenPriv == NULL)
-            break;
-
-        /* Call the engine-specific hot key handler */
-        (*s_pScreenPriv->pwinHotKeyAltTab) (s_pScreen);
         return 0;
 
     case WM_ACTIVATE:
