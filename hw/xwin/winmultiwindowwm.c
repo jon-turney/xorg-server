@@ -2049,7 +2049,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
       if (xcb_ewmh_get_wm_window_type_reply(&pWMInfo->ewmh, cookie, &type, NULL)) {
         for (i = 0; i < type.atoms_len; i++) {
             if (type.atoms[i] ==  pWMInfo->ewmh._NET_WM_WINDOW_TYPE_DOCK) {
-                hint = (hint & ~HINT_NOFRAME) | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
+                hint = (hint & ~HINT_NOFRAME) | HINT_SKIPTASKBAR | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
                 *zstyle = HWND_TOPMOST;
             }
             else if ((type.atoms[i] == pWMInfo->ewmh._NET_WM_WINDOW_TYPE_SPLASH)
