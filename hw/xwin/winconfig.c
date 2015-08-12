@@ -346,7 +346,7 @@ winConfigKeyboard(DeviceIntPtr pDevice)
                 g_winInfo.xkb.variant = pLayout->xkbvariant;
                 g_winInfo.xkb.options = pLayout->xkboptions;
 
-                if (deviceIdentifier == 0xa0000) {
+                if (deviceIdentifier == 0xa000) {
                     winMsg(X_PROBED, "Windows keyboard layout device identifier indicates Macintosh, setting Model = \"macintosh\"");
                     g_winInfo.xkb.model = "macintosh";
                 }
