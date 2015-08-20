@@ -978,14 +978,18 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winStartMousePolling(s_pScreenPriv);
       }
 
-      /* Window is being hidden */
-      if (pWinPos->flags & SWP_HIDEWINDOW) {
-          /* Tell our Window Manager thread to unmap the window */
-          wmMsg.msg = WM_WM_UNMAP;
+      /*
+        We don't react to SWP_HIDEWINDOW indicating window is being hidden in
+        a symmetrical way (i.e. by sending WM_WM_UNMAP)
 
-          if (fWMMsgInitialized)
-              winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
-      }
+        If the cause of the window being hidden is the X windows being unmapped,
+        (WM_STATE has changed to WithdrawnState), then the window has already
+        been unmapped.
+
+        Virtual desktop software (like VirtuaWin or Dexpot) uses SWP_HIDEWINDOW
+        to hide windows on other desktops.  We mustn't unmap the X window in
+        that situation, as it becomes inaccessible.
+      */
     }
     /*
      * Pass the message to DefWindowProc to let the function
