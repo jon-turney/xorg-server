@@ -208,7 +208,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
         else
             LogMessage(X_ERROR, "Error compiling keymap (%s)\n", keymap);
 #if defined(WIN32) || defined(__CYGWIN__)
-        LogMessage(X_ERROR, "xkbcomp exit status %d\n", status);
+        LogMessage(X_ERROR, "xkbcomp exit status 0x%x\n", status);
 
         {
             char *lineptr = NULL;
