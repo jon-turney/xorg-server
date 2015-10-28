@@ -396,6 +396,23 @@ initializeExtensions(__GLXDRIscreen * screen)
     const __DRIextension **extensions;
     int i;
 
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
+    LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
+
+    if (screen->swrast->base.version >= 3) {
+        __glXEnableExtension(screen->glx_enable_bits,
+                             "GLX_ARB_create_context");
+        __glXEnableExtension(screen->glx_enable_bits,
+                             "GLX_ARB_create_context_profile");
+        __glXEnableExtension(screen->glx_enable_bits,
+                             "GLX_EXT_create_context_es2_profile");
+    }
+
+    /* these are harmless to enable unconditionally */
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_framebuffer_sRGB");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_SGI_make_current_read");
+
     extensions = screen->core->getExtensions(screen->driScreen);
 
     /* GLX_MESA_copy_sub_buffer is always enabled. */
@@ -412,10 +429,6 @@ initializeExtensions(__GLXDRIscreen * screen)
         if (strcmp(extensions[i]->name, __DRI_COPY_SUB_BUFFER) == 0) {
             screen->copySubBuffer =
                 (const __DRIcopySubBufferExtension *) extensions[i];
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_MESA_copy_sub_buffer");
-
-            LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
         }
 
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
@@ -424,7 +437,13 @@ initializeExtensions(__GLXDRIscreen * screen)
             LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_texture_from_pixmap\n");
         }
 
-        /* Ignore unknown extensions */
+#ifdef __DRI2_FLUSH_CONTROL
+        if (strcmp(extensions[i]->name, __DRI2_FLUSH_CONTROL) == 0) {
+            __glXEnableExtension(screen->glx_enable_bits,
+                                 "GLX_ARB_context_flush_control\n");
+        }
+#endif
+
     }
 }
 
