@@ -44,6 +44,7 @@
 #include "inputstr.h"
 #include "winclipboard/winclipboard.h"
 #include "wmutil/mouse.h"
+#include "wmutil/keyboard.h"
 
 /*
  * Global variables

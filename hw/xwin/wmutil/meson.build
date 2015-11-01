@@ -1,12 +1,16 @@
 srcs_wmutil = [
     'cursor_convert.c',
     'icon_convert.c',
+    'keyboard.c',
     'mouse.c',
+    'scancodes.h',
+    'winvkmap.h',
 ]
 
 headers_wmutil = [
     'cursor_convert.h',
     'icon_convert.h',
+    'keyboard.h',
     'mouse.h',
 ]
 
