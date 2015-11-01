@@ -41,6 +41,7 @@
 #include "winprefs.h"
 #include "winmsg.h"
 #include "inputstr.h"
+#include "wmutil/keyboard.h"
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
