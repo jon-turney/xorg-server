@@ -90,8 +90,6 @@ SRCS =	InitInput.c \
 	winconfig.h \
 	win.h \
 	winglobals.h \
-	winkeybd.h \
-	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
 	winmonitors.h \
