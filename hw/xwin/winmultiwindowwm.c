@@ -808,13 +808,13 @@ UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
 
 #define XCB_ICCCM_WM_STATE_ZOOM 2
                 case XCB_ICCCM_WM_STATE_ZOOM:
-                    // ZoomState should only come internally, not from a client
-                    // There doesn't seem to be a SW_SHOWMAXNOACTIVE, but Window should
-                    // already displayed correctly.
+                    // There doesn't seem to be a SW_SHOWMAXNOACTIVE.  Hopefully
+                    // always activating a maximized window isn't so bad...
+                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
                     break;
 
                 case XCB_ICCCM_WM_STATE_NORMAL:
-                    ShowWindow(hWnd, SW_SHOWNA);
+                    ShowWindow(hWnd, SW_SHOWNOACTIVATE);
                     break;
 
                 case XCB_ICCCM_WM_STATE_WITHDRAWN:
@@ -1574,6 +1574,7 @@ winMultiWindowXMsgProc(void *pArg)
         }
         else if (type == XCB_CLIENT_MESSAGE) {
             xcb_client_message_event_t *client_msg = (xcb_client_message_event_t *)event;
+            winDebug("winMultiWindowXMsgProc: ClientMessage: type %d window 0x%08x data[0] %d\n", client_msg->type, client_msg->window, client_msg->data.data32[0]);
 
             if (client_msg->type == atmWmChange
                  && client_msg->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
@@ -1585,6 +1586,47 @@ winMultiWindowXMsgProc(void *pArg)
                 msg.dwID = client_msg->data.data32[0];
 
                 winSendMessageToWM(pProcArg->pWMInfo, &msg);
+            }
+            else if (client_msg->type == pProcArg->pWMInfo->ewmh._NET_WM_STATE) {
+                int action = client_msg->data.data32[0];
+                int state = -1;
+
+                if (action == XCB_EWMH_WM_STATE_ADD) {
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ))
+                        state = XCB_ICCCM_WM_STATE_ZOOM;
+
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT))
+                        state = XCB_ICCCM_WM_STATE_ZOOM;
+
+                    if (client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_HIDDEN)
+                        state = XCB_ICCCM_WM_STATE_ICONIC;
+                }
+                else if (action == XCB_EWMH_WM_STATE_REMOVE) {
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ))
+                        state = XCB_ICCCM_WM_STATE_NORMAL;
+
+                    if ((client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_HORZ) &&
+                        (client_msg->data.data32[2] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_MAXIMIZED_VERT))
+                        state = XCB_ICCCM_WM_STATE_NORMAL;
+
+                    if (client_msg->data.data32[1] == pProcArg->pWMInfo->ewmh._NET_WM_STATE_HIDDEN)
+                        state = XCB_ICCCM_WM_STATE_NORMAL;
+                }
+                else {
+                    ErrorF("winMultiWindowXMsgProc: ClientMEssage _NET_WM_STATE unsupported action %d\n", action);
+                }
+
+                if (state != -1) {
+                    memset(&msg, 0, sizeof(msg));
+                    msg.msg = WM_WM_CHANGE_STATE;
+                    msg.iWindow = client_msg->window;
+                    msg.dwID = state;
+
+                    winSendMessageToWM(pProcArg->pWMInfo, &msg);
+                }
             }
         }
 
