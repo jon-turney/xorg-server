@@ -271,6 +271,13 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
+#ifdef XWIN_MULTIWINDOW
+    if ((pScreenInfo->dwBPP == 8) && (pScreenInfo->fCompositeWM)) {
+        ErrorF("-compositewm disabled due to 8bpp depth\n");
+        pScreenInfo->fCompositeWM = FALSE;
+    }
+#endif
+
     /* Apparently we need this for the render extension */
     miSetPixmapDepths();
 
@@ -434,6 +441,7 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         WRAP(MoveWindow);
         WRAP(CopyWindow);
         WRAP(SetShape);
+        WRAP(ModifyPixmapHeader);
 
         /* Assign multi-window window procedures to be top level procedures */
         pScreen->CreateWindow = winCreateWindowMultiWindow;
@@ -448,6 +456,12 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         pScreen->MoveWindow = winMoveWindowMultiWindow;
         pScreen->CopyWindow = winCopyWindowMultiWindow;
         pScreen->SetShape = winSetShapeMultiWindow;
+
+        if (pScreenInfo->fCompositeWM) {
+            pScreen->CreatePixmap = winCreatePixmapMultiwindow;
+            pScreen->DestroyPixmap = winDestroyPixmapMultiwindow;
+            pScreen->ModifyPixmapHeader = winModifyPixmapHeaderMultiwindow;
+        }
 
         /* Undefine the WRAP macro, as it is not needed elsewhere */
 #undef WRAP
@@ -485,11 +499,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         || pScreenInfo->fMultiWindow
 #endif
         ) {
-        if ((pScreenInfo->dwBPP == 8) && (pScreenInfo->fCompositeWM)) {
-            ErrorF("-compositewm disabled due to 8bpp depth\n");
-            pScreenInfo->fCompositeWM = FALSE;
-        }
-
 #if CYGDEBUG || YES
         winDebug("winFinishScreenInitFB - Calling winInitWM.\n");
 #endif
