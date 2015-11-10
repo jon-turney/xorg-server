@@ -404,8 +404,6 @@ typedef struct {
     Bool fDecoration;
 #ifdef XWIN_MULTIWINDOWEXTWM
     Bool fMWExtWM;
-    Bool fInternalWM;
-    Bool fAnotherWMRunning;
 #endif
     Bool fRootless;
 #ifdef XWIN_MULTIWINDOW
@@ -1114,9 +1112,6 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
                                  winScreenInfoPtr pScreenInfo);
 
 wBOOL CALLBACK winMWExtWMDecorateWindow(HWND hwnd, LPARAM lParam);
-
-Bool
- winIsInternalWMRunning(winScreenInfoPtr pScreenInfo);
 
 void
  winMWExtWMRestackWindows(ScreenPtr pScreen);
