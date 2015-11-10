@@ -2112,8 +2112,14 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
 
         cookie = xcb_icccm_get_wm_normal_hints(conn, iWindow);
         if (xcb_icccm_get_wm_normal_hints_reply(conn, cookie, &size_hints, NULL)) {
-            if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
+            /* Notwithstanding MwmDecorHandle, if we have a border, and
+               WM_NORMAL_HINTS indicates the window should be resizeable, let
+               the window have a resizing border.  This is necessary for windows
+               with gtk3+ 3.14 csd. */
+            if (hint & HINT_BORDER)
+                hint |= HINT_SIZEBOX;
 
+            if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
                 /* Not maximizable if a maximum size is specified, and that size
                    is smaller (in either dimension) than the screen size */
                 if ((size_hints.max_width < GetSystemMetrics(SM_CXVIRTUALSCREEN))
