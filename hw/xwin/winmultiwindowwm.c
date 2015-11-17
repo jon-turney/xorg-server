@@ -1122,10 +1122,10 @@ winMultiWindowWMProc(void *pArg)
             if (event) {
                 if ((event->response_type & ~0x80) == 0) {
                     xcb_generic_error_t *err = (xcb_generic_error_t *)event;
-                    ErrorF("winMultiWindowWMProc - Error code: %i, ID: 0x%08x, "
-                           "Major opcode: %i, Minor opcode: %i\n",
-                           err->error_code, err->resource_id,
-                           err->major_code, err->minor_code);
+                    winDebug("winMultiWindowWMProc - Error code: %i, ID: 0x%08x, "
+                             "Major opcode: %i, Minor opcode: %i\n",
+                             err->error_code, err->resource_id,
+                             err->major_code, err->minor_code);
                 }
             }
         }
@@ -1363,10 +1363,10 @@ winMultiWindowXMsgProc(void *pArg)
         /* Branch on event type */
         if (type == 0) {
             xcb_generic_error_t *err = (xcb_generic_error_t *)event;
-            ErrorF("winMultiWindowXMsgProc - Error code: %i, ID: 0x%08x, "
-                   "Major opcode: %i, Minor opcode: %i\n",
-                   err->error_code, err->resource_id,
-                   err->major_code, err->minor_code);
+            winDebug("winMultiWindowXMsgProc - Error code: %i, ID: 0x%08x, "
+                     "Major opcode: %i, Minor opcode: %i\n",
+                     err->error_code, err->resource_id,
+                     err->major_code, err->minor_code);
             }
         else if (type == XCB_CREATE_NOTIFY) {
             xcb_create_notify_event_t *notify = (xcb_create_notify_event_t *)event;
