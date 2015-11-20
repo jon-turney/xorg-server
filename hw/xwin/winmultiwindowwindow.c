@@ -35,9 +35,11 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
 #include "win.h"
 #include "dixevents.h"
 #include "winmultiwindowclass.h"
+#include "winmultiwindowicons.h"
 
 /*
  * Prototypes for local functions
@@ -55,11 +57,27 @@ static void
 static void
  winFindWindow(void *value, XID id, void *cdata);
 
+static Bool
+isToplevelWindow(WindowPtr pWin)
+{
+    assert(pWin->parent);       /* root window isn't expected here */
+
+    /* If the immediate parent is the root window, this is a top-level window */
+    if ((pWin->parent) && (pWin->parent->parent == NULL)) {
+        assert(pWin->parent == pWin->drawable.pScreen->root);
+        return TRUE;
+    }
+
+    /* otherwise, a child window */
+    return FALSE;
+}
+
 static
     void
 winInitMultiWindowClass(void)
 {
     static wATOM atomXWinClass = 0;
+    static wATOM atomXWinChildClass = 0;
     WNDCLASSEX wcx;
 
     if (atomXWinClass == 0) {
@@ -83,10 +101,39 @@ winInitMultiWindowClass(void)
         wcx.hIconSm = hIconSmall;
 
 #if CYGMULTIWINDOW_DEBUG
-        ErrorF("winCreateWindowsWindow - Creating class: %s\n", WINDOW_CLASS_X);
+        ErrorF("winInitMultiWindowClass - Creating class: %s\n",
+               WINDOW_CLASS_X);
 #endif
 
         atomXWinClass = RegisterClassEx(&wcx);
+    }
+
+    if (atomXWinChildClass == 0) {
+        HICON hIcon, hIconSmall;
+
+        /* Load the default icons */
+        winSelectIcons(&hIcon, &hIconSmall);
+
+        /* Setup our window class */
+        wcx.cbSize = sizeof(WNDCLASSEX);
+        wcx.style = CS_HREDRAW | CS_VREDRAW | (g_fNativeGl ? CS_OWNDC : 0);
+        wcx.lpfnWndProc = winChildWindowProc;
+        wcx.cbClsExtra = 0;
+        wcx.cbWndExtra = 0;
+        wcx.hInstance = g_hInstance;
+        wcx.hIcon = hIcon;
+        wcx.hCursor = 0;
+        wcx.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+        wcx.lpszMenuName = NULL;
+        wcx.lpszClassName = WINDOW_CLASS_X_CHILD;
+        wcx.hIconSm = hIconSmall;
+
+#if CYGMULTIWINDOW_DEBUG
+        ErrorF("winInitMultiWindowClass - Creating class: %s\n",
+               WINDOW_CLASS_X_CHILD);
+#endif
+
+        atomXWinChildClass = RegisterClassEx(&wcx);
     }
 }
 
@@ -199,6 +246,29 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
 #if CYGWINDOWING_DEBUG
         ErrorF("\timmediately return since hWnd is NULL\n");
 #endif
+        return fResult;
+    }
+
+    if (!isToplevelWindow(pWin)) {
+        POINT parentOrigin;
+
+        /* Get the X and Y location of the X window */
+        iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
+        iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+        /* Get the height and width of the X window */
+        iWidth = pWin->drawable.width;
+        iHeight = pWin->drawable.height;
+
+        /* Convert screen coordinates into client area co-ordinates of the parent */
+        parentOrigin.x = 0;
+        parentOrigin.y = 0;
+        ClientToScreen(GetParent(hWnd), &parentOrigin);
+
+        MoveWindow(hWnd,
+                   iX - parentOrigin.x, iY - parentOrigin.y, iWidth, iHeight,
+                   TRUE);
+
         return fResult;
     }
 
@@ -471,12 +541,8 @@ winRestackWindowMultiWindow(WindowPtr pWin, WindowPtr pOldNextSib)
 #endif
 }
 
-/*
- * winCreateWindowsWindow - Create a Windows window associated with an X window
- */
-
-void
-winCreateWindowsWindow(WindowPtr pWin)
+static void
+winCreateWindowsTopLevelWindow(WindowPtr pWin)
 {
     int iX, iY;
     int iWidth;
@@ -485,7 +551,6 @@ winCreateWindowsWindow(WindowPtr pWin)
     HWND hFore = NULL;
 
     winWindowPriv(pWin);
-    winPrivScreenPtr pScreenPriv = pWinPriv->pScreenPriv;
     WinXSizeHints hints;
     Window daddyId;
     DWORD dwStyle, dwExStyle;
@@ -503,39 +568,63 @@ winCreateWindowsWindow(WindowPtr pWin)
     iHeight = pWin->drawable.height;
 
     /* If it's an InputOutput window, and so is going to end up being made visible,
-       make sure the window actually ends up somewhere where it will be visible */
-    if (pWin->drawable.class != InputOnly) {
-        if ((iX < GetSystemMetrics(SM_XVIRTUALSCREEN)) ||
-            (iX > GetSystemMetrics(SM_CXVIRTUALSCREEN)))
-            iX = CW_USEDEFAULT;
+       make sure the window actually ends up somewhere where it will be visible
 
-        if ((iY < GetSystemMetrics(SM_YVIRTUALSCREEN)) ||
-            (iY > GetSystemMetrics(SM_CYVIRTUALSCREEN)))
-            iY = CW_USEDEFAULT;
+       To handle arrangements of monitors which form a non-rectangular virtual
+       desktop, check if the window will end up with it's top-left corner on any
+       monitor
+    */
+    if (pWin->drawable.class != InputOnly) {
+        POINT pt = { iX, iY };
+        if (MonitorFromPoint(pt, MONITOR_DEFAULTTONULL) == NULL)
+            {
+                iX = CW_USEDEFAULT;
+                iY = CW_USEDEFAULT;
+            }
     }
 
-    winDebug("winCreateWindowsWindow - %dx%d @ %dx%d\n", iWidth, iHeight, iX,
-             iY);
+    winDebug("winCreateWindowsTopLevelWindow - %dx%d @ %dx%d\n", iWidth,
+             iHeight, iX, iY);
 
     if (winMultiWindowGetTransientFor(pWin, &daddyId)) {
         if (daddyId) {
-            hFore = GetForegroundWindow();
-            if (hFore && (daddyId != (Window) (INT_PTR) GetProp(hFore, WIN_WID_PROP)))
-                hFore = NULL;
+            WindowPtr pParent;
+            int res = dixLookupWindow(&pParent, daddyId, serverClient, DixReadAccess);
+            if (res == Success)
+                {
+                    winPrivWinPtr pParentPriv = winGetWindowPriv(pParent);
+                    hFore = pParentPriv->hWnd;
+                }
         }
     }
     else {
-        /* Default positions if none specified */
-        if (!winMultiWindowGetWMNormalHints(pWin, &hints))
-            hints.flags = 0;
-        if (!(hints.flags & (USPosition | PPosition)) &&
-            !pWin->overrideRedirect) {
-            iX = CW_USEDEFAULT;
-            iY = CW_USEDEFAULT;
+        if (!pWin->overrideRedirect) {
+            /* Default positions if none specified */
+            if (!winMultiWindowGetWMNormalHints(pWin, &hints))
+                hints.flags = 0;
+
+            if ((hints.flags & USPosition) ||
+                ((hints.flags & PPosition) &&
+                 ((pWin->drawable.x - pWin->borderWidth != 0) ||
+                  (pWin->drawable.y - pWin->borderWidth != 0)))) {
+                /*
+                  Always respect user specified position, respect program
+                  specified position if it's not the origin
+                */
+            }
+            else {
+                /* Use default position */
+                iX = CW_USEDEFAULT;
+                iY = CW_USEDEFAULT;
+            }
         }
     }
 
-    /* Make it WS_OVERLAPPED in create call since WS_POPUP doesn't support */
+    winDebug("winCreateWindowsTopLevelWindow - %dx%d @ %dx%d\n", iWidth,
+             iHeight, iX, iY);
+
+    /* Create the window */
+    /* Make it OVERLAPPED in create call since WS_POPUP doesn't support */
     /* CW_USEDEFAULT, change back to popup after creation */
     dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
     dwExStyle = WS_EX_TOOLWINDOW;
@@ -573,10 +662,13 @@ winCreateWindowsWindow(WindowPtr pWin)
                            GetModuleHandle(NULL),       /* Instance handle */
                            pWin);       /* ScreenPrivates */
     if (hWnd == NULL) {
-        ErrorF("winCreateWindowsWindow - CreateWindowExA () failed: %d\n",
-               (int) GetLastError());
+        ErrorF
+            ("winCreateWindowsTopLevelWindow - CreateWindowExA () failed: %d\n",
+             (int) GetLastError());
     }
     pWinPriv->hWnd = hWnd;
+
+    winDebug("winCreateWindowsTopLevelWindow - hwnd 0x%p\n", hWnd);
 
     /* Change style back to popup, already placed... */
     SetWindowLongPtr(hWnd, GWL_STYLE,
@@ -598,9 +690,107 @@ winCreateWindowsWindow(WindowPtr pWin)
 
     /* Flag that this Windows window handles its own activation */
     SetProp(hWnd, WIN_NEEDMANAGE_PROP, (HANDLE) 0);
+}
 
-    /* Call engine-specific create window procedure */
-    (*pScreenPriv->pwinFinishCreateWindowsWindow) (pWin);
+static void
+winCreateWindowsChildWindow(WindowPtr pWin)
+{
+    int iX, iY, iWidth, iHeight;
+    HWND hWnd;
+    WindowPtr pParent = pWin->parent;
+    DWORD dwStyle = WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_DISABLED;
+    DWORD dwExStyle = WS_EX_TRANSPARENT;
+
+    /*
+       WS_DISABLED means child window never gains the input focus, so only the
+       top-level window needs deal with passing input to the X server
+
+       WS_EX_TRANSPARENT ensures that the contents of the top-level
+       Windows window (which will contain all non-OpenGL drawing for the hierarchy)
+       can be seen through any intermediate child windows which have nothing
+       drawn to them
+     */
+    winPrivWinPtr pParentPriv, pWinPriv;
+
+    winDebug("winCreateWindowsChildWindow - pWin:%p XID:0x%x\n", pWin,
+             pWin->drawable.id);
+
+    winInitMultiWindowClass();
+
+    assert(pParent);
+
+    pParentPriv = winGetWindowPriv(pParent);
+    pWinPriv = winGetWindowPriv(pWin);
+
+    iX = pWin->drawable.x - pParent->drawable.x;
+    iY = pWin->drawable.y - pParent->drawable.y;
+    iWidth = pWin->drawable.width;
+    iHeight = pWin->drawable.height;
+
+    winDebug
+        ("winCreateWindowsChildWindow - parent pWin:%p XID:0x%08x hWnd:0x%p\n",
+         pParent, pParent->drawable.id, pParentPriv->hWnd);
+    winDebug("winCreateWindowsChildWindow - %dx%d @ %dx%d\n", iWidth, iHeight,
+             iX, iY);
+
+    /* Create the window */
+    hWnd = CreateWindowExA(dwExStyle,   /* Extended styles */
+                           WINDOW_CLASS_X_CHILD,        /* Class name */
+                           WINDOW_TITLE_X,      /* Window name */
+                           dwStyle,     /* Styles */
+                           iX,  /* Horizontal position */
+                           iY,  /* Vertical position */
+                           iWidth,      /* Right edge */
+                           iHeight,     /* Bottom edge */
+                           pParentPriv->hWnd,   /* parent window */
+                           (HMENU) NULL,        /* No menu */
+                           GetModuleHandle(NULL),       /* Instance handle */
+                           pWin);       /* ScreenPrivates */
+    if (hWnd == NULL) {
+        ErrorF("winCreateWindowsChildWindow - CreateWindowExA () failed: %d\n",
+               (int) GetLastError());
+    }
+    winDebug("winCreateWindowsChildWindow - hwnd 0x%p\n", hWnd);
+    pWinPriv->hWnd = hWnd;
+
+    SetProp(hWnd, WIN_WID_PROP, (HANDLE) (INT_PTR) winGetWindowID(pWin));
+}
+
+/*
+ * winCreateWindowsWindow - Create a Windows window associated with an X window
+ */
+
+void
+winCreateWindowsWindow(WindowPtr pWin)
+{
+    winDebug("winCreateWindowsWindow - pWin:%p XID:0x%x \n", pWin,
+             pWin->drawable.id);
+
+    if (isToplevelWindow(pWin)) {
+        winCreateWindowsTopLevelWindow(pWin);
+    }
+    else {
+        winCreateWindowsChildWindow(pWin);
+    }
+}
+
+static int
+winDestroyChildWindowsWindow(WindowPtr pWin, void *data)
+{
+    winWindowPriv(pWin);
+
+    winDebug("winDestroyChildWindowsWindow - pWin:%p XID:0x%x \n", pWin,
+             pWin->drawable.id);
+
+    /* Null our handle to the Window so referencing it will cause an error */
+    pWinPriv->hWnd = NULL;
+
+#ifdef XWIN_GLX_WINDOWS
+    /* No longer note WGL used on this window */
+    pWinPriv->fWglUsed = FALSE;
+#endif
+
+    return WT_WALKCHILDREN;     /* continue enumeration */
 }
 
 Bool winInDestroyWindowsWindow = FALSE;
@@ -618,6 +808,7 @@ winDestroyWindowsWindow(WindowPtr pWin)
     BOOL oldstate = winInDestroyWindowsWindow;
     HICON hIcon;
     HICON hIconSm;
+    HWND hWnd;
 
     winDebug("winDestroyWindowsWindow - pWin:%p XID:0x%x \n", pWin,
              (unsigned int)pWin->drawable.id);
@@ -632,20 +823,19 @@ winDestroyWindowsWindow(WindowPtr pWin)
     hIcon = (HICON) SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_BIG, 0);
     hIconSm = (HICON) SendMessage(pWinPriv->hWnd, WM_GETICON, ICON_SMALL, 0);
 
-    /* Destroy the Windows window */
-    DestroyWindow(pWinPriv->hWnd);
+    hWnd = pWinPriv->hWnd;
 
-    /* Null our handle to the Window so referencing it will cause an error */
-    pWinPriv->hWnd = NULL;
+    /* DestroyWindow() implicitly destroys all child windows,
+       so first walk over the child tree of this window, clearing
+       any hWnds */
+    TraverseTree(pWin, winDestroyChildWindowsWindow, 0);
+
+    /* Destroy the Windows window */
+    DestroyWindow(hWnd);
 
     /* Destroy any icons we created for this window */
     winDestroyIcon(hIcon);
     winDestroyIcon(hIconSm);
-
-#ifdef XWIN_GLX_WINDOWS
-    /* No longer note WGL used on this window */
-    pWinPriv->fWglUsed = FALSE;
-#endif
 
     /* Process all messages on our queue */
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -668,29 +858,58 @@ static void
 winUpdateWindowsWindow(WindowPtr pWin)
 {
     winWindowPriv(pWin);
-    HWND hWnd = pWinPriv->hWnd;
 
 #if CYGMULTIWINDOW_DEBUG
     ErrorF("winUpdateWindowsWindow\n");
 #endif
 
-    /* Check if the Windows window's parents have been destroyed */
-    if (pWin->parent != NULL && pWin->parent->parent == NULL && pWin->mapped) {
-        /* Create the Windows window if it has been destroyed */
-        if (hWnd == NULL) {
-            winCreateWindowsWindow(pWin);
-            assert(pWinPriv->hWnd != NULL);
+    /* Ignore the root window */
+    if (pWin->parent == NULL)
+        return;
+
+    /* If it's mapped */
+    if (pWin->mapped) {
+        /* If it's a top-level window */
+        if (isToplevelWindow(pWin)) {
+            /* Create the Windows window if needed */
+            if (pWinPriv->hWnd == NULL) {
+                winCreateWindowsWindow(pWin);
+                assert(pWinPriv->hWnd != NULL);
+            }
+
+            /* Display the window without activating it */
+            if (pWin->drawable.class != InputOnly)
+                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
+
+        }
+        /* It's not a top-level window, but we created a window for GLX */
+        else if (pWinPriv->hWnd) {
+            winPrivWinPtr pParentPriv = winGetWindowPriv(pWin->parent);
+
+            /* XXX: This really belongs in winReparentWindow ??? */
+            /* XXX: this assumes parent window has been made to exist */
+            assert(pParentPriv->hWnd);
+
+            /* Ensure we have the correct parent and position if reparented */
+            SetParent(pWinPriv->hWnd, pParentPriv->hWnd);
+            SetWindowPos(pWinPriv->hWnd, NULL,
+                         pWin->drawable.x - pWin->parent->drawable.x,
+                         pWin->drawable.y - pWin->parent->drawable.y, 0, 0,
+                         SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
         }
 
-        /* Display the window without activating it */
-        if (pWin->drawable.class != InputOnly)
-            ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
+        /* If it's top level, or a GLX window which has already been created getting mapped, show it */
+        if (pWinPriv->hWnd != NULL) {
+            /* Display the window without activating it */
+            if (pWin->drawable.class != InputOnly)
+                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
 
-        /* Send first paint message */
-        UpdateWindow(pWinPriv->hWnd);
+            /* Send first paint message */
+            UpdateWindow(pWinPriv->hWnd);
+        }
     }
-    else if (hWnd != NULL) {
-        /* Destroy the Windows window if its parents are destroyed */
+    else if (pWinPriv->hWnd != NULL) {
+        /* If it's been reparented to an unmapped window when previously mapped, destroy the Windows window */
         winDestroyWindowsWindow(pWin);
         assert(pWinPriv->hWnd == NULL);
     }
@@ -794,56 +1013,6 @@ winReorderWindowsMultiWindow(void)
 }
 
 /*
- * winMinimizeWindow - Minimize in response to WM_CHANGE_STATE
- */
-
-void
-winMinimizeWindow(Window id)
-{
-    WindowPtr pWin;
-    winPrivWinPtr pWinPriv;
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    win32RootlessWindowPtr pRLWinPriv;
-#endif
-    HWND hWnd;
-    ScreenPtr pScreen = NULL;
-    winPrivScreenPtr pScreenPriv = NULL;
-
-#if CYGWINDOWING_DEBUG
-    ErrorF("winMinimizeWindow\n");
-#endif
-
-    dixLookupResourceByType((void *) &pWin, id, RT_WINDOW, NullClient,
-                            DixUnknownAccess);
-    if (!pWin) {
-        ErrorF("%s: NULL pWin. Leaving\n", __FUNCTION__);
-        return;
-    }
-
-    pScreen = pWin->drawable.pScreen;
-    if (pScreen)
-        pScreenPriv = winGetScreenPriv(pScreen);
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    if (pScreenPriv && pScreenPriv->pScreenInfo->fInternalWM) {
-        pRLWinPriv =
-            (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
-        hWnd = pRLWinPriv->hWnd;
-    }
-    else
-#else
-    if (pScreenPriv)
-#endif
-    {
-        pWinPriv = winGetWindowPriv(pWin);
-        hWnd = pWinPriv->hWnd;
-    }
-
-    ShowWindow(hWnd, SW_MINIMIZE);
-}
-
-/*
  * CopyWindow - See Porting Layer Definition - p. 39
  */
 void
@@ -926,6 +1095,14 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
 #if CYGWINDOWING_DEBUG
     ErrorF("winAdjustXWindow\n");
 #endif
+
+    if (!isToplevelWindow(pWin)) {
+#if 1
+        ErrorF
+            ("winAdjustXWindow - immediately return because not a top-level window\n");
+#endif
+        return 0;
+    }
 
     if (IsIconic(hwnd)) {
 #if CYGWINDOWING_DEBUG

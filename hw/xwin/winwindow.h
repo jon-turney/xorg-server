@@ -1,5 +1,3 @@
-#if !defined(_WINWINDOW_H_)
-#define _WINWINDOW_H_
 /*
  *Copyright (C) 1994-2000 The XFree86 Project, Inc. All Rights Reserved.
  *Copyright (C) Colin Harrison 2005-2009
@@ -31,6 +29,8 @@
  * Authors:	Kensuke Matsuzaki
  *              Colin Harrison
  */
+#if !defined(_WINWINDOW_H_)
+#define _WINWINDOW_H_
 
 #ifndef NO
 #define NO			0
@@ -50,6 +50,7 @@
 #define WIN_SCR_PROP		"cyg_screen_prop rl"
 #define WINDOW_CLASS_X		"cygwin/x X rl"
 #define WINDOW_CLASS_X_MSG      "cygwin/x X msg"
+#define WINDOW_CLASS_X_CHILD    "cygwin/x X child"
 #define WINDOW_TITLE_X		PROJECT_NAME " X"
 #define WIN_WINDOW_PROP		"cyg_window_prop_rl"
 #ifdef HAS_DEVWINDOWS
@@ -57,6 +58,7 @@
 #endif
 #define WIN_WID_PROP		"cyg_wid_prop_rl"
 #define WIN_NEEDMANAGE_PROP	"cyg_override_redirect_prop_rl"
+#define WIN_STATE_PROP		"cyg_state_prop_rl"
 #ifndef CYGMULTIWINDOW_DEBUG
 #define CYGMULTIWINDOW_DEBUG    NO
 #endif
@@ -109,11 +111,9 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_NAME_EVENT	(WM_USER + 9)
 #define		WM_WM_ICON_EVENT	(WM_USER + 10)
 #define		WM_WM_CHANGE_STATE	(WM_USER + 11)
-#define		WM_WM_MAP2		(WM_USER + 12)
-#define		WM_WM_MAP3		(WM_USER + 13)
+#define		WM_WM_MAP_UNMANAGED	(WM_USER + 12)
+#define		WM_WM_MAP_MANAGED	(WM_USER + 13)
 #define		WM_WM_HINTS_EVENT	(WM_USER + 14)
-#define		WM_MANAGE		(WM_USER + 100)
-#define		WM_UNMANAGE		(WM_USER + 102)
 
 #define		MwmHintsDecorations	(1L << 1)
 
@@ -125,10 +125,16 @@ typedef struct _winWMMessageRec {
 #define		MwmDecorMinimize	(1L << 5)
 #define		MwmDecorMaximize	(1L << 6)
 
-/* This structure only contains 3 elements... the Motif 2.0 structure
-contains 5... we only need the first 3... so that is all we will define */
+/*
+  This structure only contains 3 elements.  The Motif 2.0 structure contains 5,
+  but we only need the first 3, so that is all we will define
+
+  This structure represents xcb_get_property()'s view of the property as a
+  sequence of ints, rather than XGetWindowProperty()'s view of the property as a
+  sequence of arch-dependent longs.
+*/
 typedef struct MwmHints {
-    unsigned long flags, functions, decorations;
+    unsigned int flags, functions, decorations;
 } MwmHints;
 
 #define		PropMwmHintsElements	3
@@ -142,13 +148,10 @@ winInitWM(void **ppWMInfo,
           pthread_t * ptWMProc,
           pthread_t * ptXMsgProc,
           pthread_mutex_t * ppmServerStarted,
-          int dwScreen, HWND hwndScreen, BOOL allowOtherWM);
+          int dwScreen, HWND hwndScreen, Bool compositeWM);
 
 void
  winDeinitMultiWindowWM(void);
-
-void
- winMinimizeWindow(Window id);
 
 void
  winPropertyStoreInit(void);
@@ -160,7 +163,7 @@ void
  winSetAppUserModelID(HWND hWnd, const char *AppID);
 
 void
- winShowWindowOnTaskbar(HWND hWnd, BOOL show);
+ winShowWindowOnTaskbar(HWND hWnd, Bool show);
 
 #endif                          /* XWIN_MULTIWINDOW */
 #endif

@@ -162,7 +162,6 @@
 #include "mipointer.h"
 #include "X11/keysym.h"
 #include "micoord.h"
-#include "dix.h"
 #include "miline.h"
 #include "shadow.h"
 #include "fb.h"
@@ -272,6 +271,8 @@ typedef Bool (*winFinishScreenInitProcPtr) (int, ScreenPtr, int, char **);
 
 typedef Bool (*winBltExposedRegionsProcPtr) (ScreenPtr);
 
+typedef Bool (*winBltExposedWindowRegionProcPtr) (ScreenPtr, WindowPtr);
+
 typedef Bool (*winActivateAppProcPtr) (ScreenPtr);
 
 typedef Bool (*winRedrawScreenProcPtr) (ScreenPtr pScreen);
@@ -287,36 +288,11 @@ typedef Bool (*winCreateColormapProcPtr) (ColormapPtr pColormap);
 
 typedef Bool (*winDestroyColormapProcPtr) (ColormapPtr pColormap);
 
-typedef Bool (*winHotKeyAltTabProcPtr) (ScreenPtr);
-
 typedef Bool (*winCreatePrimarySurfaceProcPtr) (ScreenPtr);
 
 typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
 
-typedef Bool (*winFinishCreateWindowsWindowProcPtr) (WindowPtr pWin);
-
 typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
-
-/*
- * GC (graphics context) privates
- */
-
-typedef struct {
-    HDC hdc;
-    HDC hdcMem;
-} winPrivGCRec, *winPrivGCPtr;
-
-/*
- * Pixmap privates
- */
-
-typedef struct {
-    HDC hdcSelected;
-    HBITMAP hBitmap;
-    BYTE *pbBits;
-    DWORD dwScanlineBytes;
-    BITMAPINFOHEADER *pbmih;
-} winPrivPixmapRec, *winPrivPixmapPtr;
 
 /*
  * Colormap privates
@@ -328,6 +304,7 @@ typedef struct {
     RGBQUAD rgbColors[WIN_NUM_PALETTE_ENTRIES];
     PALETTEENTRY peColors[WIN_NUM_PALETTE_ENTRIES];
 } winPrivCmapRec, *winPrivCmapPtr;
+
 
 /*
  * Windows Cursor handling.
@@ -348,7 +325,8 @@ typedef struct {
  * Resize modes
  */
 typedef enum {
-    notAllowed,
+    resizeDefault = -1,
+    resizeNotAllowed,
     resizeWithScrollbars,
     resizeWithRandr
 } winResizeMode;
@@ -404,12 +382,11 @@ typedef struct {
     Bool fDecoration;
 #ifdef XWIN_MULTIWINDOWEXTWM
     Bool fMWExtWM;
-    Bool fInternalWM;
-    Bool fAnotherWMRunning;
 #endif
     Bool fRootless;
 #ifdef XWIN_MULTIWINDOW
     Bool fMultiWindow;
+    Bool fCompositeWM;
 #endif
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
     Bool fMultiMonitorOverride;
@@ -517,6 +494,7 @@ typedef struct _winPrivScreenRec {
     winCreateBoundingWindowProcPtr pwinCreateBoundingWindow;
     winFinishScreenInitProcPtr pwinFinishScreenInit;
     winBltExposedRegionsProcPtr pwinBltExposedRegions;
+    winBltExposedWindowRegionProcPtr pwinBltExposedWindowRegion;
     winActivateAppProcPtr pwinActivateApp;
     winRedrawScreenProcPtr pwinRedrawScreen;
     winRealizeInstalledPaletteProcPtr pwinRealizeInstalledPalette;
@@ -524,16 +502,9 @@ typedef struct _winPrivScreenRec {
     winStoreColorsProcPtr pwinStoreColors;
     winCreateColormapProcPtr pwinCreateColormap;
     winDestroyColormapProcPtr pwinDestroyColormap;
-    winHotKeyAltTabProcPtr pwinHotKeyAltTab;
     winCreatePrimarySurfaceProcPtr pwinCreatePrimarySurface;
     winReleasePrimarySurfaceProcPtr pwinReleasePrimarySurface;
-
     winCreateScreenResourcesProc pwinCreateScreenResources;
-
-#ifdef XWIN_MULTIWINDOW
-    /* Window Procedures for MultiWindow mode */
-    winFinishCreateWindowsWindowProcPtr pwinFinishCreateWindowsWindow;
-#endif
 
     /* Window Procedures for Rootless mode */
     CreateWindowProcPtr CreateWindow;
@@ -554,6 +525,8 @@ typedef struct _winPrivScreenRec {
     SetShapeProcPtr SetShape;
 
     winCursorRec cursor;
+
+    Bool fNativeGlActive;
 } winPrivScreenRec;
 
 #ifdef XWIN_MULTIWINDOWEXTWM
@@ -828,9 +801,6 @@ void
  */
 
 int
- winTranslateKey(WPARAM wParam, LPARAM lParam);
-
-int
  winKeybdProc(DeviceIntPtr pDeviceInt, int iState);
 
 void
@@ -838,20 +808,6 @@ void
 
 void
  winRestoreModeKeyStates(void);
-
-Bool
- winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
-
-void
- winKeybdReleaseKeys(void);
-
-void
- winSendKeyEvent(DWORD dwKey, Bool fDown);
-
-BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-
-void
- winFixShiftKeys(int iScanCode);
 
 /*
  * winkeyhook.c
@@ -881,14 +837,7 @@ int
  winMouseProc(DeviceIntPtr pDeviceInt, int iState);
 
 int
- winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown);
-
-void
- winMouseButtonsSendEvent(int iEventType, int iButton);
-
-int
-
-winMouseButtonsHandle(ScreenPtr pScreen,
+ winMouseButtonsHandle(ScreenPtr pScreen,
                       int iEventType, int iButton, WPARAM wParam);
 
 void
@@ -1027,6 +976,8 @@ int
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 #endif
 
 /*
@@ -1136,9 +1087,6 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
                                  winScreenInfoPtr pScreenInfo);
 
 wBOOL CALLBACK winMWExtWMDecorateWindow(HWND hwnd, LPARAM lParam);
-
-Bool
- winIsInternalWMRunning(winScreenInfoPtr pScreenInfo);
 
 void
  winMWExtWMRestackWindows(ScreenPtr pScreen);

@@ -84,6 +84,10 @@ static pthread_t g_winClipboardProcThread;
 int xfixes_event_base;
 int xfixes_error_base;
 
+Bool g_fHasModernClipboardApi = FALSE;
+ADDCLIPBOARDFORMATLISTENERPROC g_fpAddClipboardFormatListener;
+REMOVECLIPBOARDFORMATLISTENERPROC g_fpRemoveClipboardFormatListener;
+
 /*
  * Local function prototypes
  */
@@ -127,16 +131,10 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
     winDebug("winClipboardProc - Hello\n");
 
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winClipboardProc - XInitThreads failed.\n");
-        goto winClipboardProc_Exit;
-    }
-
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winClipboardProc - Warning: Locale not supported by X.\n");
-    }
+    g_fpAddClipboardFormatListener = (ADDCLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"AddClipboardFormatListener");
+    g_fpRemoveClipboardFormatListener = (REMOVECLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"RemoveClipboardFormatListener");
+    g_fHasModernClipboardApi = g_fpAddClipboardFormatListener && g_fpRemoveClipboardFormatListener;
+    ErrorF("OS maintains clipboard viewer chain: %s\n", g_fHasModernClipboardApi ? "yes" : "no");
 
     g_winClipboardProcThread = pthread_self();
 
@@ -165,7 +163,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
            "successfully opened the display.\n");
 
     /* Get our connection number */
-    iConnectionNumber = ConnectionNumber(pDisplay);
+    iConnectionNumber = XConnectionNumber(pDisplay);
 
 #ifdef HAS_DEVWINDOWS
     /* Open a file descriptor for the windows message queue */
@@ -193,12 +191,12 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
     /* Create a messaging window */
     iWindow = XCreateSimpleWindow(pDisplay,
-                                  DefaultRootWindow(pDisplay),
+                                  XDefaultRootWindow(pDisplay),
                                   1, 1,
                                   500, 500,
                                   0,
-                                  BlackPixel(pDisplay, 0),
-                                  BlackPixel(pDisplay, 0));
+                                  XBlackPixel(pDisplay, 0),
+                                  XBlackPixel(pDisplay, 0));
     if (iWindow == 0) {
         ErrorF("winClipboardProc - Could not create an X window.\n");
         goto winClipboardProc_Done;
@@ -344,7 +342,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 #endif
     }
 
- winClipboardProc_Exit:
     /* broke out of while loop on a shutdown message */
     fShutdown = TRUE;
 
@@ -382,7 +379,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     XSync(pDisplay, TRUE);
 
     /* Select event types to watch */
-    XSelectInput(pDisplay, DefaultRootWindow(pDisplay), None);
+    XSelectInput(pDisplay, XDefaultRootWindow(pDisplay), None);
 
     /* Close our X display */
     if (pDisplay) {

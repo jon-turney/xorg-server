@@ -130,18 +130,18 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fDecoration = TRUE;
 #ifdef XWIN_MULTIWINDOWEXTWM
     defaultScreenInfo.fMWExtWM = FALSE;
-    defaultScreenInfo.fInternalWM = FALSE;
 #endif
     defaultScreenInfo.fRootless = FALSE;
 #ifdef XWIN_MULTIWINDOW
     defaultScreenInfo.fMultiWindow = FALSE;
+    defaultScreenInfo.fCompositeWM = FALSE;
 #endif
 #if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
     defaultScreenInfo.fMultiMonitorOverride = FALSE;
 #endif
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
-    defaultScreenInfo.iResizeMode = resizeWithRandr;
+    defaultScreenInfo.iResizeMode = resizeDefault;
     defaultScreenInfo.fNoTrayIcon = FALSE;
     defaultScreenInfo.iE3BTimeout = WIN_E3B_DEFAULT;
     defaultScreenInfo.fUseWinKillKey = WIN_DEFAULT_WIN_KILL;
@@ -247,7 +247,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
              * OsVendorInit () gets called, otherwise we will overwrite
              * settings changed by parameters such as -fullscreen, etc.
              */
-            winErrorFVerb(2, "ddxProcessArgument - Initializing default "
+            winErrorFVerb(3, "ddxProcessArgument - Initializing default "
                           "screens\n");
             winInitializeScreenDefaults();
         }
@@ -292,6 +292,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
         /* Display the usage message if the argument is malformed */
         if (i + 1 >= argc) {
+            ErrorF("ddxProcessArgument - screen - Missing screen number\n");
+            UseMsg();
+            FatalError("-screen missing screen number\n");
             return 0;
         }
 
@@ -577,11 +580,8 @@ ddxProcessArgument(int argc, char *argv[], int i)
      * Look for the '-internalwm' argument
      */
     if (IS_OPTION("-internalwm")) {
-        if (!screenInfoPtr->fMultiMonitorOverride)
-            screenInfoPtr->fMultipleMonitors = TRUE;
-        screenInfoPtr->fMWExtWM = TRUE;
-        screenInfoPtr->fInternalWM = TRUE;
-
+        ErrorF("Ignoring obsolete -internalwm option\n");
+        /* Ignored, but we still accept the arg for backwards compatibility */
         /* Indicate that we have processed this argument */
         return 1;
     }
@@ -611,6 +611,16 @@ ddxProcessArgument(int argc, char *argv[], int i)
             screenInfoPtr->fMultipleMonitors = TRUE;
 #endif
         screenInfoPtr->fMultiWindow = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-compositewm' argument
+     */
+    if (IS_OPTION("-compositewm")) {
+        screenInfoPtr->fCompositeWM = TRUE;
 
         /* Indicate that we have processed this argument */
         return 1;
@@ -666,7 +676,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
         if (IS_OPTION("-resize"))
             mode = resizeWithRandr;
         else if (IS_OPTION("-noresize"))
-            mode = notAllowed;
+            mode = resizeNotAllowed;
         else if (strncmp(argv[i], "-resize=", strlen("-resize=")) == 0) {
             char *option = argv[i] + strlen("-resize=");
 
@@ -675,7 +685,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
             else if (strcmp(option, "scrollbars") == 0)
                 mode = resizeWithScrollbars;
             else if (strcmp(option, "none") == 0)
-                mode = notAllowed;
+                mode = resizeNotAllowed;
             else {
                 ErrorF("ddxProcessArgument - resize - Invalid resize mode %s\n",
                        option);
@@ -957,6 +967,14 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
+     * Look for the '-dpi' argument
+     */
+    if (IS_OPTION("-dpi")) {
+        g_cmdline.customDPI = TRUE;
+        return 0;               /* Let DIX parse this again */
+    }
+
+    /*
      * Look for the '-config' argument
      */
     if (IS_OPTION("-config")
@@ -1011,9 +1029,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-logfile")) {
         CHECK_ARGS(1);
         g_pszLogFile = argv[++i];
-#ifdef RELOCATE_PROJECTROOT
-        g_fLogFileChanged = TRUE;
-#endif
         return 2;
     }
 
@@ -1203,6 +1218,5 @@ winLogVersionInfo(void)
     winOS();
     if (strlen(BUILDERSTRING))
         ErrorF("%s\n", BUILDERSTRING);
-    ErrorF("Contact: %s\n", BUILDERADDR);
     ErrorF("\n");
 }

@@ -109,7 +109,7 @@ void yyerror(const char *message)
     };
     
     fprintf(stderr, "parse error on line %d at token \"%*.*s\"\n",
-            lineno, yyleng, yyleng, yytext);
+            lineno, (int)yyleng, (int)yyleng, yytext);
     end = message + strlen(message);
     for (pt = message; *pt; pt++) {
         if (pt[0] == 'T' && pt[1] == '_') {

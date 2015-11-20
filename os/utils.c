@@ -123,6 +123,8 @@ __stdcall unsigned long GetTickCount(void);
 
 #include "picture.h"
 
+Bool install_os_signal_handler = TRUE;
+
 Bool noTestExtensions;
 
 #ifdef COMPOSITE
@@ -256,7 +258,7 @@ UnlockServer(void)
 #else /* LOCK_SERVER */
 static Bool StillLocking = FALSE;
 static char LockFile[PATH_MAX];
-static Bool nolock = FALSE;
+Bool nolock = FALSE;
 
 /*
  * LockServer --
@@ -554,6 +556,7 @@ UseMsg(void)
 #ifdef RLIMIT_STACK
     ErrorF("-ls int                limit stack space to N Kb\n");
 #endif
+    ErrorF("-notrapsignals         disable catching of fatal signals\n");
 #ifdef LOCK_SERVER
     ErrorF("-nolock                disable the locking mechanism\n");
 #endif
@@ -851,6 +854,9 @@ ProcessCommandLine(int argc, char *argv[])
                 UseMsg();
         }
 #endif
+        else if (strcmp(argv[i], "-notrapsignals") == 0) {
+            install_os_signal_handler = FALSE;
+        }
 #ifdef LOCK_SERVER
         else if (strcmp(argv[i], "-nolock") == 0) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
@@ -1011,6 +1017,7 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-schedInterval") == 0) {
             if (++i < argc) {
+                SmartScheduleDisable = FALSE;
                 SmartScheduleInterval = atoi(argv[i]);
                 SmartScheduleSlice = SmartScheduleInterval;
             }
@@ -1019,6 +1026,7 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-schedMax") == 0) {
             if (++i < argc) {
+                SmartScheduleDisable = FALSE;
                 SmartScheduleMaxSlice = atoi(argv[i]);
             }
             else
@@ -1419,6 +1427,26 @@ OsAbort(void)
  * as well.  As it is now, xkbcomp messages don't end up in the log file.
  */
 
+#ifdef __CYGWIN__
+#include <process.h>
+int
+System(const char *command)
+{
+    int status;
+
+    if (!command)
+        return 1;
+
+    DebugF("System: `%s'\n", command);
+
+    /*
+       Use spawnl() rather than execl() to implement System() on cygwin to
+       avoid fork emulation overhead and brittleness
+     */
+    status = spawnl(_P_WAIT, "/bin/sh", "sh", "-c", command, (char *) NULL);
+    return status;
+}
+#else
 int
 System(const char *command)
 {
@@ -1461,6 +1489,7 @@ System(const char *command)
 
     return p == -1 ? -1 : status;
 }
+#endif
 
 static struct pid {
     struct pid *next;
@@ -1768,6 +1797,20 @@ System(const char *cmdline)
     free(cmd);
 
     return dwExitCode;
+}
+#elif defined(__CYGWIN__)
+const char*
+Win32TempDir(void)
+{
+    const char *temp = getenv("TEMP");
+    if ((temp != NULL) && (access(temp, W_OK | X_OK) == 0))
+        return temp;
+
+    temp = getenv("TMP");
+    if ((temp != NULL) && (access(temp, W_OK | X_OK) == 0))
+        return temp;
+
+    return "/tmp";
 }
 #endif
 

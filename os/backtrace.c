@@ -222,10 +222,25 @@ xorg_backtrace_frame(uintptr_t pc, int signo, void *arg)
 }
 #endif                          /* HAVE_WALKCONTEXT */
 
-#ifdef HAVE_PSTACK
+#include <sys/types.h>
+#if !defined(__WIN32__) || defined(__CYGWIN__)
+#include <sys/wait.h>
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+/*
+  fork/exec a program to create a backtrace
+  Returns 0 if successful.
+*/
 static int
-xorg_backtrace_pstack(void)
+xorg_backtrace_exec_wrapper(const char *path)
 {
+#if defined(WIN32) && !defined(__CYGWIN__)
+    ErrorFSigSafe("Backtrace not implemented on Windows");
+    return -1;
+#else
     pid_t kidpid;
     int pipefd[2];
 
@@ -233,7 +248,7 @@ xorg_backtrace_pstack(void)
         return -1;
     }
 
-    kidpid = fork1();
+    kidpid = fork();
 
     if (kidpid == -1) {
         /* ERROR */
@@ -246,11 +261,13 @@ xorg_backtrace_pstack(void)
         seteuid(0);
         close(STDIN_FILENO);
         close(STDOUT_FILENO);
+        close(STDERR_FILENO);
         dup2(pipefd[1], STDOUT_FILENO);
-        closefrom(STDERR_FILENO);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[1]);
 
         snprintf(parent, sizeof(parent), "%d", getppid());
-        execle("/usr/bin/pstack", "pstack", parent, NULL);
+        execl(path, path, parent, NULL);
         exit(1);
     }
     else {
@@ -263,23 +280,55 @@ xorg_backtrace_pstack(void)
         close(pipefd[1]);
 
         while (!done) {
-            bytesread = read(pipefd[0], btline, sizeof(btline) - 1);
+            bytesread = 0;
+
+            do
+                {
+                    int n = read(pipefd[0], &btline[bytesread], 1);
+
+                    if (n <= 0)
+                        break;
+
+                    bytesread = bytesread + n;
+
+                    if (btline[bytesread-1] == '\n')
+                        break;
+                }
+            while (bytesread < sizeof(btline));
 
             if (bytesread > 0) {
                 btline[bytesread] = 0;
                 ErrorFSigSafe("%s", btline);
             }
-            else if ((bytesread < 0) || ((errno != EINTR) && (errno != EAGAIN)))
+            else if ((bytesread == 0) ||
+                     ((errno != EINTR) && (errno != EAGAIN)))
                 done = 1;
         }
         close(pipefd[0]);
         waitpid(kidpid, &kidstat, 0);
-        if (kidstat != 0)
+        if (!(WIFEXITED(kidstat) && WEXITSTATUS(kidstat) == 0)) {
+            ErrorFSigSafe("%s failed with returncode %d\n", path,
+                          WEXITSTATUS(kidstat));
             return -1;
+        }
     }
     return 0;
+#endif
 }
-#endif                          /* HAVE_PSTACK */
+
+#ifdef HAVE_PSTACK
+static int
+xorg_backtrace_pstack(void)
+{
+    return xorg_backtrace_exec_wrapper("/usr/bin/pstack");
+}
+#endif
+
+static int
+xorg_backtrace_script(void)
+{
+    return xorg_backtrace_exec_wrapper(BINDIR "/xorg-backtrace");
+}
 
 #if defined(HAVE_PSTACK) || defined(HAVE_WALKCONTEXT)
 
@@ -316,7 +365,85 @@ xorg_backtrace(void)
 void
 xorg_backtrace(void)
 {
-    return;
+    if (xorg_backtrace_script() == 0)
+        return;
+}
+
+/* Cygwin-specific crash-reporter glue */
+
+#include <X11/Xwindows.h>
+#include <sys/cygwin.h>
+
+typedef int (*PFNCYGWINCRASHREPORTERINIT)(const char *, const char *);
+typedef void (*PFNCYGWINCRASHREPORTERREPORT)(EXCEPTION_POINTERS *ep);
+
+PFNCYGWINCRASHREPORTERREPORT crashreporter_report = NULL;
+
+#define CRASHREPORT_URL "http://www.dronecode.org.uk/cgi-bin/addreport.php"
+
+void
+xorg_crashreport_init(const char *logfile)
+{
+    /* Initialize crashreporter, if available */
+    HMODULE h = LoadLibrary("cygwin-crashreporter-hooks.dll");
+    if (h)
+        {
+            int result = 0;
+            PFNCYGWINCRASHREPORTERINIT crashreporter_init = (PFNCYGWINCRASHREPORTERINIT) GetProcAddress (h, "CygwinCrashReporterInit");
+            crashreporter_report = (PFNCYGWINCRASHREPORTERREPORT) GetProcAddress (h, "CygwinCrashReporterReport");
+
+            if (crashreporter_init && crashreporter_report)
+                {
+                    char *windows_logfile = cygwin_create_path(CCP_POSIX_TO_WIN_A, logfile);
+
+                    result = (*crashreporter_init) (CRASHREPORT_URL, windows_logfile);
+
+                    if (!result)
+                        ErrorF("Failed to initialize crashreporting\n");
+                    else
+                        DebugF("crashreporting initialized, status %d\n", result);
+
+                    free(windows_logfile);
+                }
+            else
+                {
+                    ErrorF("Could not locate crashreporting functions\n");
+                }
+
+            if (!result)
+                FreeLibrary (h);
+        }
+    else
+        {
+            DebugF("Could not load crashreporter dll\n");
+        }
+}
+
+#ifdef CW_EXCEPTION_RECORD_FROM_SIGINFO_T
+#include <ucontext.h>
+#endif
+
+void
+xorg_crashreport(int signo, siginfo_t *sip, void *sigcontext)
+{
+    if (crashreporter_report)
+        {
+#ifdef CW_EXCEPTION_RECORD_FROM_SIGINFO_T
+            ucontext_t *ucontext = (ucontext_t *)sigcontext;
+            EXCEPTION_RECORD er;
+            int res = !cygwin_internal(CW_EXCEPTION_RECORD_FROM_SIGINFO_T, sip, &er);
+
+            if (ucontext && res)
+                {
+                    EXCEPTION_POINTERS ep;
+                    ep.ExceptionRecord = &er;
+                    ep.ContextRecord = (CONTEXT *)(&ucontext->uc_mcontext);
+                    crashreporter_report(&ep);
+                }
+            else
+#endif
+                crashreporter_report(NULL);
+        }
 }
 
 #endif

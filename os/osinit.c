@@ -69,9 +69,11 @@ SOFTWARE.
 #if !defined(SYSV) && !defined(WIN32)
 #include <sys/resource.h>
 #endif
+#include <pthread.h>
 
-#ifndef ADMPATH
-#define ADMPATH "/usr/adm/X%smsgs"
+#if defined(WIN32) || defined(__CYGWIN__)
+#define WIN32_LEAN_AND_MEAN
+#include <X11/Xwindows.h>
 #endif
 
 extern char *display;
@@ -85,6 +87,7 @@ int limitStackSpace = -1;
 #ifdef RLIMIT_NOFILE
 int limitNoFile = -1;
 #endif
+extern Bool install_os_signal_handler;
 
 /* The actual user defined max number of clients */
 int LimitClients = LIMITCLIENTS;
@@ -108,7 +111,7 @@ OsRegisterSigWrapper(OsSigWrapperPtr newSigWrapper)
 #if !defined(WIN32) || defined(__CYGWIN__)
 static void
 #ifdef SA_SIGINFO
-OsSigHandler(int signo, siginfo_t * sip, void *unused)
+OsSigHandler(int signo, siginfo_t * sip, void *sigcontext)
 #else
 OsSigHandler(int signo)
 #endif
@@ -128,8 +131,7 @@ OsSigHandler(int signo)
         }
     }
 
-    /* log, cleanup, and abort */
-    xorg_backtrace();
+    ErrorFSigSafe("Fatal signal received in thread 0x%p [0x%x]\n", pthread_self(), GetCurrentThreadId());
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {
@@ -146,6 +148,11 @@ OsSigHandler(int signo)
         }
     }
 #endif
+
+    /* log, cleanup, and abort */
+    xorg_backtrace();
+
+    xorg_crashreport(signo, sip, sigcontext);
 
     FatalError("Caught signal %d (%s). Server aborting\n",
                signo, strsignal(signo));
@@ -165,30 +172,33 @@ OsInit(void)
 
     if (!been_here) {
 #if !defined(WIN32) || defined(__CYGWIN__)
-        struct sigaction act, oact;
-        int i;
+        if (install_os_signal_handler) {
+            struct sigaction act, oact;
+            int i;
 
-        int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
-            SIGSYS,
-            SIGXCPU,
-            SIGXFSZ,
+            int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
+                SIGSYS,
+                SIGXCPU,
+                SIGXFSZ,
 #ifdef SIGEMT
-            SIGEMT,
+                SIGEMT,
 #endif
-            0 /* must be last */
-        };
-        sigemptyset(&act.sa_mask);
+                0               /* must be last */
+            };
+            sigemptyset(&act.sa_mask);
 #ifdef SA_SIGINFO
-        act.sa_sigaction = OsSigHandler;
-        act.sa_flags = SA_SIGINFO;
+            act.sa_sigaction = OsSigHandler;
+            act.sa_flags = SA_SIGINFO;
 #else
-        act.sa_handler = OsSigHandler;
-        act.sa_flags = 0;
+            act.sa_handler = OsSigHandler;
+            act.sa_flags = 0;
 #endif
-        for (i = 0; siglist[i] != 0; i++) {
-            if (sigaction(siglist[i], &act, &oact)) {
-                ErrorF("failed to install signal handler for signal %d: %s\n",
-                       siglist[i], strerror(errno));
+            for (i = 0; siglist[i] != 0; i++) {
+                if (sigaction(siglist[i], &act, &oact)) {
+                    ErrorF
+                        ("failed to install signal handler for signal %d: %s\n",
+                         siglist[i], strerror(errno));
+                }
             }
         }
 #endif /* !WIN32 || __CYGWIN__ */
@@ -231,40 +241,7 @@ OsInit(void)
 # elif !defined(__CYGWIN__)
         fclose(stdin);
         fclose(stdout);
-# endif
-        /*
-         * If a write of zero bytes to stderr returns non-zero, i.e. -1,
-         * then writing to stderr failed, and we'll write somewhere else
-         * instead. (Apparently this never happens in the Real World.)
-         */
-        if (write(2, fname, 0) == -1) {
-            FILE *err;
-
-            if (strlen(display) + strlen(ADMPATH) + 1 < sizeof fname)
-                snprintf(fname, sizeof(fname), ADMPATH, display);
-            else
-                strcpy(fname, devnull);
-            /*
-             * uses stdio to avoid os dependencies here,
-             * a real os would use
-             *  open (fname, O_WRONLY|O_APPEND|O_CREAT, 0666)
-             */
-            if (!(err = fopen(fname, "a+")))
-                err = fopen(devnull, "w");
-            if (err && (fileno(err) != 2)) {
-                dup2(fileno(err), 2);
-                fclose(err);
-            }
-#if defined(SYSV) || defined(SVR4) || defined(WIN32) || defined(__CYGWIN__)
-            {
-                static char buf[BUFSIZ];
-
-                setvbuf(stderr, buf, _IOLBF, BUFSIZ);
-            }
-#else
-            setlinebuf(stderr);
 #endif
-        }
 #endif /* !XQUARTZ */
 
 #if !defined(WIN32) || defined(__CYGWIN__)

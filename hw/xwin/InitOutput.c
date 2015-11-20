@@ -35,12 +35,10 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#ifdef XWIN_CLIPBOARD
-#include "X11/Xlocale.h"
-#endif
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include <locale.h>
 #ifdef __CYGWIN__
 #include <mntent.h>
 #endif
@@ -66,6 +64,7 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #include "glx_extinit.h"
 #ifdef XWIN_GLX_WINDOWS
 #include "glx/glwindows.h"
+#include "dri/windowsdri.h"
 #endif
 
 /*
@@ -75,9 +74,6 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 /*
  * Function prototypes
  */
-
-static Bool
- winCheckDisplayNumber(void);
 
 void
  winLogCommandLine(int argc, char *argv[]);
@@ -91,6 +87,11 @@ Bool
 #ifdef RELOCATE_PROJECTROOT
 const char *winGetBaseDir(void);
 #endif
+
+static void winCheckMount(void);
+
+extern Bool XSupportsLocale(void);
+extern Status XInitThreads(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -120,6 +121,9 @@ const int NUMFORMATS = sizeof(g_PixmapFormats) / sizeof(g_PixmapFormats[0]);
 static const ExtensionModule xwinExtensions[] = {
 #ifdef GLXEXT
   { GlxExtensionInit, "GLX", &noGlxExtension },
+#ifdef XWIN_WINDOWS_DRI
+  { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
+#endif
 #endif
 };
 
@@ -162,6 +166,8 @@ main(int argc, char *argv[], char *envp[])
 {
     int iReturn;
 
+    xorg_crashreport_init(NULL);
+
     /* Create & acquire the termination mutex */
     iReturn = pthread_mutex_init(&g_pmTerminating, NULL);
     if (iReturn != 0) {
@@ -172,6 +178,8 @@ main(int argc, char *argv[], char *envp[])
     if (iReturn != 0) {
         ErrorF("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
     }
+
+    winCheckMount();
 
     return dix_main(argc, argv, envp);
 }
@@ -212,10 +220,6 @@ ddxGiveUp(enum ExitCode error)
     }
 #endif
 
-    if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
-        g_fLogInited = TRUE;
-    }
     LogClose(error);
 
     /*
@@ -259,6 +263,8 @@ AbortDDX(enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *
 winCheckMntOpt(const struct mntent *mnt, const char *opt)
@@ -283,6 +289,9 @@ winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -292,6 +301,7 @@ winCheckMount(void)
     enum { none = 0, sys_root, user_root, sys_tmp, user_tmp }
         level = none, curlevel;
     BOOL binary = TRUE;
+    BOOL fat = TRUE;
 
     mnt = setmntent("/etc/mtab", "r");
     if (mnt == NULL) {
@@ -330,6 +340,12 @@ winCheckMount(void)
             binary = FALSE;
         else
             binary = TRUE;
+
+        if ((strcmp(ent->mnt_type, "vfat") == 0) ||
+            (strcmp(ent->mnt_type, "exfat") == 0))
+            fat = TRUE;
+        else
+            fat = FALSE;
     }
 
     if (endmntent(mnt) != 1) {
@@ -339,6 +355,12 @@ winCheckMount(void)
 
     if (!binary)
         winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+    if (fat) {
+        winMsg(X_WARNING,
+               "/tmp mounted on FAT filesystem, activating -nolock\n");
+        nolock = TRUE;
+    }
 }
 #else
 static void
@@ -594,13 +616,13 @@ winFixupPaths(void)
             winMsg(X_ERROR, "Can not determine HOME directory\n");
         }
     }
-    if (!g_fLogFileChanged) {
+    if (!g_fLogFile) {
         static char buffer[MAX_PATH];
         DWORD size = GetTempPath(sizeof(buffer), buffer);
 
         if (size && size < sizeof(buffer)) {
             snprintf(buffer + size, sizeof(buffer) - size,
-                     "XWin.%s.log", display);
+                     g_pszLogFileFormat, display);
             buffer[sizeof(buffer) - 1] = 0;
             g_pszLogFile = buffer;
             winMsg(X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
@@ -631,15 +653,16 @@ OsVendorInit(void)
         OsVendorVErrorFProc = OsVendorVErrorF;
 #endif
 
-    if (!g_fLogInited) {
-        /* keep this order. If LogInit fails it calls Abort which then calls
-         * ddxGiveUp where LogInit is called again and creates an infinite
-         * recursion. If we set g_fLogInited to TRUE before the init we
-         * avoid the second call
-         */
-        g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
+    if (serverGeneration == 1) {
+        if (g_pszLogFile)
+            g_pszLogFile = LogInit(g_pszLogFile, ".old");
+        else
+            g_pszLogFile = LogInit(g_pszLogFileFormat, ".old");
+
+        /* Tell crashreporter logfile name */
+        xorg_crashreport_init(g_pszLogFile);
     }
+
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
     LogSetParameter(XLOG_FILE_VERBOSITY, g_iLogVerbose);
@@ -690,6 +713,20 @@ OsVendorInit(void)
                     g_ScreenInfo[j].iE3BTimeout = WIN_E3B_OFF;
                 }
             }
+        }
+    }
+
+    /* Work out what the default resize setting should be, and apply it if it
+     was not explicitly specified */
+    {
+        int j;
+        for (j = 0; j < g_iNumScreens; j++) {
+            if (g_ScreenInfo[j].iResizeMode == resizeDefault) {
+                if (g_ScreenInfo[j].fFullScreen)
+                    g_ScreenInfo[j].iResizeMode = resizeNotAllowed;
+                else
+                    g_ScreenInfo[j].iResizeMode = resizeWithRandr;
+                }
         }
     }
 }
@@ -747,10 +784,6 @@ winUseMsg(void)
            "\tIn multiwindow mode, add remote host names to window titles.\n");
 
     ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    ErrorF("-internalwm\n" "\tRun the internal window manager.\n");
-#endif
 
 #ifdef XWIN_XF86CONFIG
     ErrorF("-keyboard\n"
@@ -870,24 +903,7 @@ winUseMsg(void)
 void
 ddxUseMsg(void)
 {
-    /* Set a flag so that FatalError won't give duplicate warning message */
-    g_fSilentFatalError = TRUE;
-
     winUseMsg();
-
-    /* Log file will not be opened for UseMsg unless we open it now */
-    if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, NULL);
-        g_fLogInited = TRUE;
-    }
-    LogClose(EXIT_NO_ERROR);
-
-    /* Notify user where UseMsg text can be found. */
-    if (!g_fNoHelpMessageBox)
-        winMessageBoxF("The " PROJECT_NAME " help text has been printed to "
-                       "%s.\n"
-                       "Please open %s to read the help text.\n",
-                       MB_ICONINFORMATION, g_pszLogFile, g_pszLogFile);
 }
 
 /* See Porting Layer Definition - p. 20 */
@@ -916,14 +932,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     if (serverGeneration == 1 && !winValidateArgs()) {
         FatalError("InitOutput - Invalid command-line arguments found.  "
                    "Exiting.\n");
-    }
-
-    /* Check for duplicate invocation on same display number. */
-    if (serverGeneration == 1 && !winCheckDisplayNumber()) {
-        if (g_fSilentDupError)
-            g_fSilentFatalError = TRUE;
-        FatalError("InitOutput - Duplicate invocation on display "
-                   "number: %s.  Exiting.\n", display);
     }
 
 #ifdef XWIN_XF86CONFIG
@@ -1038,82 +1046,31 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
     /* Perform some one time initialization */
     if (1 == serverGeneration) {
+        const char *locale;
+
+        /* Allow multiple threads to access Xlib */
+        if (XInitThreads() == 0) {
+            ErrorF("XInitThreads failed.\n");
+        }
+
         /*
          * setlocale applies to all threads in the current process.
          * Apply locale specified in LANG environment variable.
          */
-        setlocale(LC_ALL, "");
+        locale = setlocale(LC_ALL, "");
+        if (!locale) {
+            ErrorF("setlocale failed.\n");
+        }
+
+        /* See if X supports the current locale */
+        if (XSupportsLocale() == FALSE) {
+            ErrorF("Warning: Locale '%s' not supported by X, falling back to 'C' locale.\n", locale);
+            setlocale(LC_ALL, "C");
+        }
     }
 #endif
 
 #if CYGDEBUG || YES
     winDebug("InitOutput - Returning.\n");
 #endif
-}
-
-/*
- * winCheckDisplayNumber - Check if another instance of Cygwin/X is
- * already running on the same display number.  If no one exists,
- * make a mutex to prevent new instances from running on the same display.
- *
- * return FALSE if the display number is already used.
- */
-
-static Bool
-winCheckDisplayNumber(void)
-{
-    int nDisp;
-    HANDLE mutex;
-    char name[MAX_PATH];
-    const char *pszPrefix = '\0';
-    OSVERSIONINFO osvi = { 0 };
-
-    /* Check display range */
-    nDisp = atoi(display);
-    if (nDisp < 0 || nDisp > 65535) {
-        ErrorF("winCheckDisplayNumber - Bad display number: %d\n", nDisp);
-        return FALSE;
-    }
-
-    /* Set first character of mutex name to null */
-    name[0] = '\0';
-
-    /* Get operating system version information */
-    osvi.dwOSVersionInfoSize = sizeof(osvi);
-    GetVersionEx(&osvi);
-
-    /* Want a mutex shared among all terminals on NT > 4.0 */
-    if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT && osvi.dwMajorVersion >= 5) {
-        pszPrefix = "Global\\";
-    }
-
-    /* Setup Cygwin/X specific part of name */
-    snprintf(name, sizeof(name), "%sCYGWINX_DISPLAY:%d", pszPrefix, nDisp);
-
-    /* Windows automatically releases the mutex when this process exits */
-    mutex = CreateMutex(NULL, FALSE, name);
-    if (!mutex) {
-        LPVOID lpMsgBuf;
-
-        /* Display a fancy error message */
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                      FORMAT_MESSAGE_FROM_SYSTEM |
-                      FORMAT_MESSAGE_IGNORE_INSERTS,
-                      NULL,
-                      GetLastError(),
-                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                      (LPTSTR) &lpMsgBuf, 0, NULL);
-        ErrorF("winCheckDisplayNumber - CreateMutex failed: %s\n",
-               (LPSTR) lpMsgBuf);
-        LocalFree(lpMsgBuf);
-
-        return FALSE;
-    }
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        ErrorF("winCheckDisplayNumber - "
-               PROJECT_NAME " is already running on display %d\n", nDisp);
-        return FALSE;
-    }
-
-    return TRUE;
 }

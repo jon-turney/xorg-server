@@ -63,13 +63,12 @@ HICON g_hIconX = NULL;
 HICON g_hSmallIconX = NULL;
 
 #ifndef RELOCATE_PROJECTROOT
-const char *g_pszLogFile = DEFAULT_LOGDIR "/XWin.%s.log";
+const char *g_pszLogFileFormat = DEFAULT_LOGDIR "/XWin.%s.log";
 #else
-const char *g_pszLogFile = "XWin.log";
-Bool g_fLogFileChanged = FALSE;
+const char *g_pszLogFileFormat = "XWin.%s.log";
 #endif
+const char *g_pszLogFile = NULL;
 int g_iLogVerbose = 2;
-Bool g_fLogInited = FALSE;
 char *g_pszCommandLine = NULL;
 Bool g_fSilentFatalError = FALSE;
 DWORD g_dwCurrentThreadID = 0;

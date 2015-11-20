@@ -54,6 +54,35 @@ There are four kinds of instructions: miscellaneous, menu, icon and style.
 
 .SH Miscellaneous instruction
 .TP 8
+.B DPI \fIresolution\fP
+Sets the resolution for all screens, in dots per inch.  To be used when
+the server cannot determine the screen size(s) from the hardware.
+
+.TP 8
+.B XKBLayout \fIlayout\fP
+.TP 8
+.B XKBModel \fImodel\fP
+.TP 8
+.B XKBOptions \fIoption\fP
+.TP 8
+.B XKBRules \fIrule\fP
+.TP 8
+.B XKBVariant \fIvariant\fp
+These options configure the xkeyboard extension to load a particular
+keyboard map as the X server starts.  The behavior is similar to the
+\fIsetxkbmap\fP(1) program.
+
+See the \fIxkeyboard-config\fP(__miscmansuffix__) manual page for a list of
+keyboard configurations.
+
+Alternatively, you can use \fIsetxkbmap\fP(1) program after \fIXWin\fP
+is running.
+
+The default is to select a keyboard configuration matching your current
+layout as reported by \fIWindows\fP, if known, or the default X server
+configuration if no matching keyboard configuration was found.
+
+.TP 8
 .B DEBUG \fIString\fP
 The \fIString\fP is printed to the XWin log file.
 
@@ -171,7 +200,7 @@ will be used.
 .SH Style Instructions
 .TP 8
 .B STYLES {
-\fIclass-or-name-of-window\fP \fIstyle-keyword-1\fP \fIstyle-keyword-2\fP
+\fIclass-or-name-of-window\fP \fIstyle-keyword-1\fP \fIstyle-keyword-2\fP \fIstyle-keyword-3\fP
 .br
   \fI...\fP
 .br
@@ -216,8 +245,14 @@ No Windows title bar and just a thin-line border, for the class or name.
 .br
 No Windows title bar or border, for the class or name.
 
-One keyword in \fIstyle-keyword-1\fP can be used with one keyword in \fIstyle-keyword-2\fP,
-or any keyword can be used singly.
+\fIstyle-keyword-3\fP
+
+\fBSKIPTASKBAR\fP
+.br
+Omit the class or name from being listed in the Windows taskbar.
+
+Up to one keyword from each of these three groups can be used.  Not all
+groups need be used, and the keywords can be given in any order.
 
 
 .SH EXAMPLE

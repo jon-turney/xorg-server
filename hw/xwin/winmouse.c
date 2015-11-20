@@ -41,6 +41,8 @@
 #include "xserver-properties.h"
 #include "inpututils.h"
 
+#include "wmutil/mouse.h"
+
 /* Peek the internal button mapping */
 static CARD8 const *g_winMouseButtonMap = NULL;
 
@@ -143,86 +145,20 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
     return Success;
 }
 
-/* Handle the mouse wheel */
-int
-winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown)
-{
-    int button;
-
-    /* Do we have any previous delta stored? */
-    if ((*iTotalDeltaZ > 0 && iDeltaZ > 0)
-        || (*iTotalDeltaZ < 0 && iDeltaZ < 0)) {
-        /* Previous delta and of same sign as current delta */
-        iDeltaZ += *iTotalDeltaZ;
-        *iTotalDeltaZ = 0;
-    }
-    else {
-        /*
-         * Previous delta of different sign, or zero.
-         * We will set it to zero for either case,
-         * as blindly setting takes just as much time
-         * as checking, then setting if necessary :)
-         */
-        *iTotalDeltaZ = 0;
-    }
-
-    /*
-     * Only process this message if the wheel has moved further than
-     * WHEEL_DELTA
-     */
-    if (iDeltaZ >= WHEEL_DELTA || (-1 * iDeltaZ) >= WHEEL_DELTA) {
-        *iTotalDeltaZ = 0;
-
-        /* Figure out how many whole deltas of the wheel we have */
-        iDeltaZ /= WHEEL_DELTA;
-    }
-    else {
-        /*
-         * Wheel has not moved past WHEEL_DELTA threshold;
-         * we will store the wheel delta until the threshold
-         * has been reached.
-         */
-        *iTotalDeltaZ = iDeltaZ;
-        return 0;
-    }
-
-    /* Set the button to indicate up or down wheel delta */
-    if (iDeltaZ > 0) {
-        button = iButtonUp;
-    }
-    else {
-        button = iButtonDown;
-    }
-
-    /*
-     * Flip iDeltaZ to positive, if negative,
-     * because always need to generate a *positive* number of
-     * button clicks for the Z axis.
-     */
-    if (iDeltaZ < 0) {
-        iDeltaZ *= -1;
-    }
-
-    /* Generate X input messages for each wheel delta we have seen */
-    while (iDeltaZ--) {
-        /* Push the wheel button */
-        winMouseButtonsSendEvent(ButtonPress, button);
-
-        /* Release the wheel button */
-        winMouseButtonsSendEvent(ButtonRelease, button);
-    }
-
-    return 0;
-}
-
 /*
  * Enqueue a mouse button event
  */
 
 void
-winMouseButtonsSendEvent(int iEventType, int iButton)
+winMouseButtonsSendEvent(bool bPress, int iButton)
 {
     ValuatorMask mask;
+    int iEventType;
+
+    if (bPress)
+      iEventType = ButtonPress;
+    else
+      iEventType = ButtonRelease;
 
     if (g_winMouseButtonMap)
         iButton = g_winMouseButtonMap[iButton];
@@ -251,7 +187,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
     /* Send button events right away if emulate 3 buttons is off */
     if (pScreenInfo->iE3BTimeout == WIN_E3B_OFF) {
         /* Emulate 3 buttons is off, send the button event */
-        winMouseButtonsSendEvent(iEventType, iButton);
+        winMouseButtonsSendEvent((iEventType == ButtonPress), iButton);
         return 0;
     }
 
@@ -288,7 +224,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->iE3BCachedPress = 0;
 
         /* Send fake middle button */
-        winMouseButtonsSendEvent(ButtonPress, Button2);
+        winMouseButtonsSendEvent(TRUE, Button2);
 
         /* Indicate that a fake middle button event was sent */
         pScreenPriv->fE3BFakeButton2Sent = TRUE;
@@ -303,8 +239,8 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->iE3BCachedPress = 0;
 
         /* Send cached press, then send release */
-        winMouseButtonsSendEvent(ButtonPress, iButton);
-        winMouseButtonsSendEvent(ButtonRelease, iButton);
+        winMouseButtonsSendEvent(TRUE, iButton);
+        winMouseButtonsSendEvent(FALSE, iButton);
     }
     else if (iEventType == ButtonRelease
              && pScreenPriv->fE3BFakeButton2Sent && !(wParam & MK_LBUTTON)
@@ -315,7 +251,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
         pScreenPriv->fE3BFakeButton2Sent = FALSE;
 
         /* Send middle mouse button release */
-        winMouseButtonsSendEvent(ButtonRelease, Button2);
+        winMouseButtonsSendEvent(FALSE, Button2);
     }
     else if (iEventType == ButtonRelease
              && pScreenPriv->iE3BCachedPress == 0
@@ -324,7 +260,7 @@ winMouseButtonsHandle(ScreenPtr pScreen,
          * Button was release, no button is cached,
          * and there is no fake button 2 release is pending.
          */
-        winMouseButtonsSendEvent(ButtonRelease, iButton);
+        winMouseButtonsSendEvent(FALSE, iButton);
     }
 
     return 0;

@@ -41,6 +41,7 @@
 #include "winprefs.h"
 #include "winmsg.h"
 #include "inputstr.h"
+#include "wmutil/keyboard.h"
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
@@ -294,6 +295,31 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
                                             MOUSE_POLLING_INTERVAL, NULL);
 }
 
+static
+void
+winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
+{
+    wmMsg->msg = WM_WM_CHANGE_STATE;
+    if (IsIconic(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 3; // IconicState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsZoomed(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 2; // ZoomState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsWindowVisible(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 1; // NormalState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+     }
+    else {
+        /* Only the client, not the user can Withdraw windows, so it doesn't make
+           much sense to handle that state here, and anything else is an
+           unanticapted state. */
+        ErrorF("winAdjustXWindowState - Unknown state for %p\n", wmMsg->hwndWindow);
+    }
+}
+
 /*
  * winTopLevelWindowProc - Window procedure for all top-level Windows windows.
  */
@@ -302,7 +328,6 @@ LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     POINT ptMouse;
-    HDC hdcUpdate;
     PAINTSTRUCT ps;
     WindowPtr pWin = NULL;
     winPrivWinPtr pWinPriv = NULL;
@@ -457,17 +482,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_PAINT:
         /* Only paint if our window handle is valid */
-        if (hwndScreen == NULL)
+        if (hwnd == NULL)
             break;
-
-        /* BeginPaint gives us an hdc that clips to the invalidated region */
-        hdcUpdate = BeginPaint(hwnd, &ps);
-        /* Avoid the BitBlt's if the PAINTSTRUCT is bogus */
-        if (ps.rcPaint.right == 0 && ps.rcPaint.bottom == 0 &&
-            ps.rcPaint.left == 0 && ps.rcPaint.top == 0) {
-            EndPaint(hwnd, &ps);
-            return 0;
-        }
 
 #ifdef XWIN_GLX_WINDOWS
         if (pWinPriv->fWglUsed) {
@@ -478,36 +494,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                XXX: For now, just leave it alone, but ideally we want to send an expose event to
                the window so it really redraws the affected region...
              */
+            BeginPaint(hwnd, &ps);
             ValidateRect(hwnd, &(ps.rcPaint));
+            EndPaint(hwnd, &ps);
         }
         else
 #endif
-            /* Try to copy from the shadow buffer */
-        if (!BitBlt(hdcUpdate,
-                        ps.rcPaint.left, ps.rcPaint.top,
-                        ps.rcPaint.right - ps.rcPaint.left,
-                        ps.rcPaint.bottom - ps.rcPaint.top,
-                        s_pScreenPriv->hdcShadow,
-                        ps.rcPaint.left + pWin->drawable.x,
-                        ps.rcPaint.top + pWin->drawable.y, SRCCOPY)) {
-            LPVOID lpMsgBuf;
+            /* Call the engine dependent repainter */
+            if (*s_pScreenPriv->pwinBltExposedWindowRegion)
+                (*s_pScreenPriv->pwinBltExposedWindowRegion) (s_pScreen, pWin);
 
-            /* Display a fancy error message */
-            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL,
-                          GetLastError(),
-                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                          (LPTSTR) &lpMsgBuf, 0, NULL);
-
-            ErrorF("winTopLevelWindowProc - BitBlt failed: %s\n",
-                   (LPSTR) lpMsgBuf);
-            LocalFree(lpMsgBuf);
-        }
-
-        /* EndPaint frees the DC */
-        EndPaint(hwnd, &ps);
         return 0;
 
     case WM_MOUSEMOVE:
@@ -868,6 +864,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         RemoveProp(hwnd, WIN_WINDOW_PROP);
         RemoveProp(hwnd, WIN_WID_PROP);
         RemoveProp(hwnd, WIN_NEEDMANAGE_PROP);
+        RemoveProp(hwnd, WIN_STATE_PROP);
 
         break;
 
@@ -876,77 +873,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove)
             winAdjustXWindow(pWin, hwnd);
         /* else: Wait for WM_EXITSIZEMOVE */
-        return 0;
-
-    case WM_SHOWWINDOW:
-        /* Bail out if the window is being hidden */
-        if (!wParam)
-            return 0;
-
-        /* */
-        if (!pWin->overrideRedirect) {
-            HWND zstyle = HWND_NOTOPMOST;
-
-            /* Flag that this window needs to be made active when clicked */
-            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
-
-            /* Set the transient style flags */
-            if (GetParent(hwnd))
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-            /* Set the window standard style flags */
-            else
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                 & ~WS_CAPTION & ~WS_SIZEBOX);
-
-            winUpdateWindowPosition(hwnd, &zstyle);
-
-            {
-                WinXWMHints hints;
-
-                if (winMultiWindowGetWMHints(pWin, &hints)) {
-                    /*
-                       Give the window focus, unless it has an InputHint
-                       which is FALSE (this is used by e.g. glean to
-                       avoid every test window grabbing the focus)
-                     */
-                    if (!((hints.flags & InputHint) && (!hints.input))) {
-                        SetForegroundWindow(hwnd);
-                    }
-                }
-            }
-            wmMsg.msg = WM_WM_MAP3;
-        }
-        else {                  /* It is an overridden window so make it top of Z stack */
-
-            HWND forHwnd = GetForegroundWindow();
-
-#if CYGWINDOWING_DEBUG
-            ErrorF("overridden window is shown\n");
-#endif
-            if (forHwnd != NULL) {
-                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
-                    XMING_SIGNATURE) {
-                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    else
-                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                }
-            }
-            wmMsg.msg = WM_WM_MAP2;
-        }
-
-        /* Tell our Window Manager thread to map the window */
-        if (fWMMsgInitialized)
-            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
-
-        winStartMousePolling(s_pScreenPriv);
-
         return 0;
 
     case WM_SIZING:
@@ -1001,12 +927,75 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
         }
+
+      /* Window is being shown */
+      if (pWinPos->flags & SWP_SHOWWINDOW) {
+        if (!pWin->overrideRedirect) {
+            HWND zstyle = HWND_NOTOPMOST;
+
+            /* Flag that this window needs to be made active when clicked */
+            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
+
+            winUpdateWindowPosition(hwnd, &zstyle);
+
+            {
+                WinXWMHints hints;
+
+                if (winMultiWindowGetWMHints(pWin, &hints)) {
+                    /*
+                       Give the window focus, unless it has an InputHint
+                       which is FALSE (this is used by e.g. glean to
+                       avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input))) {
+                        SetForegroundWindow(hwnd);
+                    }
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_MANAGED;
+        }
+        else {                  /* It is an overridden window so make it top of Z stack */
+            HWND forHwnd = GetForegroundWindow();
+
+            if (forHwnd != NULL) {
+                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
+                    XMING_SIGNATURE) {
+                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    else
+                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_UNMANAGED;
+        }
+
+        /* Tell our Window Manager thread to map the window */
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+        winStartMousePolling(s_pScreenPriv);
+      }
+
+      /*
+        We don't react to SWP_HIDEWINDOW indicating window is being hidden in
+        a symmetrical way (i.e. by sending WM_WM_UNMAP)
+
+        If the cause of the window being hidden is the X windows being unmapped,
+        (WM_STATE has changed to WithdrawnState), then the window has already
+        been unmapped.
+
+        Virtual desktop software (like VirtuaWin or Dexpot) uses SWP_HIDEWINDOW
+        to hide windows on other desktops.  We mustn't unmap the X window in
+        that situation, as it becomes inaccessible.
+      */
     }
-        /*
-         * Pass the message to DefWindowProc to let the function
-         * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
-         */
-        break;
+    /*
+     * Pass the message to DefWindowProc to let the function
+     * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
+     */
+    break;
 
     case WM_ENTERSIZEMOVE:
         hasEnteredSizeMove = TRUE;
@@ -1016,6 +1005,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Adjust the X Window to the moved Windows window */
         hasEnteredSizeMove = FALSE;
         winAdjustXWindow(pWin, hwnd);
+        if (fWMMsgInitialized)
+            winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         return 0;
 
     case WM_SIZE:
@@ -1044,6 +1035,10 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove) {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow(pWin, hwnd);
+            if (fWMMsgInitialized)
+                winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
         }
         /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
@@ -1154,4 +1149,94 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (needRestack)
         winReorderWindowsMultiWindow();
     return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+#if CYGDEBUG
+    winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+    switch (message) {
+    case WM_ERASEBKGND:
+        return TRUE;
+
+    case WM_PAINT:
+        /*
+           We don't have the bits to draw into the window, they went straight into the OpenGL
+           surface
+
+           XXX: For now, just leave it alone, but ideally we want to send an expose event to
+           the window so it really redraws the affected region...
+         */
+    {
+        PAINTSTRUCT ps;
+        BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+        /* XXX: this is exactly what DefWindowProc does? */
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+void
+winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
+{
+    int iX, iY, iWidth, iHeight;
+    int iDx, iDy;
+    RECT rcNew;
+    WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
+    DrawablePtr pDraw = NULL;
+
+    if (!pWin)
+        return;
+    pDraw = &pWin->drawable;
+    if (!pDraw)
+        return;
+
+    /* Get the X and Y location of the X window */
+    iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
+    iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+    /* Get the height and width of the X window */
+    iWidth = pWin->drawable.width;
+    iHeight = pWin->drawable.height;
+
+    /* Setup a rectangle with the X window position and size */
+    SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
+
+    winDebug("winUpdateWindowPosition - drawable extent (%d, %d)-(%d, %d)\n",
+             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
+
+    AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
+                       GetWindowLongPtr(hWnd, GWL_EXSTYLE));
+
+    /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
+    if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN)) {
+        iDx = GetSystemMetrics(SM_XVIRTUALSCREEN) - rcNew.left;
+        rcNew.left += iDx;
+        rcNew.right += iDx;
+    }
+
+    if (rcNew.top < GetSystemMetrics(SM_YVIRTUALSCREEN)) {
+        iDy = GetSystemMetrics(SM_YVIRTUALSCREEN) - rcNew.top;
+        rcNew.top += iDy;
+        rcNew.bottom += iDy;
+    }
+
+    winDebug("winUpdateWindowPosition - Window extent (%d, %d)-(%d, %d)\n",
+             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
+
+    /* Position the Windows window */
+    SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,
+                 rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
+
 }
