@@ -250,6 +250,9 @@ MessageName(winWMMessagePtr msg)
     case WM_WM_HINTS_EVENT:
       return "WM_WM_HINTS_EVENT";
       break;
+    case WM_WM_CREATE:
+      return "WM_WM_CREATE";
+      break;
     default:
       return "Unknown Message";
       break;
@@ -711,6 +714,10 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, Bool onCreate)
     if (!hWnd)
         return;
 
+    /* If window isn't override-redirect */
+    if (IsOverrideRedirect(pWMInfo->conn, iWindow))
+        return;
+
     /* Determine the Window style, which determines borders and clipping region... */
     winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, onCreate);
     winUpdateWindowPosition(hWnd, &zstyle);
@@ -964,6 +971,40 @@ winMultiWindowWMProc(void *pArg)
 
         /* Branch on the message type */
         switch (pNode->msg.msg) {
+        case WM_WM_CREATE:
+#if CYGMULTIWINDOW_DEBUG
+            ErrorF("\tWM_WM_CREATE\n");
+#endif
+            /* Put a note as to the HWND associated with this Window */
+            xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
+                                pNode->msg.iWindow, pWMInfo->atmPrivMap,
+                                XCB_ATOM_INTEGER, 32,
+                                sizeof(HWND)/4, &(pNode->msg.hwndWindow));
+
+
+            /* Determine the Window style, which determines borders and clipping region... */
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
+
+            /* Display the window without activating it */
+            {
+                xcb_get_window_attributes_cookie_t cookie;
+                xcb_get_window_attributes_reply_t *reply;
+
+                cookie = xcb_get_window_attributes(pWMInfo->conn, pNode->msg.iWindow);
+                reply = xcb_get_window_attributes_reply(pWMInfo->conn, cookie, NULL);
+
+                if (reply) {
+                    if (reply->_class != InputOnly)
+                        ShowWindow(pNode->msg.hwndWindow, SW_SHOWNOACTIVATE);
+                    free(reply);
+                }
+            }
+
+            /* Send first paint message */
+            UpdateWindow(pNode->msg.hwndWindow);
+
+            break;
+
 #if 0
         case WM_WM_MOVE:
             break;
@@ -995,25 +1036,12 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_MAP_UNMANAGED:
-            /* Put a note as to the HWND associated with this Window */
-            xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
-                                pNode->msg.iWindow, pWMInfo->atmPrivMap,
-                                XCB_ATOM_INTEGER, 32,
-                                sizeof(HWND)/4, &(pNode->msg.hwndWindow));
-
             break;
 
         case WM_WM_MAP_MANAGED:
-            /* Put a note as to the HWND associated with this Window */
-            xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
-                                pNode->msg.iWindow, pWMInfo->atmPrivMap,
-                                XCB_ATOM_INTEGER, 32,
-                                sizeof(HWND)/4, &(pNode->msg.hwndWindow));
-
             UpdateName(pWMInfo, pNode->msg.iWindow);
             UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
-
 
             /* Reshape */
             {
