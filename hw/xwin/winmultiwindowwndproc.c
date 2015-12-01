@@ -554,6 +554,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) XMING_SIGNATURE);
 
+        /* Tell our Window Manager thread to style and then show the window */
+        wmMsg.msg = WM_WM_CREATE;
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
         CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
         return 0;
