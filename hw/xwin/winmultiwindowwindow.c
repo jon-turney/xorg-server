@@ -892,16 +892,6 @@ winUpdateWindowsWindow(WindowPtr pWin)
                          pWin->drawable.y - pWin->parent->drawable.y, 0, 0,
                          SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
         }
-
-        /* If it's top level, or a GLX window which has already been created getting mapped, show it */
-        if (pWinPriv->hWnd != NULL) {
-            /* Display the window without activating it */
-            if (pWin->drawable.class != InputOnly)
-                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
-            /* Send first paint message */
-            UpdateWindow(pWinPriv->hWnd);
-        }
     }
     else if (pWinPriv->hWnd != NULL) {
         /* If it's been reparented to an unmapped window when previously mapped, destroy the Windows window */
