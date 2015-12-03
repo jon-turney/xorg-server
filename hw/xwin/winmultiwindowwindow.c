@@ -876,11 +876,6 @@ winUpdateWindowsWindow(WindowPtr pWin)
                 winCreateWindowsWindow(pWin);
                 assert(pWinPriv->hWnd != NULL);
             }
-
-            /* Display the window without activating it */
-            if (pWin->drawable.class != InputOnly)
-                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
         }
         /* It's not a top-level window, but we created a window for GLX */
         else if (pWinPriv->hWnd) {
