@@ -104,6 +104,9 @@ extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 #define WIN_MSG_QUEUE_FNAME	"/dev/windows"
 #endif
 
+#define HINT_MAX	(1L<<0)
+#define HINT_MIN	(1L<<1)
+
 /*
  * Local structures
  */
@@ -191,7 +194,7 @@ static Bool
 CheckAnotherWindowManager(xcb_connection_t *conn, DWORD dwScreen);
 
 static void
- winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, Bool onCreate);
+ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, unsigned long *maxmin);
 
 static void
  winApplyUrgency(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd);
@@ -707,7 +710,7 @@ UpdateIcon(WMInfoPtr pWMInfo, xcb_window_t iWindow)
  */
 
 static void
-UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, Bool onCreate)
+UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin)
 {
     HWND hWnd;
     HWND zstyle = HWND_NOTOPMOST;
@@ -722,7 +725,7 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, Bool onCreate)
         return;
 
     /* Determine the Window style, which determines borders and clipping region... */
-    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, onCreate);
+    winApplyHints(pWMInfo, iWindow, hWnd, &zstyle, maxmin);
     winUpdateWindowPosition(hWnd, &zstyle);
 
     /* Apply the updated window style, without changing it's show or activation state */
@@ -975,9 +978,12 @@ winMultiWindowWMProc(void *pArg)
         /* Branch on the message type */
         switch (pNode->msg.msg) {
         case WM_WM_CREATE:
+          {
+            unsigned long maxmin = 0;
 #if CYGMULTIWINDOW_DEBUG
             ErrorF("\tWM_WM_CREATE\n");
 #endif
+
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
@@ -986,7 +992,7 @@ winMultiWindowWMProc(void *pArg)
 
 
             /* Determine the Window style, which determines borders and clipping region... */
-            UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
 
             /* Display the window without activating it */
             {
@@ -998,7 +1004,7 @@ winMultiWindowWMProc(void *pArg)
 
                 if (reply) {
                     if (reply->_class != InputOnly)
-                        ShowWindow(pNode->msg.hwndWindow, SW_SHOWNOACTIVATE);
+                        ShowWindow(pNode->msg.hwndWindow, SW_SHOWNA);
                     free(reply);
                 }
             }
@@ -1006,7 +1012,20 @@ winMultiWindowWMProc(void *pArg)
             /* Send first paint message */
             UpdateWindow(pNode->msg.hwndWindow);
 
-            break;
+            /* Establish initial state */
+            UpdateState(pWMInfo, pNode->msg.iWindow, XCB_ICCCM_WM_STATE_NORMAL);
+
+            /*
+              It only makes sense to apply minimize/maximize override as the
+              initial state, otherwise that state can't be changed.
+            */
+            if (maxmin & HINT_MAX)
+                SendMessage(pNode->msg.hwndWindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+            else if (maxmin & HINT_MIN)
+                SendMessage(pNode->msg.hwndWindow, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+          }
+
+          break;
 
 #if 0
         case WM_WM_MOVE:
@@ -1047,8 +1066,11 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_MAP_MANAGED:
+          {
+            unsigned long maxmin = 0;
+
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateStyle(pWMInfo, pNode->msg.iWindow, TRUE);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
             UpdateIcon(pWMInfo, pNode->msg.iWindow);
 
             /* Reshape */
@@ -1060,8 +1082,9 @@ winMultiWindowWMProc(void *pArg)
                     winUpdateRgnMultiWindow(pWin);
                 }
             }
+          }
 
-            break;
+          break;
 
         case WM_WM_UNMAP:
 
@@ -1130,11 +1153,13 @@ winMultiWindowWMProc(void *pArg)
 
         case WM_WM_HINTS_EVENT:
             {
+            unsigned long maxmin = 0;
+
             /* Don't do anything if this is an override-redirect window */
             if (IsOverrideRedirect(pWMInfo->conn, pNode->msg.iWindow))
               break;
 
-            UpdateStyle(pWMInfo, pNode->msg.iWindow, FALSE);
+            UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
             }
             break;
 
@@ -2006,12 +2031,9 @@ winApplyUrgency(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd)
 #define HINT_NOMINIMIZE (1L<<5)
 #define HINT_NOSYSMENU  (1L<<6)
 #define HINT_SKIPTASKBAR (1L<<7)
-/* These two are used on their own */
-#define HINT_MAX	(1L<<0)
-#define HINT_MIN	(1L<<1)
 
 static void
-winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, Bool onCreate)
+winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle, unsigned long *maxmin)
 {
 
     xcb_connection_t *conn = pWMInfo->conn;
@@ -2022,8 +2044,9 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
     static int generation;
 
     unsigned long hint = HINT_BORDER | HINT_SIZEBOX | HINT_CAPTION;
-    unsigned long maxmin = 0;
     unsigned long style, exStyle;
+
+    *maxmin = 0;
 
     if (!hWnd)
         return;
@@ -2056,9 +2079,9 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
                 if (pAtom[i] == skiptaskbarState)
                     hint |= HINT_SKIPTASKBAR;
                 if (pAtom[i] == hiddenState)
-                    maxmin |= HINT_MIN;
+                    *maxmin |= HINT_MIN;
                 else if (pAtom[i] == fullscreenState)
-                    maxmin |= HINT_MAX;
+                    *maxmin |= HINT_MAX;
                 if (pAtom[i] == belowState)
                     *zstyle = HWND_BOTTOM;
                 else if (pAtom[i] == aboveState)
@@ -2070,7 +2093,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
             }
 
             if (verMax && horMax)
-              maxmin |= HINT_MAX;
+              *maxmin |= HINT_MAX;
 
             free(reply);
       }
@@ -2183,12 +2206,6 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
 
         style = STYLE_NONE;
         style = winOverrideStyle(res_name, res_class, window_name);
-        /*
-           It only makes sense to apply minimize/maximize override when the
-           window is mapped, as otherwise the state can't be changed.
-        */
-        if (!onCreate)
-            style &= ~(STYLE_MAXIMIZE | STYLE_MINIMIZE);
 
 #define APPLICATION_ID_FORMAT	"%s.xwin.%s"
 #define APPLICATION_ID_UNKNOWN "unknown"
@@ -2211,16 +2228,11 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
     if (style & STYLE_TOPMOST)
         *zstyle = HWND_TOPMOST;
     else if (style & STYLE_MAXIMIZE)
-        maxmin = (hint & ~HINT_MIN) | HINT_MAX;
+        *maxmin = (hint & ~HINT_MIN) | HINT_MAX;
     else if (style & STYLE_MINIMIZE)
-        maxmin = (hint & ~HINT_MAX) | HINT_MIN;
+        *maxmin = (hint & ~HINT_MAX) | HINT_MIN;
     else if (style & STYLE_BOTTOM)
         *zstyle = HWND_BOTTOM;
-
-    if (maxmin & HINT_MAX)
-        SendMessage(hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
-    else if (maxmin & HINT_MIN)
-        SendMessage(hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
 
     if (style & STYLE_NOTITLE)
         hint =

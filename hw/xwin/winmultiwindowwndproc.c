@@ -299,6 +299,10 @@ static
 void
 winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
 {
+    /* Do nothing if window has not yet been given initial state */
+    if (!GetProp(wmMsg->hwndWindow, WIN_STATE_PROP))
+        return;
+
     wmMsg->msg = WM_WM_CHANGE_STATE;
     if (IsIconic(wmMsg->hwndWindow)) {
         wmMsg->dwID = 3; // IconicState
