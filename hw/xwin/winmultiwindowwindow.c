@@ -876,11 +876,6 @@ winUpdateWindowsWindow(WindowPtr pWin)
                 winCreateWindowsWindow(pWin);
                 assert(pWinPriv->hWnd != NULL);
             }
-
-            /* Display the window without activating it */
-            if (pWin->drawable.class != InputOnly)
-                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
         }
         /* It's not a top-level window, but we created a window for GLX */
         else if (pWinPriv->hWnd) {
@@ -896,16 +891,6 @@ winUpdateWindowsWindow(WindowPtr pWin)
                          pWin->drawable.x - pWin->parent->drawable.x,
                          pWin->drawable.y - pWin->parent->drawable.y, 0, 0,
                          SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-        }
-
-        /* If it's top level, or a GLX window which has already been created getting mapped, show it */
-        if (pWinPriv->hWnd != NULL) {
-            /* Display the window without activating it */
-            if (pWin->drawable.class != InputOnly)
-                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
-
-            /* Send first paint message */
-            UpdateWindow(pWinPriv->hWnd);
         }
     }
     else if (pWinPriv->hWnd != NULL) {

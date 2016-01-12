@@ -299,6 +299,10 @@ static
 void
 winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
 {
+    /* Do nothing if window has not yet been given initial state */
+    if (!GetProp(wmMsg->hwndWindow, WIN_STATE_PROP))
+        return;
+
     wmMsg->msg = WM_WM_CHANGE_STATE;
     if (IsIconic(wmMsg->hwndWindow)) {
         wmMsg->dwID = 3; // IconicState
@@ -347,6 +351,20 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
 #endif
+
+    /*
+       If this is WM_CREATE, set up the Windows window properties which point to X window information,
+       before we populate other local variables...
+     */
+    if (message == WM_CREATE) {
+        SetProp(hwnd,
+                WIN_WINDOW_PROP,
+                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
+        SetProp(hwnd,
+                WIN_WID_PROP,
+                (HANDLE) (INT_PTR)winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                 lpCreateParams));
+    }
 
     /* Check if the Windows window property for our X window pointer is valid */
     if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL) {
@@ -408,18 +426,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     /* Branch on message type */
     switch (message) {
     case WM_CREATE:
-
-        /* */
-        SetProp(hwnd,
-                WIN_WINDOW_PROP,
-                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
-
-        /* */
-        SetProp(hwnd,
-                WIN_WID_PROP,
-                (HANDLE) (INT_PTR) winGetWindowID(((LPCREATESTRUCT) lParam)->
-                                                  lpCreateParams));
-
         /*
          * Make X windows' Z orders sync with Windows windows because
          * there can be AlwaysOnTop windows overlapped on the window
@@ -439,6 +445,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) XMING_SIGNATURE);
+
+        /* Tell our Window Manager thread to style and then show the window */
+        wmMsg.msg = WM_WM_CREATE;
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
 
         return 0;
 
