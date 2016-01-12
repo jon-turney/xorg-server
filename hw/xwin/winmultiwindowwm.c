@@ -563,8 +563,10 @@ getHwnd(WMInfoPtr pWMInfo, xcb_window_t iWindow)
     }
 
     /* Some sanity checks */
-    if (!hWnd)
+    if (!hWnd) {
+        winDebug("getHwnd: no HWND\n");
         return NULL;
+    }
     if (!IsWindow(hWnd))
         return NULL;
 
@@ -959,8 +961,8 @@ winMultiWindowWMProc(void *pArg)
         }
 
 #if CYGMULTIWINDOW_DEBUG
-        ErrorF("winMultiWindowWMProc - MSG: %s (%d) ID: %d\n",
-               MessageName(&(pNode->msg)), (int)pNode->msg.msg, (int)pNode->msg.dwID);
+        ErrorF("winMultiWindowWMProc - MSG: %s (%d) Window: %08x ID: %d\n",
+               MessageName(&(pNode->msg)), (int)pNode->msg.msg, pNode->msg.iWindow, (int)pNode->msg.dwID);
 #endif
 
         /* Branch on the message type */
@@ -1859,7 +1861,7 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
     WMMsgNodePtr pNode;
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF("winSendMessageToWM %s\n", MessageName(pMsg));
+    ErrorF("winSendMessageToWM %s %08x %d\n", MessageName(pMsg), pMsg->iWindow, pMsg->dwID);
 #endif
 
     pNode = malloc(sizeof(WMMsgNodeRec));
