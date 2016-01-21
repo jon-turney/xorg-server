@@ -81,6 +81,7 @@ static const struct extension_info known_glx_extensions[] = {
     { GLX(ARB_multisample),             VER(1,4), Y, },
 
     { GLX(EXT_create_context_es2_profile), VER(0,0), N, },
+    { GLX(EXT_fbconfig_packed_float),   VER(0,0), N, },
     { GLX(EXT_framebuffer_sRGB),        VER(0,0), N, },
     { GLX(EXT_import_context),          VER(0,0), Y, },
     { GLX(EXT_texture_from_pixmap),     VER(0,0), Y, },

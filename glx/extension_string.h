@@ -44,6 +44,7 @@ enum {
     ARB_framebuffer_sRGB_bit,
     ARB_multisample_bit,
     EXT_create_context_es2_profile_bit,
+    EXT_fbconfig_packed_float_bit,
     EXT_import_context_bit,
     EXT_texture_from_pixmap_bit,
     EXT_visual_info_bit,
