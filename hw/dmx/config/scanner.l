@@ -84,10 +84,12 @@ param           return gettoken(T_PARAM, yytext, yyleng);
 %%
 int yywrap(void)
 {
+    (void) &yyunput;
+    (void) &input;
     return 1;
 }
 
-void yyerror(const char *message)
+_X_NORETURN void yyerror(const char *message)
 {
     const char *pt, *end;
     struct _entry {
