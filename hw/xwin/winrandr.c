@@ -279,10 +279,10 @@ winRandRInit(ScreenPtr pScreen)
 
     /*
        The screen doesn't have to be limited to the actual
-       monitor size (we can have scrollbars :-), so what is
-       the upper limit?
+       monitor size (we can have scrollbars :-), so set the
+       upper limit to the maximum coordinates X11 can use.
      */
-    RRScreenSetSizeRange(pScreen, 0, 0, 4096, 4096);
+    RRScreenSetSizeRange(pScreen, 0, 0, 32768, 32768);
 
     return TRUE;
 }
