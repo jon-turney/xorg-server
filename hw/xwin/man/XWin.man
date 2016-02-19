@@ -1,3 +1,4 @@
+
 .TH XWIN 1 __vendorversion__
 .SH NAME
 XWin \- X Server for the Cygwin environment on Microsoft Windows
@@ -107,6 +108,10 @@ in \fB-multiwindow\fP or \fB-rootless\fP mode.
 The X server window takes the full screen, covering completely the
 \fIWindows\fP desktop.
 Currently \fB\-fullscreen\fP may only be applied to one X screen.
+.TP 8
+.B "\-icon" \fIicon-specifier\fB
+Override the window icon for the screen window from the default.
+The \fIicon-specifier\fB is as defined in XWinrc(__filemansuffix__).
 .TP 8
 .B \-nodecoration
 Do not give the Cygwin/X window a \fIWindows\fP window border, title bar,
