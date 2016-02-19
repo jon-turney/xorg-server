@@ -40,6 +40,7 @@ from The Open Group.
 #include "winconfig.h"
 #include "winmsg.h"
 #include "winmonitors.h"
+#include "winprefs.h"
 
 #ifdef XWIN_CLIPBOARD
 #include "winclipboard/winclipboard.h"
@@ -148,6 +149,13 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fUseUnixKillKey = WIN_DEFAULT_UNIX_KILL;
     defaultScreenInfo.fIgnoreInput = FALSE;
     defaultScreenInfo.fExplicitScreen = FALSE;
+    defaultScreenInfo.hIcon = (HICON)
+        LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
+                  GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
+    defaultScreenInfo.hIconSm = (HICON)
+        LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
+                  GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON),
+                  LR_DEFAULTSIZE);
 
     /* Note that the default screen has been initialized */
     fInitializedScreenDefaults = TRUE;
@@ -347,7 +355,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
                     ("ddxProcessArgument - screen - Invalid monitor number %d\n",
                      iMonitor);
                 UseMsg();
-                exit(0);
+                exit(1);
                 return 0;
             }
         }
@@ -396,7 +404,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
                             ("ddxProcessArgument - screen - Invalid monitor number %d\n",
                              iMonitor);
                         UseMsg();
-                        exit(0);
+                        exit(1);
                         return 0;
                     }
 
@@ -427,7 +435,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
                         ("ddxProcessArgument - screen - Invalid monitor number %d\n",
                          iMonitor);
                     UseMsg();
-                    exit(0);
+                    exit(1);
                     return 0;
                 }
 
@@ -1125,6 +1133,30 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-nohostintitle")) {
         g_fHostInTitle = FALSE;
         return 1;
+    }
+
+    if (IS_OPTION("-icon")) {
+        char *iconspec;
+        CHECK_ARGS(1);
+        iconspec = argv[++i];
+        screenInfoPtr->hIcon = LoadImageComma(iconspec, NULL,
+                                              GetSystemMetrics(SM_CXICON),
+                                              GetSystemMetrics(SM_CYICON),
+                                              0);
+        screenInfoPtr->hIconSm = LoadImageComma(iconspec, NULL,
+                                                GetSystemMetrics(SM_CXSMICON),
+                                                GetSystemMetrics(SM_CYSMICON),
+                                                LR_DEFAULTSIZE);
+        if ((screenInfoPtr->hIcon == NULL) ||
+            (screenInfoPtr->hIconSm == NULL)) {
+            ErrorF("ddxProcessArgument - icon - Invalid icon specification %s\n",
+                   iconspec);
+            exit(1);
+            return 0;
+        }
+
+        /* Indicate that we have processed the argument */
+        return 2;
     }
 
     return 0;
