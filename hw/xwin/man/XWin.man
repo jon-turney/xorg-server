@@ -113,6 +113,10 @@ The X server window takes the full screen, covering completely the
 \fIWindows\fP desktop.
 Currently \fB\-fullscreen\fP may only be applied to one X screen.
 .TP 8
+.B "\-icon" \fIicon-specifier\fP
+Override the window icon for the screen window from the default.
+The \fIicon-specifier\fP is as defined in \fIXWinrc(__filemansuffix__)\fP.
+.TP 8
 .B \-nodecoration
 Do not give the Cygwin/X window a \fIWindows\fP window border, title bar,
 etc.
