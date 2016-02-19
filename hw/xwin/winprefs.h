@@ -170,4 +170,8 @@ unsigned long
 HICON winTaskbarIcon(void);
 
 HICON winOverrideDefaultIcon(int size);
+
+HICON
+LoadImageComma(char *fname, char *iconDirectory, int sx, int sy, int flags);
+
 #endif
