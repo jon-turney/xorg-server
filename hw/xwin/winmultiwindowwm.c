@@ -752,6 +752,12 @@ UpdateStyle(WMInfoPtr pWMInfo, xcb_window_t iWindow, unsigned long *maxmin)
  * Updates the state of a HWND
  */
 
+struct wmstate
+{
+    CARD32 state;
+    XID     icon;
+};
+
 static void
 UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
 {
@@ -813,12 +819,7 @@ UpdateState(WMInfoPtr pWMInfo, xcb_window_t iWindow, int state)
         // change itself)
         if (icccm_current_state != icccm_state)
             {
-                struct
-                {
-                    CARD32 state;
-                    XID     icon;
-                } wmstate;
-
+                struct wmstate wmstate;
                 wmstate.state = icccm_state;
                 wmstate.icon = None;
 
@@ -1456,37 +1457,91 @@ winMultiWindowXMsgProc(void *pArg)
 
             xcb_map_notify_event_t *notify = (xcb_map_notify_event_t *)event;
 
-            xcb_get_geometry_cookie_t cookie;
-            xcb_get_geometry_reply_t *reply;
-            xcb_query_tree_cookie_t cookie_qt;
-            xcb_query_tree_reply_t *reply_qt;
+            {
+                xcb_get_geometry_cookie_t cookie;
+                xcb_get_geometry_reply_t *reply;
+                xcb_query_tree_cookie_t cookie_qt;
+                xcb_query_tree_reply_t *reply_qt;
 
-            cookie = xcb_get_geometry(pProcArg->conn, notify->window);
-            cookie_qt = xcb_query_tree(pProcArg->conn, notify->window);
-            reply = xcb_get_geometry_reply(pProcArg->conn, cookie, NULL);
-            reply_qt = xcb_query_tree_reply(pProcArg->conn, cookie_qt, NULL);
+                cookie = xcb_get_geometry(pProcArg->conn, notify->window);
+                cookie_qt = xcb_query_tree(pProcArg->conn, notify->window);
+                reply = xcb_get_geometry_reply(pProcArg->conn, cookie, NULL);
+                reply_qt = xcb_query_tree_reply(pProcArg->conn, cookie_qt, NULL);
 
-            if (reply && reply_qt) {
-                /*
-                   It's a top-level window if the parent window is a root window
-                   Only non-override_redirect windows can get reparented
-                 */
-                if ((reply->root == reply_qt->parent) && !notify->override_redirect) {
-                    xcb_reparent_notify_event_t event_send;
+                if (reply && reply_qt) {
+                    /*
+                      It's a top-level window if the parent window is a root window
+                      Only non-override_redirect windows can get reparented
+                    */
+                    if ((reply->root == reply_qt->parent) && !notify->override_redirect) {
+                        xcb_reparent_notify_event_t event_send;
 
-                    event_send.response_type = ReparentNotify;
-                    event_send.event = notify->window;
-                    event_send.window = notify->window;
-                    event_send.parent = reply_qt->parent;
-                    event_send.x = reply->x;
-                    event_send.y = reply->y;
+                        event_send.response_type = ReparentNotify;
+                        event_send.event = notify->window;
+                        event_send.window = notify->window;
+                        event_send.parent = reply_qt->parent;
+                        event_send.x = reply->x;
+                        event_send.y = reply->y;
 
-                    xcb_send_event (pProcArg->conn, TRUE, notify->window,
-                                    XCB_EVENT_MASK_STRUCTURE_NOTIFY,
-                                    (const char *)&event_send);
+                        xcb_send_event (pProcArg->conn, TRUE, notify->window,
+                                        XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                                        (const char *)&event_send);
 
-                    free(reply_qt);
-                    free(reply);
+                        free(reply_qt);
+                        free(reply);
+                    }
+                }
+            }
+
+            /* Change the window's state when it is mapped, per ICCCM section
+               4.1.4 */
+            {
+                DWORD newState = -1;
+                xcb_get_property_cookie_t cookie_wm_state = xcb_get_property(pProcArg->conn, FALSE, notify->window, pProcArg->pWMInfo->atmWmState, pProcArg->pWMInfo->atmWmState, 0L, sizeof(struct wmstate)/sizeof(int));
+                xcb_get_property_reply_t *reply = xcb_get_property_reply(pProcArg->conn, cookie_wm_state, NULL);
+                if (!reply || (xcb_get_property_value_length(reply) == 0)) {
+                    /*
+                      If there is no WM_STATE property, the window is leaving
+                      the withdrawn state.
+
+                      if StateHint is set in WM_HINTS.flags, the state will be
+                      be WM_HINTS.initial_state, otherwise NormalState.
+                    */
+                    xcb_icccm_wm_hints_t hints;
+                    xcb_get_property_cookie_t cookie_wm_hints = xcb_icccm_get_wm_hints(pProcArg->conn, notify->window);
+                    xcb_icccm_get_wm_hints_reply(pProcArg->conn, cookie_wm_hints, &hints, NULL);
+
+                    if (hints.flags & XCB_ICCCM_WM_HINT_STATE)
+                        {
+                            if (((hints.initial_state) == XCB_ICCCM_WM_STATE_NORMAL) ||
+                                ((hints.initial_state) == XCB_ICCCM_WM_STATE_ICONIC))
+                                newState = hints.initial_state;
+                            else
+                                ErrorF("Unexpected initial_state %d for window XID %08x\n", hints.initial_state, notify->window);
+                        }
+                    else
+                        newState = XCB_ICCCM_WM_STATE_NORMAL;
+                } else {
+                    /* If there is a WM_STATE property, this should be a
+                       Iconic->Normal state transition. */
+                    struct wmstate *wmstate = xcb_get_property_value(reply);
+                    if (wmstate) {
+                        if (wmstate->state == XCB_ICCCM_WM_STATE_ICONIC)
+                            newState = XCB_ICCCM_WM_STATE_NORMAL;
+                        else {
+                            ErrorF("Unexpected MapNotify when WM_STATE is %d for window XID %08x\n", wmstate->state, notify->window);
+                        }
+                    }
+                }
+                free(reply);
+
+                if (newState != -1) {
+                    memset(&msg, 0, sizeof(msg));
+                    msg.msg = WM_WM_CHANGE_STATE;
+                    msg.iWindow = notify->window;
+                    msg.dwID = newState;
+
+                    winSendMessageToWM(pProcArg->pWMInfo, &msg);
                 }
             }
         }
@@ -1496,7 +1551,20 @@ winMultiWindowXMsgProc(void *pArg)
             memset(&msg, 0, sizeof(msg));
             msg.msg = WM_WM_CHANGE_STATE;
             msg.iWindow = notify->window;
-            msg.dwID = XCB_ICCCM_WM_STATE_WITHDRAWN;
+
+            if (send_event) {
+                // ICCCM 4.1.4 says the client will unmap *and* send a synthetic
+                // UnmapNotify when it wants to withdrawn the window.
+                msg.dwID = XCB_ICCCM_WM_STATE_WITHDRAWN;
+            } else {
+                // Otherwise, we assume any *real* UnmapNotify comes from the
+                // WM
+                //
+                // This is pretty terrible as it leaves clients which violate
+                // the ICCCM visible, but we can't tell the difference between
+                // these two cases any better in a non-reparenting WM.
+                msg.dwID = XCB_ICCCM_WM_STATE_ICONIC;
+            }
 
             winSendMessageToWM(pProcArg->pWMInfo, &msg);
         }
