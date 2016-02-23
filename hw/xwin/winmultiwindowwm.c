@@ -244,9 +244,6 @@ MessageName(winWMMessagePtr msg)
     case WM_WM_CHANGE_STATE:
       return "WM_WM_CHANGE_STATE";
       break;
-    case WM_WM_MAP:
-      return "WM_WM_MAP";
-      break;
     case WM_WM_MAP_UNMANAGED:
       return "WM_WM_MAP_UNMANAGED";
       break;
@@ -1055,11 +1052,6 @@ winMultiWindowWMProc(void *pArg)
                 xcb_configure_window(pWMInfo->conn, pNode->msg.iWindow,
                                      XCB_CONFIG_WINDOW_STACK_MODE, values);
             }
-            break;
-
-        case WM_WM_MAP:
-            UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
 
         case WM_WM_MAP_UNMANAGED:
