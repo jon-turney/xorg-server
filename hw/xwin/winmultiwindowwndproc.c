@@ -1052,6 +1052,35 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 winReorderWindowsMultiWindow();
         }
         /* else: wait for WM_EXITSIZEMOVE */
+
+        // XXX: should this be in WM_WINDOWPOSCHANGED ???
+        switch (wParam)
+            {
+            case SIZE_MINIMIZED:
+                {
+                    wmMsg.msg = WM_WM_UNMAP;
+                    /* Tell our Window Manager thread to unmap the window */
+                    if (fWMMsgInitialized)
+                        winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+
+                    break;
+                }
+            case SIZE_RESTORED:
+            case SIZE_MAXIMIZED:
+                {
+                    if (!pWin->overrideRedirect)
+                        wmMsg.msg = WM_WM_MAP_MANAGED;
+                    else
+                        wmMsg.msg = WM_WM_MAP_UNMANAGED;
+
+                    /* Tell our Window Manager thread to map the window */
+                    if (fWMMsgInitialized)
+                        winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+
+                    break;
+                }
+            }
+
         return 0;               /* end of WM_SIZE handler */
 
     case WM_STYLECHANGING:

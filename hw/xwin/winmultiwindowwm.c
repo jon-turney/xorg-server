@@ -1056,6 +1056,10 @@ winMultiWindowWMProc(void *pArg)
             break;
 
         case WM_WM_MAP_UNMANAGED:
+            {
+                /* Make sure the window is mapped */
+                xcb_map_window(pWMInfo->conn, pNode->msg.iWindow);
+            }
             break;
 
         case WM_WM_MAP_MANAGED:
@@ -1075,6 +1079,9 @@ winMultiWindowWMProc(void *pArg)
                     winUpdateRgnMultiWindow(pWin);
                 }
             }
+
+            /* Make sure the window is mapped */
+            xcb_map_window(pWMInfo->conn, pNode->msg.iWindow);
           }
 
           break;
