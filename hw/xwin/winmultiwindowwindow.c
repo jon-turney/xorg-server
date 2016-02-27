@@ -723,7 +723,7 @@ winCreateWindowsChildWindow(WindowPtr pWin)
     winPrivWinPtr pParentPriv, pWinPriv;
 
     winDebug("winCreateWindowsChildWindow - pWin:%p XID:0x%x\n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     winInitMultiWindowClass();
 
@@ -739,7 +739,7 @@ winCreateWindowsChildWindow(WindowPtr pWin)
 
     winDebug
         ("winCreateWindowsChildWindow - parent pWin:%p XID:0x%08x hWnd:0x%p\n",
-         pParent, pParent->drawable.id, pParentPriv->hWnd);
+         pParent, (unsigned int)pParent->drawable.id, pParentPriv->hWnd);
     winDebug("winCreateWindowsChildWindow - %dx%d @ %dx%d\n", iWidth, iHeight,
              iX, iY);
 
@@ -774,7 +774,7 @@ void
 winCreateWindowsWindow(WindowPtr pWin)
 {
     winDebug("winCreateWindowsWindow - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     if (isToplevelWindow(pWin)) {
         winCreateWindowsTopLevelWindow(pWin);
@@ -790,7 +790,7 @@ winDestroyChildWindowsWindow(WindowPtr pWin, void *data)
     winWindowPriv(pWin);
 
     winDebug("winDestroyChildWindowsWindow - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     /* Null our handle to the Window so referencing it will cause an error */
     pWinPriv->hWnd = NULL;
