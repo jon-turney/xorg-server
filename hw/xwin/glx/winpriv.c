@@ -20,7 +20,7 @@ winCreateWindowsWindowHierarchy(WindowPtr pWin)
     winWindowPriv(pWin);
 
     winDebug("winCreateWindowsWindowHierarchy - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     if (!pWin)
         return;
