@@ -436,8 +436,8 @@ winMWExtWMMoveFrame(RootlessFrameID wid, ScreenPtr pScreen, int iNewX,
 
 #ifdef CYGMULTIWINDOW_DEBUG
     winDebug("\tWindow {%d, %d, %d, %d}, {%d, %d}\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom,
-             rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+             (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom,
+             (int)(rcNew.right - rcNew.left), (int)(rcNew.bottom - rcNew.top));
 #endif
     /*
      * Calculate the required size of the Windows window rectangle,
@@ -447,8 +447,8 @@ winMWExtWMMoveFrame(RootlessFrameID wid, ScreenPtr pScreen, int iNewX,
 
 #ifdef CYGMULTIWINDOW_DEBUG
     winDebug("\tAdjusted {%d, %d, %d, %d}, {%d, %d}\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom,
-             rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+             (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom,
+             (int)(rcNew.right - rcNew.left), (int)(rcNew.bottom - rcNew.top));
 #endif
     g_fNoConfigureWindow = TRUE;
     SetWindowPos(pRLWinPriv->hWnd, NULL, rcNew.left, rcNew.top, 0, 0,
@@ -650,7 +650,7 @@ winMWExtWMStartDrawing(RootlessFrameID wid, char **pixelData, int *bytesPerRow)
                 pRLWinPriv->pbmihShadow->biWidth =
                     stridesize / (pScreenInfo->dwBPP >> 3);
                 winDebug("\tresizing to %d (was %d)\n",
-                         pRLWinPriv->pbmihShadow->biWidth,
+                         (int)pRLWinPriv->pbmihShadow->biWidth,
                          pRLWinPriv->pFrame->width);
             }
 
