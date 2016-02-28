@@ -1148,6 +1148,10 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+
     default:
         break;
     }
