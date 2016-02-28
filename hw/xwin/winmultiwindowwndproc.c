@@ -1268,6 +1268,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
         return 0;
+
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+
     default:
         break;
     }
