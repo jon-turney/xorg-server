@@ -187,6 +187,7 @@
 #define WM_TRAYICON		(WM_USER + 1000)
 #define WM_INIT_SYS_MENU	(WM_USER + 1001)
 #define WM_GIVEUP		(WM_USER + 1002)
+#define WM_ASYNCMOVE		(WM_USER + 1003)
 
 /* Local includes */
 #include "winwindow.h"
@@ -976,6 +977,9 @@ XID
 
 int
  winAdjustXWindow(WindowPtr pWin, HWND hwnd);
+
+void
+ winAdjustWindowsWindow(WindowPtr pWin, HWND hwnd);
 #endif
 
 #ifdef XWIN_MULTIWINDOW
