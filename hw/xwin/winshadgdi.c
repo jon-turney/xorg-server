@@ -858,7 +858,7 @@ winBltExposedWindowRegionShadowGDI(ScreenPtr pScreen, WindowPtr pWin)
          */
 
         BITMAPV4HEADER bmih;
-        memset(&bmih, sizeof(bmih), 0);
+        memset(&bmih, 0, sizeof(bmih));
         bmih.bV4Size = sizeof(BITMAPV4HEADER);
         bmih.bV4Width = pPixmap->drawable.width;
         bmih.bV4Height = -pPixmap->drawable.height; /* top-down bitmap */
