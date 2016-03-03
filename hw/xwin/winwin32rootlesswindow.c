@@ -234,8 +234,8 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
 
 #ifdef CYGMULTIWINDOW_DEBUG
             winDebug("\tWindow extend {%d, %d, %d, %d}, {%d, %d}\n",
-                     rcNew.left, rcNew.top, rcNew.right, rcNew.bottom,
-                     rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+                     (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom,
+                     (int)(rcNew.right - rcNew.left), (int)(rcNew.bottom - rcNew.top));
 #endif
             /* */
             AdjustWindowRectEx(&rcNew,
@@ -244,8 +244,8 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
 
 #ifdef CYGMULTIWINDOW_DEBUG
             winDebug("\tAdjusted {%d, %d, %d, %d}, {%d, %d}\n",
-                     rcNew.left, rcNew.top, rcNew.right, rcNew.bottom,
-                     rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+                     (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom,
+                     (int)(rcNew.right - rcNew.left), (int)(rcNew.bottom - rcNew.top));
 #endif
             /* Calculate position deltas */
             iDx = pRLWinPriv->pFrame->x - rcNew.left;
@@ -266,14 +266,14 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
 
 #ifdef CYGMULTIWINDOW_DEBUG
             winDebug("\tWindowStyle: %08x %08x\n",
-                     WS_POPUP | WS_SIZEBOX | WS_OVERLAPPEDWINDOW,
-                     WS_EX_APPWINDOW);
+                     (int)(WS_POPUP | WS_SIZEBOX | WS_OVERLAPPEDWINDOW),
+                     (int)(WS_EX_APPWINDOW));
 #endif
             /* Position the Windows window */
 #ifdef CYGMULTIWINDOW_DEBUG
             winDebug("\tMoved {%d, %d, %d, %d}, {%d, %d}\n",
-                     rcNew.left, rcNew.top, rcNew.right, rcNew.bottom,
-                     rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+                     (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom,
+                     (int)(rcNew.right - rcNew.left), (int)(rcNew.bottom - rcNew.top));
 #endif
             SetWindowPos(pRLWinPriv->hWnd, NULL,
                          rcNew.left, rcNew.top,

@@ -296,7 +296,7 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
             hCursor = (HCURSOR) CreateIconIndirect(&ii);
 
             if (hCursor == NULL)
-                winError("winXCursorToHCURSOR - CreateIconIndirect failed: %x", GetLastError());
+                winError("winXCursorToHCURSOR - CreateIconIndirect failed: %x", (unsigned int)GetLastError());
             else {
                 /*
                    Apparently, CreateIconIndirect() sometimes creates an Icon instead of a Cursor.
@@ -316,7 +316,7 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
                         hCursor = (HCURSOR) CreateIconIndirect(&ii);
 
                         if (hCursor == NULL)
-                            winError("winXCursorToHCURSOR - CreateIconIndirect failed: %x", GetLastError());
+                            winError("winXCursorToHCURSOR - CreateIconIndirect failed: %x", (unsigned int)GetLastError());
                     }
                     /* GetIconInfo creates new bitmaps. Destroy them again */
                     if (ii.hbmMask)
@@ -342,7 +342,7 @@ winXCursorToHCURSOR(WMUTIL_CURSOR *pCursor)
                                sm_cx,
                                sm_cy, pAnd, pXor);
         if (hCursor == NULL)
-            winError("winXCursorToHCURSOR - CreateCursor failed: %x", GetLastError());
+            winError("winXCursorToHCURSOR - CreateCursor failed: %x", (unsigned int)GetLastError());
     }
     free(pAnd);
     free(pXor);

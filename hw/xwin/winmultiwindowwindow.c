@@ -202,32 +202,16 @@ winDestroyWindowMultiWindow(WindowPtr pWin)
 
 /*
  * PositionWindow - See Porting Layer Definition - p. 37
- *
- * This function adjusts the position and size of Windows window
- * with respect to the underlying X window.  This is the inverse
- * of winAdjustXWindow, which adjusts X window to Windows window.
  */
 
 Bool
 winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
 {
     Bool fResult = TRUE;
-    int iX, iY, iWidth, iHeight;
     ScreenPtr pScreen = pWin->drawable.pScreen;
-
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
-
     HWND hWnd = pWinPriv->hWnd;
-    RECT rcNew;
-    RECT rcOld;
-
-#if CYGMULTIWINDOW_DEBUG
-    RECT rcClient;
-    RECT *lpRc;
-#endif
-    DWORD dwExStyle;
-    DWORD dwStyle;
 
 #if CYGMULTIWINDOW_DEBUG
     winTrace("winPositionWindowMultiWindow - pWin: %p\n", pWin);
@@ -249,6 +233,36 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
         return fResult;
     }
 
+    /*
+      We can't call MoveWindow() here, because that sends messages and pumps the
+      message queue, which could re-entrantly call ConfigureWindow(), which
+      would be bad..., so instead just send a message to cause MoveWindow() to
+      be called.
+    */
+    PostMessage(hWnd, WM_ASYNCMOVE, 0, 0);
+
+    return fResult;
+}
+
+/*
+ * This function adjusts the position and size of Windows window
+ * with respect to the underlying X window.  This is the inverse
+ * of winAdjustXWindow, which adjusts X window to Windows window.
+ */
+void
+winAdjustWindowsWindow(WindowPtr pWin, HWND hWnd)
+{
+    int iX, iY, iWidth, iHeight;
+    RECT rcNew;
+    RECT rcOld;
+
+#if CYGMULTIWINDOW_DEBUG
+    RECT rcClient;
+    RECT *lpRc;
+#endif
+    DWORD dwExStyle;
+    DWORD dwStyle;
+
     if (!isToplevelWindow(pWin)) {
         POINT parentOrigin;
 
@@ -268,8 +282,6 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
         MoveWindow(hWnd,
                    iX - parentOrigin.x, iY - parentOrigin.y, iWidth, iHeight,
                    TRUE);
-
-        return fResult;
     }
 
     /* Get the Windows window style and extended style */
@@ -336,11 +348,9 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
     }
     else {
 #if CYGMULTIWINDOW_DEBUG
-        ErrorF("winPositionWindowMultiWindow - Not need to move\n");
+        ErrorF("winPositionWindowMultiWindow - No need to move\n");
 #endif
     }
-
-    return fResult;
 }
 
 /*
@@ -713,7 +723,7 @@ winCreateWindowsChildWindow(WindowPtr pWin)
     winPrivWinPtr pParentPriv, pWinPriv;
 
     winDebug("winCreateWindowsChildWindow - pWin:%p XID:0x%x\n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     winInitMultiWindowClass();
 
@@ -729,7 +739,7 @@ winCreateWindowsChildWindow(WindowPtr pWin)
 
     winDebug
         ("winCreateWindowsChildWindow - parent pWin:%p XID:0x%08x hWnd:0x%p\n",
-         pParent, pParent->drawable.id, pParentPriv->hWnd);
+         pParent, (unsigned int)pParent->drawable.id, pParentPriv->hWnd);
     winDebug("winCreateWindowsChildWindow - %dx%d @ %dx%d\n", iWidth, iHeight,
              iX, iY);
 
@@ -764,7 +774,7 @@ void
 winCreateWindowsWindow(WindowPtr pWin)
 {
     winDebug("winCreateWindowsWindow - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     if (isToplevelWindow(pWin)) {
         winCreateWindowsTopLevelWindow(pWin);
@@ -780,7 +790,7 @@ winDestroyChildWindowsWindow(WindowPtr pWin, void *data)
     winWindowPriv(pWin);
 
     winDebug("winDestroyChildWindowsWindow - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     /* Null our handle to the Window so referencing it will cause an error */
     pWinPriv->hWnd = NULL;

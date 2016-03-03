@@ -464,7 +464,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /*
          * Any window menu items go through here
          */
-        if (HandleCustomWM_COMMAND(hwnd, LOWORD(wParam))) {
+        if (HandleCustomWM_COMMAND(hwnd, LOWORD(wParam), s_pScreenPriv)) {
             /* Don't pass customized menus to DefWindowProc */
             return 0;
         }
@@ -1148,6 +1148,10 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+
     default:
         break;
     }
@@ -1225,7 +1229,7 @@ winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
     SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
 
     winDebug("winUpdateWindowPosition - drawable extent (%d, %d)-(%d, %d)\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
+             (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom);
 
     AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
                        GetWindowLongPtr(hWnd, GWL_EXSTYLE));
@@ -1244,7 +1248,7 @@ winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
     }
 
     winDebug("winUpdateWindowPosition - Window extent (%d, %d)-(%d, %d)\n",
-             rcNew.left, rcNew.top, rcNew.right, rcNew.bottom);
+             (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom);
 
     /* Position the Windows window */
     SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,

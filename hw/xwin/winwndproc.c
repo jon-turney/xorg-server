@@ -164,13 +164,15 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          * their own mode when they become active.
          */
         if (s_pScreenInfo->fFullScreen
-            || (s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
+            && (s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
             break;
         }
 
         ErrorF("winWindowProc - WM_DISPLAYCHANGE - new width: %d "
                "new height: %d new bpp: %d\n",
                LOWORD(lParam), HIWORD(lParam), (int)wParam);
+
+        ErrorF("winWindowProc - RemoteSession: %s\n",  GetSystemMetrics(SM_REMOTESESSION) ? "yes" : "no");
 
         /* 0 bpp has no defined meaning, ignore this message */
         if (wParam == 0)
@@ -1217,7 +1219,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         default:
             /* It's probably one of the custom menus... */
-            if (HandleCustomWM_COMMAND(0, LOWORD(wParam)))
+            if (HandleCustomWM_COMMAND(0, LOWORD(wParam), s_pScreenPriv))
                 return 0;
         }
         break;
