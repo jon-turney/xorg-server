@@ -105,7 +105,7 @@ winDoRandRScreenSetSize(ScreenPtr pScreen,
         return;
 
     // Prevent screen updates while we change things around
-    SetRootClip(pScreen, FALSE);
+    SetRootClip(pScreen, ROOT_CLIP_NONE);
 
     /* Update the screen size as requested */
     pScreenInfo->dwWidth = width;
@@ -131,7 +131,7 @@ winDoRandRScreenSetSize(ScreenPtr pScreen,
     // does this emit a ConfigureNotify??
 
     // Restore the ability to update screen, now with new dimensions
-    SetRootClip(pScreen, TRUE);
+    SetRootClip(pScreen, ROOT_CLIP_FULL);
 
     // and arrange for it to be repainted
     pScreen->PaintWindow(pRoot, &pRoot->borderClip, PW_BACKGROUND);
