@@ -564,29 +564,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    /*
-     * Look for the '-mwextwm' argument
-     */
-    if (IS_OPTION("-mwextwm")) {
-        if (!screenInfoPtr->fMultiMonitorOverride)
-            screenInfoPtr->fMultipleMonitors = TRUE;
-        screenInfoPtr->fMWExtWM = TRUE;
-
-        /* Indicate that we have processed this argument */
-        return 1;
-    }
-    /*
-     * Look for the '-internalwm' argument
-     */
-    if (IS_OPTION("-internalwm")) {
-        ErrorF("Ignoring obsolete -internalwm option\n");
-        /* Ignored, but we still accept the arg for backwards compatibility */
-        /* Indicate that we have processed this argument */
-        return 1;
-    }
-#endif
-
     /*
      * Look for the '-rootless' argument
      */

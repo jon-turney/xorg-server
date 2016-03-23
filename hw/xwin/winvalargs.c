@@ -103,7 +103,7 @@ winValidateArgs(void)
 
             /* Fail if two or more conflicting options */
             if (iCount > 1) {
-                ErrorF("winValidateArgs - Only one of -multiwindow, -mwextwm, "
+                ErrorF("winValidateArgs - Only one of -multiwindow "
                        "and -rootless can be specific at a time.\n");
                 return FALSE;
             }
@@ -123,7 +123,7 @@ winValidateArgs(void)
             )
             ) {
             ErrorF("winValidateArgs - Xdmcp (-query, -broadcast, or -indirect) "
-                   "is invalid with -multiwindow or -mwextwm.\n");
+                   "is invalid with -multiwindow.\n");
             return FALSE;
         }
 
@@ -138,7 +138,7 @@ winValidateArgs(void)
                                             || g_ScreenInfo[i].fRootless)
             ) {
             ErrorF("winValidateArgs - -fullscreen is invalid with "
-                   "-multiwindow, -mwextwm, or -rootless.\n");
+                   "-multiwindow or -rootless.\n");
             return FALSE;
         }
 
@@ -153,7 +153,7 @@ winValidateArgs(void)
                                             || g_ScreenInfo[i].fRootless)
             ) {
             ErrorF("winValidateArgs - -nodecoration is invalid with "
-                   "-multiwindow, -mwextwm, or -rootless.\n");
+                   "-multiwindow or -rootless.\n");
             return FALSE;
         }
 
