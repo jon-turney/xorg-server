@@ -690,12 +690,6 @@ winCreateWindowsTopLevelWindow(WindowPtr pWin)
     /* Adjust the X window to match the window placement we actually got... */
     winAdjustXWindow(pWin, hWnd);
 
-    /* Make sure it gets the proper system menu for a WS_POPUP, too */
-    GetSystemMenu(hWnd, TRUE);
-
-    /* Cause any .XWinrc menus to be added in main WNDPROC */
-    PostMessage(hWnd, WM_INIT_SYS_MENU, 0, 0);
-
     SetProp(hWnd, WIN_WID_PROP, (HANDLE) (INT_PTR) winGetWindowID(pWin));
 
     /* Flag that this Windows window handles its own activation */
