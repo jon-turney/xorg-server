@@ -991,6 +991,13 @@ winMultiWindowWMProc(void *pArg)
             /* Determine the Window style, which determines borders and clipping region... */
             UpdateStyle(pWMInfo, pNode->msg.iWindow, &maxmin);
 
+            /* Make sure it gets the proper system menu for a WS_POPUP, too */
+            GetSystemMenu(pNode->msg.hwndWindow, TRUE);
+
+#define WM_INIT_SYS_MENU	(WM_USER + 1001)
+            /* Cause any .XWinrc menus to be added in main WNDPROC */
+            PostMessage(pNode->msg.hwndWindow, WM_INIT_SYS_MENU, 0, 0);
+
             /* Display the window without activating it */
             {
                 xcb_get_window_attributes_cookie_t cookie;
