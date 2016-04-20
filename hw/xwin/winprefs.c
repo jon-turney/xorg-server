@@ -517,8 +517,10 @@ SetupSysMenu(HWND hwnd)
     pWin = GetProp(hwnd, WIN_WINDOW_PROP);
 
     sys = GetSystemMenu(hwnd, FALSE);
-    if (!sys)
+    if (!sys) {
+        ErrorF("SetupSysMenu: GetSystemMenu() failed for HWND %p\n", hwnd);
         return;
+    }
 
     if (pWin) {
         /* First see if there's a class match... */
