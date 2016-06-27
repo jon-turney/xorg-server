@@ -212,6 +212,7 @@ The default is enabled.
 .TP 8
 .B \-swcursor
 Disable the usage of the \fIWindows\fP cursor and use the X11 software cursor instead.
+This option is ignored if \fB-compositewm\fP is also enabled.
 .TP 8
 .B \-[no]trayicon
 Do not create a tray icon.  Default is to create one
