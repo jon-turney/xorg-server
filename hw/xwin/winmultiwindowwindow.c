@@ -282,6 +282,8 @@ winAdjustWindowsWindow(WindowPtr pWin, HWND hWnd)
         MoveWindow(hWnd,
                    iX - parentOrigin.x, iY - parentOrigin.y, iWidth, iHeight,
                    TRUE);
+
+        return;
     }
 
     /* Get the Windows window style and extended style */
