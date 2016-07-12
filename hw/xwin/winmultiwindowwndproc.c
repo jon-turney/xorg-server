@@ -1294,9 +1294,28 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 LRESULT CALLBACK
 winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    WindowPtr pWin = NULL;
+
 #if CYGDEBUG
     winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
 #endif
+
+    /*
+      If this is WM_CREATE, set up the Windows window properties which point to
+      X window information
+    */
+    if (message == WM_CREATE) {
+        SetProp(hwnd,
+                WIN_WINDOW_PROP,
+                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
+        SetProp(hwnd,
+                WIN_WID_PROP,
+                (HANDLE) (INT_PTR)winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                 lpCreateParams));
+    }
+
+    /* Retrieve the Windows window property for our X window pointer */
+    pWin = GetProp(hwnd, WIN_WINDOW_PROP);
 
     switch (message) {
     case WM_ERASEBKGND:
@@ -1318,6 +1337,10 @@ winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
     }
         /* XXX: this is exactly what DefWindowProc does? */
+
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
