@@ -304,11 +304,11 @@ fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
         return;
 
     ErrorF
-        ("pxf vis  fb                      render         Ste                     aux    accum        MS    drawable             Group/\n");
+        ("pxf vis  fb                      render         Ste                     aux    accum        MS    drawable             Group/ sRGB\n");
     ErrorF
-        ("idx  ID  ID VisualType Depth Lvl RGB CI DB Swap reo  R  G  B  A   Z  S  buf AR AG AB AA  bufs num  W P Pb  Float Trans Caveat\n");
+        ("idx  ID  ID VisualType Depth Lvl RGB CI DB Swap reo  R  G  B  A   Z  S  buf AR AG AB AA  bufs num  W P Pb  Float Trans Caveat cap \n");
     ErrorF
-        ("-----------------------------------------------------------------------------------------------------------------------------\n");
+        ("----------------------------------------------------------------------------------------------------------------------------------\n");
 
     while (c != NULL) {
         unsigned int i = ((GLXWinConfig *) c)->pixelFormatIndex;
@@ -328,7 +328,8 @@ fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
                "  %s %s %s "
                "    %s   "
                "  %s   "
-               "  %d %s"
+               "  %d %s "
+               "  %s"
                "\n",
                i, c->visualID, c->fbconfigID,
                visual_class_name(c->visualType),
@@ -350,7 +351,8 @@ fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
                float_col,
                (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".",
                c->visualSelectGroup,
-               (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ");
+               (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ",
+               c->sRGBCapable ? "y" : ".");
 
         c = c->next;
     }
@@ -703,6 +705,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
             { "WGL_ARB_create_context_profile", "GLX_ARB_create_context_profile", 0 },
             { "WGL_ARB_create_context_robustness", "GLX_ARB_create_context_robustness", 0 },
             { "WGL_EXT_create_context_es2_profile", "GLX_EXT_create_context_es2_profile", 0 },
+            { "WGL_ARB_framebuffer_sRGB", "GLX_ARB_framebuffer_sRGB", 0 },
         };
 
         //
@@ -736,6 +739,10 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
         if (strstr(wgl_extensions, "WGL_ARB_multisample"))
             screen->has_WGL_ARB_multisample = TRUE;
+
+        if (strstr(wgl_extensions, "WGL_ARB_framebuffer_sRGB")) {
+            screen->has_WGL_ARB_framebuffer_sRGB = TRUE;
+        }
 
         screen->base.destroy = glxWinScreenDestroy;
         screen->base.createContext = glxWinCreateContext;
@@ -1870,6 +1877,9 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig * mode,
                 SET_ATTR_VALUE(WGL_DRAW_TO_PBUFFER_ARB, TRUE);
     }
 
+    if (winScreen->has_WGL_ARB_framebuffer_sRGB)
+        SET_ATTR_VALUE(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, TRUE);
+
     SET_ATTR_VALUE(0, 0);       // terminator
 
     /* choose the first match */
@@ -2234,6 +2244,11 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
         ADD_ATTR(WGL_MAX_PBUFFER_HEIGHT_ARB);
     }
 
+    if (screen->has_WGL_ARB_framebuffer_sRGB) {
+        // we may not query these attrs if WGL_ARB_framebuffer_sRGB is not offered
+        ADD_ATTR(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB);
+    }
+
     /* fill in configs */
     for (i = 0; i < numConfigs; i++) {
         int values[num_attrs];
@@ -2517,7 +2532,9 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
             GLX_TEXTURE_1D_BIT_EXT | GLX_TEXTURE_2D_BIT_EXT |
             GLX_TEXTURE_RECTANGLE_BIT_EXT;
         c->base.yInverted = -1;
-        c->base.sRGBCapable = 0;
+
+        /* WGL_ARB_framebuffer_sRGB */
+        c->base.sRGBCapable = ATTR_VALUE(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, 0);
 
         n++;
 
