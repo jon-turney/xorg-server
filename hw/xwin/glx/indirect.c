@@ -689,11 +689,27 @@ glxWinScreenProbe(ScreenPtr pScreen)
     }
 
     {
+        int i;
         Bool glx_sgi_make_current_read = FALSE;
+
+        const struct
+        {
+            const char *wglext;
+            const char *glxext;
+            Bool mandatory;
+        } extensionMap[] = {
+            { "WGL_ARB_make_current_read", "GLX_SGI_make_current_read", 0 },
+            { "WGL_EXT_swap_control", "GLX_SGI_swap_control", 0 },
+            { "WGL_EXT_swap_control", "GLX_MESA_swap_control", 0 },
+            //      { "WGL_ARB_render_texture", "GLX_EXT_texture_from_pixmap", 0 },
+            // Sufficiently different that it's not obvious if this can be done...
+            { "WGL_ARB_pbuffer", "GLX_SGIX_pbuffer", 0 },
+            { "WGL_ARB_multisample", "GLX_ARB_multisample", 0 },
+            { "WGL_ARB_multisample", "GLX_SGIS_multisample", 0 },
+        };
 
         //
         // Based on the WGL extensions available, enable various GLX extensions
-        // XXX: make this table-driven ?
         //
         memset(screen->glx_enable_bits, 0, __GLX_EXT_BYTES);
 
@@ -703,49 +719,33 @@ glxWinScreenProbe(ScreenPtr pScreen)
         __glXEnableExtension(screen->glx_enable_bits, "GLX_OML_swap_method");
         __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_fbconfig");
 
+        for (i = 0; i < sizeof(extensionMap)/sizeof(extensionMap[0]); i++) {
+            if (strstr(wgl_extensions, extensionMap[i].wglext)) {
+                __glXEnableExtension(screen->glx_enable_bits, extensionMap[i].glxext);
+                LogMessage(X_INFO, "GLX: enabled %s\n", extensionMap[i].glxext);
+            }
+            else if (extensionMap[i].mandatory) {
+                LogMessage(X_ERROR, "required WGL extension %s is missing\n", extensionMap[i].wglext);
+            }
+        }
+
         if (strstr(wgl_extensions, "WGL_ARB_make_current_read")) {
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_SGI_make_current_read");
-            LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_make_current_read\n");
             glx_sgi_make_current_read = TRUE;
         }
 
+        // Because it pre-dates WGL_EXT_extensions_string, GL_WIN_swap_hint might
+        // only be in GL_EXTENSIONS
         if (strstr(gl_extensions, "GL_WIN_swap_hint")) {
             __glXEnableExtension(screen->glx_enable_bits,
                                  "GLX_MESA_copy_sub_buffer");
             LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
         }
 
-        if (strstr(wgl_extensions, "WGL_EXT_swap_control")) {
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_SGI_swap_control");
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_MESA_swap_control");
-            LogMessage(X_INFO,
-                       "AIGLX: enabled GLX_SGI_swap_control and GLX_MESA_swap_control\n");
-        }
-
-/*       // Hmm?  screen->texOffset */
-/*       if (strstr(wgl_extensions, "WGL_ARB_render_texture")) */
-/*         { */
-/*           __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_texture_from_pixmap"); */
-/*           LogMessage(X_INFO, "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n"); */
-/*           screen->has_WGL_ARB_render_texture = TRUE; */
-/*         } */
-
         if (strstr(wgl_extensions, "WGL_ARB_pbuffer")) {
-            __glXEnableExtension(screen->glx_enable_bits, "GLX_SGIX_pbuffer");
-            LogMessage(X_INFO, "AIGLX: enabled GLX_SGIX_pbuffer\n");
             screen->has_WGL_ARB_pbuffer = TRUE;
         }
 
         if (strstr(wgl_extensions, "WGL_ARB_multisample")) {
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_ARB_multisample");
-            __glXEnableExtension(screen->glx_enable_bits,
-                                 "GLX_SGIS_multisample");
-            LogMessage(X_INFO,
-                       "AIGLX: enabled GLX_ARB_multisample and GLX_SGIS_multisample\n");
             screen->has_WGL_ARB_multisample = TRUE;
         }
 
