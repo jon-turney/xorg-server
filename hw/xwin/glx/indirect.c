@@ -105,8 +105,6 @@
 
 typedef struct  {
     int notOpenGL;
-    int rgbaFloat;
-    int unsignedRgbaFloat;
     int unknownPixelType;
     int unaccelerated;
 } PixelFormatRejectStats;
@@ -299,9 +297,8 @@ static void
 fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
 {
     LogMessage(X_INFO, "%d fbConfigs\n", n);
-    LogMessage(X_INFO, "ignored pixel formats: %d not OpenGL, %d RBGA float, %d RGBA unsigned float, %d unknown pixel type, %d unaccelerated\n",
-               rejects->notOpenGL, rejects->rgbaFloat, rejects->unsignedRgbaFloat,
-               rejects->unknownPixelType, rejects->unaccelerated);
+    LogMessage(X_INFO, "ignored pixel formats: %d not OpenGL, %d unknown pixel type, %d unaccelerated\n",
+               rejects->notOpenGL, rejects->unknownPixelType, rejects->unaccelerated);
 
     if (g_iLogVerbose < 3)
         return;
@@ -315,6 +312,10 @@ fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
 
     while (c != NULL) {
         unsigned int i = ((GLXWinConfig *) c)->pixelFormatIndex;
+
+        const char *float_col = ".";
+        if (c->renderType & GLX_RGBA_FLOAT_BIT_ARB) float_col = "s";
+        if (c->renderType & GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT) float_col = "u";
 
         ErrorF("%3d %3x %3x "
                "%-11s"
@@ -346,8 +347,7 @@ fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
                (c->drawableType & GLX_WINDOW_BIT) ? "y" : ".",
                (c->drawableType & GLX_PIXMAP_BIT) ? "y" : ".",
                (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".",
-               (c->renderType & (GLX_RGBA_FLOAT_BIT_ARB |
-                   GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT)) ? "y" : ".",
+               float_col,
                (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".",
                c->visualSelectGroup,
                (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ");
@@ -697,6 +697,8 @@ glxWinScreenProbe(ScreenPtr pScreen)
             { "WGL_ARB_pbuffer", "GLX_SGIX_pbuffer", 1 },
             { "WGL_ARB_multisample", "GLX_ARB_multisample", 1 },
             { "WGL_ARB_multisample", "GLX_SGIS_multisample", 0 },
+            { "WGL_ARB_pixel_format_float", "GLX_ARB_fbconfig_float", 0 },
+            { "WGL_EXT_pixel_format_packed_float", "GLX_EXT_fbconfig_packed_float", 0 },
         };
 
         //
@@ -1784,13 +1786,34 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig * mode,
     int attribList[60];
 
     SET_ATTR_VALUE(WGL_SUPPORT_OPENGL_ARB, TRUE);
-    SET_ATTR_VALUE(WGL_PIXEL_TYPE_ARB,
-                   (mode->visualType ==
-                    GLX_TRUE_COLOR) ? WGL_TYPE_RGBA_ARB :
-                   WGL_TYPE_COLORINDEX_ARB);
-    SET_ATTR_VALUE(WGL_COLOR_BITS_ARB,
-                   (mode->visualType ==
-                    GLX_TRUE_COLOR) ? mode->rgbBits : mode->indexBits);
+
+    switch (mode->renderType)
+        {
+        case GLX_COLOR_INDEX_BIT:
+        case GLX_RGBA_BIT | GLX_COLOR_INDEX_BIT:
+            SET_ATTR_VALUE(WGL_PIXEL_TYPE_ARB, WGL_TYPE_COLORINDEX_ARB);
+            SET_ATTR_VALUE(WGL_COLOR_BITS_ARB, mode->indexBits);
+            break;
+
+        default:
+            ErrorF("unexpected renderType %x\n", mode->renderType);
+            /* fall-through */
+        case GLX_RGBA_BIT:
+            SET_ATTR_VALUE(WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB);
+            SET_ATTR_VALUE(WGL_COLOR_BITS_ARB, mode->rgbBits);
+            break;
+
+        case GLX_RGBA_FLOAT_BIT_ARB:
+            SET_ATTR_VALUE(WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_FLOAT_ARB);
+            SET_ATTR_VALUE(WGL_COLOR_BITS_ARB, mode->rgbBits);
+            break;
+
+        case GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT:
+            SET_ATTR_VALUE(WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT);
+            SET_ATTR_VALUE(WGL_COLOR_BITS_ARB, mode->rgbBits);
+            break;
+        }
+
     SET_ATTR_VALUE(WGL_RED_BITS_ARB, mode->redBits);
     SET_ATTR_VALUE(WGL_GREEN_BITS_ARB, mode->greenBits);
     SET_ATTR_VALUE(WGL_BLUE_BITS_ARB, mode->blueBits);
@@ -2260,25 +2283,42 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
             c->base.indexBits = ATTR_VALUE(WGL_COLOR_BITS_ARB, 0);
             c->base.rgbBits = 0;
             c->base.visualType = GLX_STATIC_COLOR;
+            c->base.renderType = GLX_RGBA_BIT | GLX_COLOR_INDEX_BIT;
+
+            /*
+              Assume RGBA rendering is available on all single-channel visuals
+              (it is specified to render to red component in single-channel
+              visuals, if supported, but there doesn't seem to be any mechanism
+              to check if it is supported)
+
+              Color index rendering is only supported on single-channel visuals
+            */
+
             break;
-
-        case WGL_TYPE_RGBA_FLOAT_ARB:
-            rejects->rgbaFloat++;
-            GLWIN_DEBUG_MSG
-                ("pixelFormat %d is WGL_TYPE_RGBA_FLOAT_ARB, skipping", i + 1);
-            continue;
-
-        case WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT:
-            rejects->unsignedRgbaFloat++;
-            GLWIN_DEBUG_MSG
-                ("pixelFormat %d is WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT, skipping",
-                 i + 1);
-            continue;
 
         case WGL_TYPE_RGBA_ARB:
             c->base.indexBits = 0;
             c->base.rgbBits = ATTR_VALUE(WGL_COLOR_BITS_ARB, 0);
             c->base.visualType = GLX_TRUE_COLOR;
+            c->base.renderType = GLX_RGBA_BIT;
+            break;
+
+        case WGL_TYPE_RGBA_FLOAT_ARB:
+            c->base.indexBits = 0;
+            c->base.rgbBits = ATTR_VALUE(WGL_COLOR_BITS_ARB, 0);
+            c->base.visualType = GLX_TRUE_COLOR;
+            c->base.renderType = GLX_RGBA_FLOAT_BIT_ARB;
+            // assert pbuffer drawable
+            // assert WGL_ARB_pixel_format_float
+            break;
+
+        case WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT:
+            c->base.indexBits = 0;
+            c->base.rgbBits = ATTR_VALUE(WGL_COLOR_BITS_ARB, 0);
+            c->base.visualType = GLX_TRUE_COLOR;
+            c->base.renderType = GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT;
+            // assert pbuffer drawable
+            // assert WGL_EXT_pixel_format_packed_float
             break;
 
         default:
