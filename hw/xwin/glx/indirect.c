@@ -1146,14 +1146,14 @@ glxWinDeferredCreateDrawable(__GLXWinDrawable *draw, __GLXconfig *config)
 
 #define RASTERWIDTHBYTES(bmi) (((((bmi)->biWidth*(bmi)->biBitCount)+31)&~31)>>3)
             size = bmpHeader.biHeight * RASTERWIDTHBYTES(&bmpHeader);
-            ErrorF("shared memory region size %zu + %u\n", sizeof(BITMAPINFOHEADER), (unsigned int)size);
+            GLWIN_DEBUG_MSG("shared memory region size %zu + %u\n", sizeof(BITMAPINFOHEADER), (unsigned int)size);
 
             // Create unique name for mapping based on XID
             //
             // XXX: not quite unique as potentially this name could be used in
             // another server instance.  Not sure how to deal with that.
             snprintf(name, sizeof(name), "Local\\CYGWINX_WINDOWSDRI_%08x", (unsigned int)draw->base.pDraw->id);
-            ErrorF("shared memory region name %s\n", name);
+            GLWIN_DEBUG_MSG("shared memory region name %s\n", name);
 
             // Create a file mapping backed by the pagefile
             draw->hSection = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
