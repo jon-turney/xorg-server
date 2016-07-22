@@ -71,6 +71,7 @@ struct __GLXWinScreen {
     Bool has_WGL_ARB_pixel_format;
     Bool has_WGL_ARB_pbuffer;
     Bool has_WGL_ARB_render_texture;
+    Bool has_WGL_ARB_framebuffer_sRGB;
 
     /* wrapped screen functions */
     RealizeWindowProcPtr RealizeWindow;
