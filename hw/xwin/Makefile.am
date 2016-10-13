@@ -36,16 +36,6 @@ MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
 MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
-if XWIN_MULTIWINDOWEXTWM
-SRCS_MULTIWINDOWEXTWM = \
-	winwin32rootless.c \
-	winwin32rootlesswindow.c \
-	winwin32rootlesswndproc.c \
-	winwindowswm.c
-DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
-MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
-endif
-
 if XWIN_RANDR
 SRCS_RANDR = \
 	winrandr.c
@@ -114,7 +104,6 @@ SRCS =	InitInput.c \
 	$(top_srcdir)/mi/miinitext.c \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \
-	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_NATIVEGDI) \
 	$(SRCS_PRIMARYFB) \
 	$(SRCS_RANDR) \
@@ -123,7 +112,6 @@ SRCS =	InitInput.c \
  DEFS = $(DEFS_CLIPBOARD) \
 	$(DEFS_GLX_WINDOWS) \
 	$(DEFS_MULTIWINDOW) \
-	$(DEFS_MULTIWINDOWEXTWM) \
 	$(DEFS_NATIVEGDI) \
 	$(DEFS_PRIMARYFB) \
 	$(DEFS_RANDR) \
@@ -142,7 +130,6 @@ XWIN_LIBS += \
 
 XWin_DEPENDENCIES = \
 	$(MULTIWINDOW_LIBS) \
-	$(MULTIWINDOWEXTWM_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -151,7 +138,6 @@ XWin_DEPENDENCIES = \
 
 XWin_LDADD = \
 	$(MULTIWINDOW_LIBS) \
-	$(MULTIWINDOWEXTWM_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \

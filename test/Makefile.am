@@ -156,11 +156,6 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/miext/rootless/librootless.la
 TEST_LDADD += -lXplugin
 endif
-
-if XWIN_MULTIWINDOWEXTWM
-libxservertest_la_LIBADD += \
-            $(top_builddir)/miext/rootless/librootless.la
-endif
 endif
 
 libxservertest_la_DEPENDENCIES = $(libxservertest_la_LIBADD)
