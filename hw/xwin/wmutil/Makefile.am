@@ -19,6 +19,6 @@ libXWinWMUtil_la_SOURCES = \
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H \
 	    $(DIX_CFLAGS) \
 	    $(XWINMODULES_CFLAGS) \
-	    -I$(top_srcdir) -I$(top_srcdir)/miext/rootless -I$(srcdir)/..
+	    -I$(top_srcdir) -I$(srcdir)/..
 
 libXWinWMUtil_la_LDFLAGS = -static -no-undefined
