@@ -23,6 +23,7 @@ bison,\
 ccache,\
 flex,\
 gcc-core,\
+ImageMagick,\
 meson,\
 ninja,\
 pkg-config,\

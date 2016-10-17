@@ -107,10 +107,21 @@ srcs_windows += [
     '../../mi/miinitext.h',
 ]
 
+convert = find_program('convert')
+x_ico = custom_target(
+    'xlogo-icon',
+    command: [convert, '-background', 'transparent', '-trim', '-define', 'icon:auto-resize', '@INPUT@', '@OUTPUT@'],
+    input: 'X.svg',
+    output: 'X.ico',
+)
+
 rsrc = windows.compile_resources(
      'XWin.rc',
      args: ['--use-temp-file', '-DHOST="@0@-@1@"'.format(host_machine.system(), host_machine.cpu_family())],
-     include_directories: include_directories('../../include/'))
+     include_directories: include_directories('../../include/'),
+     depend_files: ['XWin.exe.manifest'],
+     depends: x_ico,
+)
 srcs_windows += rsrc
 
 flex = find_program('flex')
