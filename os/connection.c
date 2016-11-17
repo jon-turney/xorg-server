@@ -367,12 +367,14 @@ CreateWellKnownSockets(void)
     else { /* -displayfd and no explicit display number */
         Bool found = 0;
         for (i = 0; i < 65536 - X_TCP_PORT; i++) {
-            if (TryCreateSocket(i, &partial) && !partial) {
-                found = 1;
-                break;
+            ErrorF("Trying to create socket for display number %d\n", i);
+            if (TryCreateSocket(i, &partial) &&
+                (ListenTransCount >= 1))
+                if (PartialNetwork || !partial) {
+                    found = 1;
+                    break;
             }
-            else
-                CloseWellKnownConnections();
+            CloseWellKnownConnections();
         }
         if (!found)
             FatalError("Failed to find a socket to listen on");

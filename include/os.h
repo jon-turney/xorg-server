@@ -55,6 +55,8 @@ SOFTWARE.
 #include <time.h>
 #endif
 
+#include <signal.h>
+
 #define SCREEN_SAVER_ON   0
 #define SCREEN_SAVER_OFF  1
 #define SCREEN_SAVER_FORCER 2
@@ -350,6 +352,10 @@ extern _X_EXPORT void *
 Fopen(const char *, const char *);
 extern _X_EXPORT int
 Fclose(void *);
+#if defined(__CYGWIN__)
+extern const char *
+Win32TempDir(void);
+#endif
 #else
 
 extern const char *
@@ -698,6 +704,12 @@ LogPrintMarkers(void);
 
 extern _X_EXPORT void
 xorg_backtrace(void);
+
+extern _X_EXPORT void
+xorg_crashreport(int signo, siginfo_t *sip, void *sigcontext);
+
+extern _X_EXPORT void
+xorg_crashreport_init(const char *logfile);
 
 extern _X_EXPORT int
 os_move_fd(int fd);

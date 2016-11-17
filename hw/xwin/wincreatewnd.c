@@ -72,18 +72,12 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = g_hInstance;
-    wc.hIcon =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXICON),
-                          GetSystemMetrics(SM_CYICON), 0);
+    wc.hIcon = pScreenInfo->hIcon;
     wc.hCursor = 0;
     wc.hbrBackground = 0;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WINDOW_CLASS;
-    wc.hIconSm =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXSMICON),
-                          GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
+    wc.hIconSm = pScreenInfo->hIconSm;
     RegisterClassEx(&wc);
 
     /* Set display and screen-specific tooltip text */
@@ -152,9 +146,6 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
     /* Decorated or undecorated window */
     if (pScreenInfo->fDecoration
-#ifdef XWIN_MULTIWINDOWEXTWM
-        && !pScreenInfo->fMWExtWM
-#endif
         && !pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
         && !pScreenInfo->fMultiWindow
@@ -184,18 +175,12 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = g_hInstance;
-    wc.hIcon =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXICON),
-                          GetSystemMetrics(SM_CYICON), 0);
+    wc.hIcon = pScreenInfo->hIcon;
     wc.hCursor = 0;
     wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WINDOW_CLASS;
-    wc.hIconSm =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXSMICON),
-                          GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
+    wc.hIconSm = pScreenInfo->hIconSm;
     RegisterClassEx(&wc);
 
     /* Get size of work area */
@@ -216,9 +201,6 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
     /* Clean up the scrollbars flag, if necessary */
     if ((!pScreenInfo->fDecoration
-#ifdef XWIN_MULTIWINDOWEXTWM
-         || pScreenInfo->fMWExtWM
-#endif
          || pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
          || pScreenInfo->fMultiWindow
@@ -239,9 +221,6 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
         /* Adjust the window width and height for borders and title bar */
         if (pScreenInfo->fDecoration
-#ifdef XWIN_MULTIWINDOWEXTWM
-            && !pScreenInfo->fMWExtWM
-#endif
             && !pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
             && !pScreenInfo->fMultiWindow
@@ -290,9 +269,6 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
     /* Make sure window is no bigger than work area */
     if (TRUE
-#ifdef XWIN_MULTIWINDOWEXTWM
-        && !pScreenInfo->fMWExtWM
-#endif
 #ifdef XWIN_MULTIWINDOW
         && !pScreenInfo->fMultiWindow
 #endif
@@ -427,14 +403,11 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
     /* Show the window */
     if (FALSE
-#ifdef XWIN_MULTIWINDOWEXTWM
-        || pScreenInfo->fMWExtWM
-#endif
 #ifdef XWIN_MULTIWINDOW
         || pScreenInfo->fMultiWindow
 #endif
         ) {
-#if defined(XWIN_MULTIWINDOW) || defined(XWIN_MULTIWINDOWEXTWM)
+#ifdef XWIN_MULTIWINDOW
         pScreenPriv->fRootWindowShown = FALSE;
 #endif
         ShowWindow(*phwnd, SW_HIDE);
@@ -448,9 +421,6 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
 
     /* Attempt to bring our window to the top of the display */
     if (TRUE
-#ifdef XWIN_MULTIWINDOWEXTWM
-        && !pScreenInfo->fMWExtWM
-#endif
         && !pScreenInfo->fRootless
 #ifdef XWIN_MULTIWINDOW
         && !pScreenInfo->fMultiWindow

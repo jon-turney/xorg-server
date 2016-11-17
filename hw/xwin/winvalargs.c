@@ -80,7 +80,7 @@ winValidateArgs(void)
     for (i = 0; i < g_iNumScreens; ++i) {
         /*
          * Check for any combination of
-         * -multiwindow, -mwextwm, and -rootless.
+         * -multiwindow and -rootless.
          */
         {
             int iCount = 0;
@@ -90,10 +90,7 @@ winValidateArgs(void)
             if (g_ScreenInfo[i].fMultiWindow)
                 ++iCount;
 #endif
-#ifdef XWIN_MULTIWINDOWEXTWM
-            if (g_ScreenInfo[i].fMWExtWM)
-                ++iCount;
-#endif
+
             if (g_ScreenInfo[i].fRootless)
                 ++iCount;
 
@@ -103,57 +100,47 @@ winValidateArgs(void)
 
             /* Fail if two or more conflicting options */
             if (iCount > 1) {
-                ErrorF("winValidateArgs - Only one of -multiwindow, -mwextwm, "
+                ErrorF("winValidateArgs - Only one of -multiwindow "
                        "and -rootless can be specific at a time.\n");
                 return FALSE;
             }
         }
 
-        /* Check for -multiwindow or -mwextwm and Xdmcp */
+        /* Check for -multiwindow and Xdmcp */
         /* allow xdmcp if screen 0 is normal. */
         if (g_fXdmcpEnabled && !fHasNormalScreen0 && (FALSE
 #ifdef XWIN_MULTIWINDOW
                                                       || g_ScreenInfo[i].
                                                       fMultiWindow
 #endif
-#ifdef XWIN_MULTIWINDOWEXTWM
-                                                      || g_ScreenInfo[i].
-                                                      fMWExtWM
-#endif
             )
             ) {
             ErrorF("winValidateArgs - Xdmcp (-query, -broadcast, or -indirect) "
-                   "is invalid with -multiwindow or -mwextwm.\n");
+                   "is invalid with -multiwindow.\n");
             return FALSE;
         }
 
-        /* Check for -multiwindow, -mwextwm, or -rootless and -fullscreen */
+        /* Check for -multiwindow or -rootless and -fullscreen */
         if (g_ScreenInfo[i].fFullScreen && (FALSE
 #ifdef XWIN_MULTIWINDOW
                                             || g_ScreenInfo[i].fMultiWindow
 #endif
-#ifdef XWIN_MULTIWINDOWEXTWM
-                                            || g_ScreenInfo[i].fMWExtWM
-#endif
                                             || g_ScreenInfo[i].fRootless)
             ) {
             ErrorF("winValidateArgs - -fullscreen is invalid with "
-                   "-multiwindow, -mwextwm, or -rootless.\n");
+                   "-multiwindow or -rootless.\n");
             return FALSE;
         }
 
-        /* Check for -multiwindow, -mwextwm, or -rootless and -nodecoration */
+        /* Check for -multiwindow or -rootless and -nodecoration */
         if (!g_ScreenInfo[i].fDecoration && (FALSE
 #ifdef XWIN_MULTIWINDOW
                                             || g_ScreenInfo[i].fMultiWindow
 #endif
-#ifdef XWIN_MULTIWINDOWEXTWM
-                                            || g_ScreenInfo[i].fMWExtWM
-#endif
                                             || g_ScreenInfo[i].fRootless)
             ) {
             ErrorF("winValidateArgs - -nodecoration is invalid with "
-                   "-multiwindow, -mwextwm, or -rootless.\n");
+                   "-multiwindow or -rootless.\n");
             return FALSE;
         }
 
@@ -175,6 +162,16 @@ winValidateArgs(void)
                    "-scrollbars, -resize, -nodecoration, or -lesspointer.\n");
             return FALSE;
         }
+
+#ifdef XWIN_MULTIWINDOW
+        /* Ignore -swcursor if -multiwindow -compositewm is requested */
+        if (g_ScreenInfo[i].fMultiWindow && g_ScreenInfo[i].fCompositeWM) {
+            if (g_fSoftwareCursor) {
+                g_fSoftwareCursor = FALSE;
+                winMsg(X_WARNING, "Ignoring -swcursor due to -compositewm\n");
+            }
+        }
+#endif
     }
 
     winDebug("winValidateArgs - Returning.\n");

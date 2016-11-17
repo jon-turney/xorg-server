@@ -37,6 +37,9 @@
 #include <stdlib.h>
 #ifdef __CYGWIN__
 #include <sys/resource.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <sys/cygwin.h>
 #endif
 #include "win.h"
 
@@ -58,9 +61,6 @@ extern int parse_file(FILE * fp);
 
 /* Currently in use command ID, incremented each new menu item created */
 static int g_cmdid = STARTMENUID;
-
-/* Local function to handle comma-ified icon names */
-static HICON LoadImageComma(char *fname, int sx, int sy, int flags);
 
 /*
  * Creates or appends a menu from a MENUPARSED structure
@@ -301,6 +301,110 @@ HandleCustomWM_INITMENU(HWND hwnd, HMENU hmenu)
 
 }
 
+#ifdef __CYGWIN__
+static void
+LogLineFromFd(int fd, const char *fdname, int pid)
+{
+#define BUFSIZE 512             /* must be less than internal buffer size used in LogVWrite */
+    char buf[BUFSIZE];
+    char *bufptr = buf;
+
+    /* read from fd until eof, newline or our buffer is full */
+    while ((read(fd, bufptr, 1) > 0) && (bufptr < &(buf[BUFSIZE - 1]))) {
+        if (*bufptr == '\n')
+            break;
+        bufptr++;
+    }
+
+    /* null terminate and log */
+    *bufptr = 0;
+    if (strlen(buf))
+        ErrorF("(pid %d %s) %s\n", pid, fdname, buf);
+}
+
+static void *
+ExecAndLogThread(void *cmd)
+{
+    int pid;
+    int stdout_filedes[2];
+    int stderr_filedes[2];
+    int status;
+
+    /* Create a pair of pipes */
+    pipe(stdout_filedes);
+    pipe(stderr_filedes);
+
+    switch (pid = fork()) {
+    case 0:                    /* child */
+    {
+        struct rlimit rl;
+        unsigned int fd;
+
+        /* dup write end of pipes onto stderr and stdout */
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+
+        dup2(stdout_filedes[1], STDOUT_FILENO);
+        dup2(stderr_filedes[1], STDERR_FILENO);
+
+        /* Close any open descriptors except for STD* */
+        getrlimit(RLIMIT_NOFILE, &rl);
+        for (fd = STDERR_FILENO + 1; fd < rl.rlim_cur; fd++)
+            close(fd);
+
+        /* Disassociate any TTYs */
+        setsid();
+
+        execl("/bin/sh", "/bin/sh", "-c", cmd, NULL);
+        perror("execl failed");
+        exit(127);
+    }
+        break;
+
+    default:                   /* parent */
+    {
+        close(stdout_filedes[1]);
+        close(stderr_filedes[1]);
+
+        ErrorF("executing '%s', pid %d\n", (char *) cmd, pid);
+
+        /* read from pipes, write to log, until both are closed */
+        while (TRUE) {
+            fd_set readfds, errorfds;
+            int nfds = max(stdout_filedes[0], stderr_filedes[0]) + 1;
+
+            FD_ZERO(&readfds);
+            FD_SET(stdout_filedes[0], &readfds);
+            FD_SET(stderr_filedes[0], &readfds);
+            errorfds = readfds;
+
+            if (select(nfds, &readfds, NULL, &errorfds, NULL) > 0) {
+                if (FD_ISSET(stdout_filedes[0], &readfds))
+                    LogLineFromFd(stdout_filedes[0], "stdout", pid);
+                if (FD_ISSET(stderr_filedes[0], &readfds))
+                    LogLineFromFd(stderr_filedes[0], "stderr", pid);
+
+                if (FD_ISSET(stdout_filedes[0], &errorfds) &&
+                    FD_ISSET(stderr_filedes[0], &errorfds))
+                    break;
+            }
+            else {
+                break;
+            }
+        }
+
+        waitpid(pid, &status, 0);
+    }
+        break;
+
+    case -1:                   /* error */
+        ErrorF("fork() to run command failed\n");
+    }
+
+    return (void *) (intptr_t) status;
+}
+#endif
+
 /*
  * Searches for the custom WM_COMMAND command ID and performs action.
  * Return TRUE if command is proccessed, FALSE otherwise.
@@ -323,24 +427,17 @@ HandleCustomWM_COMMAND(HWND hwnd, WORD command, winPrivScreenPtr pScreenPriv)
                 switch (m->menuItem[j].cmd) {
 #ifdef __CYGWIN__
                 case CMD_EXEC:
-                    if (fork() == 0) {
-                        struct rlimit rl;
-                        int fd;
+                {
+                    pthread_t t;
 
-                        /* Close any open descriptors except for STD* */
-                        getrlimit(RLIMIT_NOFILE, &rl);
-                        for (fd = STDERR_FILENO + 1; fd < rl.rlim_cur; fd++)
-                            close(fd);
-
-                        /* Disassociate any TTYs */
-                        setsid();
-
-                        execl("/bin/sh",
-                              "/bin/sh", "-c", m->menuItem[j].param, NULL);
-                        exit(0);
-                    }
+                    if (!pthread_create
+                        (&t, NULL, ExecAndLogThread, m->menuItem[j].param))
+                        pthread_detach(t);
                     else
-                        return TRUE;
+                        ErrorF
+                            ("Creating command output logging thread failed\n");
+                }
+                    return TRUE;
                     break;
 #else
                 case CMD_EXEC:
@@ -427,8 +524,10 @@ SetupSysMenu(HWND hwnd)
     pWin = GetProp(hwnd, WIN_WINDOW_PROP);
 
     sys = GetSystemMenu(hwnd, FALSE);
-    if (!sys)
+    if (!sys) {
+        ErrorF("SetupSysMenu: GetSystemMenu() failed for HWND %p\n", hwnd);
         return;
+    }
 
     if (pWin) {
         /* First see if there's a class match... */
@@ -484,7 +583,7 @@ winOverrideDefaultIcon(int size)
     HICON hicon;
 
     if (pref.defaultIconName[0]) {
-        hicon = LoadImageComma(pref.defaultIconName, size, size, 0);
+        hicon = LoadImageComma(pref.defaultIconName, pref.iconDirectory, size, size, 0);
         if (hicon == NULL)
             ErrorF("winOverrideDefaultIcon: LoadImageComma(%s) failed\n",
                    pref.defaultIconName);
@@ -506,9 +605,12 @@ winTaskbarIcon(void)
     hicon = 0;
     /* First try and load an overridden, if success then return it */
     if (pref.trayIconName[0]) {
-        hicon = LoadImageComma(pref.trayIconName,
+        hicon = LoadImageComma(pref.trayIconName, pref.iconDirectory,
                                GetSystemMetrics(SM_CXSMICON),
                                GetSystemMetrics(SM_CYSMICON), 0);
+        if (hicon == NULL)
+            ErrorF("winTaskbarIcon: LoadImageComma(%s) failed\n",
+                   pref.trayIconName);
     }
 
     /* Otherwise return the default */
@@ -523,17 +625,18 @@ winTaskbarIcon(void)
 }
 
 /*
+ * Handle comma-ified icon names
+ *
  * Parse a filename to extract an icon:
  *  If fname is exactly ",nnn" then extract icon from our resource
  *  else if it is "file,nnn" then extract icon nnn from that file
  *  else try to load it as an .ico file and if that fails return NULL
  */
-static HICON
-LoadImageComma(char *fname, int sx, int sy, int flags)
+HICON
+LoadImageComma(char *fname, char *iconDirectory, int sx, int sy, int flags)
 {
     HICON hicon;
     int i;
-    char file[PATH_MAX + NAME_MAX + 2];
 
     /* Some input error checking */
     if (!fname || !fname[0])
@@ -549,31 +652,67 @@ LoadImageComma(char *fname, int sx, int sy, int flags)
                           MAKEINTRESOURCE(i), IMAGE_ICON, sx, sy, flags);
     }
     else {
+        char *file = malloc(PATH_MAX + NAME_MAX + 2);
+        Bool convert = FALSE;
+
+        if (!file)
+            return NULL;
+
         file[0] = 0;
-        /* Prepend path if not given a "X:\" filename */
+
+        /* If fname starts 'X:\', it's an absolute Windows path, do nothing */
         if (!(fname[0] && fname[1] == ':' && fname[2] == '\\')) {
-            strcpy(file, pref.iconDirectory);
-            if (pref.iconDirectory[0])
-                if (fname[strlen(fname) - 1] != '\\')
-                    strcat(file, "\\");
+#ifdef  __CYGWIN__
+            /* If fname starts with '/', it's an absolute cygwin path, we'll
+               need to convert it */
+            if (fname[0] == '/') {
+                convert = TRUE;
+            }
+            else
+#endif
+            if (iconDirectory) {
+                /* Otherwise, prepend the default icon directory, which
+                   currently must be in absolute Windows path form */
+                strcpy(file, iconDirectory);
+                if (iconDirectory[0])
+                    if (iconDirectory[strlen(iconDirectory) - 1] != '\\')
+                        strcat(file, "\\");
+            }
         }
         strcat(file, fname);
 
+        /* Trim off any ',index' */
         if (strrchr(file, ',')) {
-            /* Specified as <fname>,<index> */
-
             *(strrchr(file, ',')) = 0;  /* End string at comma */
             i = atoi(strrchr(fname, ',') + 1);
+        }
+        else {
+            i = -1;
+        }
+
+#ifdef  __CYGWIN__
+        /* Convert from Cygwin path to Windows path */
+        if (convert) {
+            char *converted_file = cygwin_create_path(CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE, file);
+            if (converted_file) {
+                free(file);
+                file = converted_file;
+            }
+        }
+#endif
+
+        if (i >= 0) {
+            /* Specified as <fname>,<index> */
             hicon = ExtractIcon(g_hInstance, file, i);
         }
         else {
-            /* Just an .ico file... */
-
+            /* Specified as just an .ico file */
             hicon = (HICON) LoadImage(NULL,
                                       file,
                                       IMAGE_ICON,
                                       sx, sy, LR_LOADFROMFILE | flags);
         }
+        free(file);
     }
     return hicon;
 }
@@ -595,7 +734,7 @@ winOverrideIcon(char *res_name, char *res_class, char *wmName)
             if (pref.icon[i].hicon)
                 return pref.icon[i].hicon;
 
-            hicon = LoadImageComma(pref.icon[i].iconFile, 0, 0, LR_DEFAULTSIZE);
+            hicon = LoadImageComma(pref.icon[i].iconFile, pref.iconDirectory, 0, 0, LR_DEFAULTSIZE);
             if (hicon == NULL)
                 ErrorF("winOverrideIcon: LoadImageComma(%s) failed\n",
                        pref.icon[i].iconFile);
@@ -645,11 +784,17 @@ winPrefsLoadPreferences(const char *path)
             "MENU rmenu {\n"
             "  \"How to customize this menu\" EXEC \"xterm +tb -e man XWinrc\"\n"
             "  \"Launch xterm\" EXEC xterm\n"
-            "  \"Load .XWinrc\" RELOAD\n"
+            "  SEPARATOR\n"
+            "  FAQ EXEC \"cygstart http://x.cygwin.com/docs/faq/cygwin-x-faq.html\"\n"
+            "  \"User's Guide\" EXEC \"cygstart http://x.cygwin.com/docs/ug/cygwin-x-ug.html\"\n"
+            "  SEPARATOR\n"
+            "  \"Reload .XWinrc\" RELOAD\n"
             "  SEPARATOR\n" "}\n" "\n" "ROOTMENU rmenu\n";
 
         path = "built-in default";
         prefFile = fmemopen(defaultPrefs, strlen(defaultPrefs), "r");
+
+
     }
 #endif
 
@@ -680,7 +825,7 @@ LoadPreferences(void)
     char *home;
     char fname[PATH_MAX + NAME_MAX + 2];
     char szDisplay[512];
-    char *szEnvDisplay;
+    char *szEnvDisplay, *szEnvLogFile;
     int i, j;
     char param[PARAM_MAX + 1];
     char *srcParam, *dstParam;
@@ -727,6 +872,11 @@ LoadPreferences(void)
         snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
         putenv(szEnvDisplay);
     }
+
+    /* Setup XWINLOGFILE environment variable */
+    szEnvLogFile = (char *) (malloc(strlen(g_pszLogFile) + strlen("XWINLOGFILE=") + 1));
+    snprintf(szEnvLogFile, 512, "XWINLOGFILE=%s", g_pszLogFile);
+    putenv(szEnvLogFile);
 
     /* Replace any "%display%" in menu commands with display string */
     for (i = 0; i < pref.menuItems; i++) {

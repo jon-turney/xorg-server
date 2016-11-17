@@ -111,7 +111,7 @@ LRESULT
 winHandleIconMessage(HWND hwnd, UINT message,
                      WPARAM wParam, LPARAM lParam, winPrivScreenPtr pScreenPriv)
 {
-#if defined(XWIN_MULTIWINDOWEXTWM) || defined(XWIN_MULTIWINDOW)
+#ifdef XWIN_MULTIWINDOW
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
 #endif
 
@@ -119,11 +119,6 @@ winHandleIconMessage(HWND hwnd, UINT message,
     case WM_LBUTTONUP:
         /* Restack and bring all windows to top */
         SetForegroundWindow (pScreenPriv->hwndScreen);
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-        if (pScreenInfo->fMWExtWM)
-            winMWExtWMRestackWindows(pScreenInfo->pScreen);
-#endif
         break;
 
     case WM_LBUTTONDBLCLK:

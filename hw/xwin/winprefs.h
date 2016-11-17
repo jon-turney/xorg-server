@@ -35,9 +35,6 @@
 
 /* Need Bool */
 #include <X11/Xdefs.h>
-/* Need TRUE */
-#include "misc.h"
-
 /* Need to know how long paths can be... */
 #include <limits.h>
 /* Xwindows redefines PATH_MAX to at least 1024 */
@@ -68,6 +65,7 @@ typedef enum MENUCOMMANDTYPE {
 #define STYLE_MAXIMIZE (1L<<4)  /* Open a window maximized                    */
 #define STYLE_MINIMIZE (1L<<5)  /* Open a window minimized                    */
 #define STYLE_BOTTOM   (1L<<6)  /* Open a window at the bottom of the Z order */
+#define STYLE_SKIPTASKBAR (1L<<7)  /* Omit from taskbar                       */
 
 /* Where to place a system menu */
 typedef enum MENUPOSITION {
@@ -175,4 +173,8 @@ unsigned long
 HICON winTaskbarIcon(void);
 
 HICON winOverrideDefaultIcon(int size);
+
+HICON
+LoadImageComma(char *fname, char *iconDirectory, int sx, int sy, int flags);
+
 #endif

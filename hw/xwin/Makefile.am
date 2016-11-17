@@ -33,16 +33,7 @@ SRCS_MULTIWINDOW = \
 	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
 MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
-endif
-
-if XWIN_MULTIWINDOWEXTWM
-SRCS_MULTIWINDOWEXTWM = \
-	winwin32rootless.c \
-	winwin32rootlesswindow.c \
-	winwin32rootlesswndproc.c \
-	winwindowswm.c
-DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
-MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
+MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
 if XWIN_RANDR
@@ -97,8 +88,6 @@ SRCS =	InitInput.c \
 	winconfig.h \
 	win.h \
 	winglobals.h \
-	winkeybd.h \
-	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
 	winmonitors.h \
@@ -115,7 +104,6 @@ SRCS =	InitInput.c \
 	$(top_srcdir)/mi/miinitext.c \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \
-	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_NATIVEGDI) \
 	$(SRCS_PRIMARYFB) \
 	$(SRCS_RANDR) \
@@ -124,7 +112,6 @@ SRCS =	InitInput.c \
  DEFS = $(DEFS_CLIPBOARD) \
 	$(DEFS_GLX_WINDOWS) \
 	$(DEFS_MULTIWINDOW) \
-	$(DEFS_MULTIWINDOWEXTWM) \
 	$(DEFS_NATIVEGDI) \
 	$(DEFS_PRIMARYFB) \
 	$(DEFS_RANDR) \
@@ -142,7 +129,7 @@ XWIN_LIBS += \
 	$(top_builddir)/Xi/libXistubs.la
 
 XWin_DEPENDENCIES = \
-	$(MULTIWINDOWEXTWM_LIBS) \
+	$(MULTIWINDOW_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -150,7 +137,7 @@ XWin_DEPENDENCIES = \
 
 
 XWin_LDADD = \
-	$(MULTIWINDOWEXTWM_LIBS) \
+	$(MULTIWINDOW_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -164,9 +151,12 @@ XWin_LDFLAGS = -mwindows -Wl,--disable-stdcall-fixup $(LD_EXPORT_SYMBOLS_FLAG)
 
 
 .rc.o:
-	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
+	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DHOST_TRIPLET=\"$(host)\"
 
 XWin.o: XWin.rc XWin.exe.manifest X.ico
+
+X.ico: X.svg
+	$(AM_V_GEN)convert -background transparent $(srcdir)/X.svg -trim -define icon:auto-resize X.ico
 
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
@@ -196,5 +186,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) winclipboard .
-DIST_SUBDIRS = man dri glx winclipboard .
+SUBDIRS = man $(GLX_DIR) winclipboard wmutil .
+DIST_SUBDIRS = man dri glx winclipboard wmutil .
