@@ -614,6 +614,25 @@ ddxProcessArgument(int argc, char *argv[], int i)
         /* Indicate that we have processed this argument */
         return 1;
     }
+
+    /*
+     * Look for the '-compositealpha' argument
+     */
+    if (IS_OPTION("-compositealpha")) {
+        g_fCompositeAlpha = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+    /*
+     * Look for the '-nocompositealpha' argument
+     */
+    if (IS_OPTION("-nocompositealpha")) {
+        g_fCompositeAlpha  = FALSE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
 #endif
 
     /*
