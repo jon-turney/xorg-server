@@ -2539,7 +2539,10 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
         c->base.yInverted = -1;
 
         /* WGL_ARB_framebuffer_sRGB */
-        c->base.sRGBCapable = ATTR_VALUE(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, 0);
+        if (screen->has_WGL_ARB_framebuffer_sRGB)
+            c->base.sRGBCapable = ATTR_VALUE(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, 0);
+        else
+            c->base.sRGBCapable = 0;
 
         n++;
 
