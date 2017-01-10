@@ -32,7 +32,7 @@ SRCS_MULTIWINDOW = \
 	propertystore.h \
 	winSetAppUserModelID.c
 DEFS_MULTIWINDOW = -DXWIN_MULTIWINDOW
-MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
+MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32 -ldwmapi
 MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 endif
 
