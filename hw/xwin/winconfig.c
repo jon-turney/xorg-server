@@ -25,7 +25,7 @@
  *or other dealings in this Software without prior written authorization
  *from the XFree86 Project.
  *
- * Authors: Alexander Gottwald	
+ * Authors: Alexander Gottwald
  */
 
 #ifdef HAVE_XWIN_CONFIG_H
@@ -37,6 +37,7 @@
 #include "globals.h"
 
 #include "xkbsrv.h"
+#include "keysym2ucs.h"
 
 #ifdef XWIN_XF86CONFIG
 #ifndef CONFIGPATH
@@ -219,6 +220,167 @@ winReadConfigfile()
 /* load layout definitions */
 #include "winlayouts.h"
 
+// Each key can generate 4 glyphs. They are, in order:
+// unshifted, shifted, modeswitch unshifted, modeswitch shifted
+#define GLYPHS_PER_KEY 4
+#define NUM_KEYCODES   248
+#define MIN_KEYCODE    XkbMinLegalKeyCode      // unfortunately, this isn't 0...
+#define MAX_KEYCODE    NUM_KEYCODES + MIN_KEYCODE - 1
+
+typedef struct darwinKeyboardInfo_struct {
+    CARD8 modMap[MAP_LENGTH];
+    KeySym keyMap[MAP_LENGTH * GLYPHS_PER_KEY];
+    // unsigned char modifierKeycodes[32][2]; // used to turn of repeat on modifierkeys and ..
+} darwinKeyboardInfo;
+
+/*
+ * BuildModifierMaps
+ *
+ *      Populate modMap assigning modifier-type keys which are present in the
+ *      keymap to specific modifiers.
+ *
+ */
+static void
+BuildModifierMaps(darwinKeyboardInfo *info)
+{
+    int i;
+    KeySym *k;
+
+    memset(info->modMap, NoSymbol, sizeof(info->modMap));
+
+    for (i = 0; i < NUM_KEYCODES; i++) {
+        k = info->keyMap + i * GLYPHS_PER_KEY;
+
+        switch (*k) {
+        case XK_Shift_L:
+            info->modMap[MIN_KEYCODE + i] = ShiftMask;
+            break;
+
+        case XK_Shift_R:
+            info->modMap[MIN_KEYCODE + i] = ShiftMask;
+            break;
+
+        case XK_Control_L:
+            info->modMap[MIN_KEYCODE + i] = ControlMask;
+            break;
+
+        case XK_Control_R:
+            info->modMap[MIN_KEYCODE + i] = ControlMask;
+            break;
+
+        case XK_Caps_Lock:
+            info->modMap[MIN_KEYCODE + i] = LockMask;
+            break;
+
+        case XK_Alt_L:
+            info->modMap[MIN_KEYCODE + i] = Mod1Mask;
+            break;
+
+        case XK_Alt_R:
+            info->modMap[MIN_KEYCODE + i] = Mod1Mask;
+            break;
+
+        case XK_Meta_L:
+            info->modMap[MIN_KEYCODE + i] = Mod2Mask;
+            break;
+
+        case XK_Meta_R:
+            info->modMap[MIN_KEYCODE + i] = Mod2Mask;
+            break;
+
+        case XK_Num_Lock:
+            info->modMap[MIN_KEYCODE + i] = Mod3Mask;
+            break;
+
+        case XK_Mode_switch:
+            info->modMap[MIN_KEYCODE + i] = Mod5Mask;
+            break;
+
+        }
+    }
+}
+
+/* Table of virtualkey->keysym mappings for keys that are not Unicode characters */
+const static struct {
+    int vk;
+    KeySym ks;
+} knownVKs[] = {
+    { VK_ESCAPE, XK_Escape },
+    { VK_BACK, XK_BackSpace },
+    { VK_TAB, XK_Tab },
+    { VK_RETURN, XK_Return },
+    { VK_CONTROL, XK_Control_L },
+    { VK_LCONTROL, XK_Control_L },
+    { VK_RCONTROL, XK_Control_R },
+    { VK_SHIFT, XK_Shift_L },
+    { VK_LSHIFT, XK_Shift_L },
+    { VK_RSHIFT, XK_Shift_R },
+    { VK_MENU, XK_Alt_L },
+    { VK_LMENU, XK_Alt_L },
+    { VK_RMENU, XK_Alt_R },
+    { VK_CAPITAL, XK_Caps_Lock },
+
+    { VK_PAUSE, XK_Pause},
+    { VK_SCROLL, XK_Scroll_Lock },
+    { VK_SNAPSHOT, XK_Sys_Req },
+
+    /* function keys */
+    { VK_F1, XK_F1 },
+    { VK_F2, XK_F2 },
+    { VK_F3, XK_F3 },
+    { VK_F4, XK_F4 },
+    { VK_F5, XK_F5 },
+    { VK_F6, XK_F6 },
+    { VK_F7, XK_F7 },
+    { VK_F8, XK_F8 },
+    { VK_F9, XK_F9 },
+    { VK_F10, XK_F10 },
+    { VK_F11, XK_F11 },
+    { VK_F12, XK_F12 },
+    { VK_F13, XK_F13 },
+    { VK_F14, XK_F14 },
+    { VK_F15, XK_F15 },
+    { VK_F16, XK_F16 },
+    { VK_F17, XK_F17 },
+    { VK_F18, XK_F18 },
+    { VK_F19, XK_F19 },
+    { VK_F20, XK_F20 },
+    { VK_F21, XK_F21 },
+    { VK_F22, XK_F22 },
+    { VK_F23, XK_F23 },
+    { VK_F24, XK_F24 },
+
+#if 0
+    /* numpad */
+    { VK_NUMLOCK, XK_Num_Lock },
+    { VK_MULTIPLY, XK_KP_Multiply },
+    { VK_ADD, XK_KP_Add },
+    { VK_SUBTRACT, XK_KP_Subtract },
+    { VK_DECIMAL, XK_KP_Decimal },
+
+    /* cursor motion */
+    { VK_PRIOR, XK_Page_Up },
+    { VK_NEXT, XK_Page_Down },
+    { VK_END, XK_End },
+    { VK_HOME, XK_Home },
+    { VK_LEFT, XK_Left },
+    { VK_UP, XK_Up },
+    { VK_RIGHT, XK_Right },
+    { VK_DOWN, XK_Down },
+#endif
+};
+
+static KeySym
+VKToKeySym(UINT vk)
+{
+    int i;
+
+    for (i = 0; i < sizeof(knownVKs) / sizeof(knownVKs[0]); i++)
+        if (knownVKs[i].vk == vk) return knownVKs[i].ks;
+
+    return 0;
+}
+
 /* Set the keyboard configuration */
 Bool
 winConfigKeyboard(DeviceIntPtr pDevice)
@@ -357,6 +519,118 @@ winConfigKeyboard(DeviceIntPtr pDevice)
 
             if (bfound)
                 break;
+        }
+
+        // XXX:
+        bfound = FALSE;
+
+        /* If that fails, try converting the Windows layout */
+        if (!bfound) {
+            int sc;
+            int j;
+            darwinKeyboardInfo keyInfo;
+            memset(keyInfo.modMap, 0, MAP_LENGTH);
+            memset(keyInfo.keyMap, 0, MAP_LENGTH * GLYPHS_PER_KEY * sizeof(KeySym));
+
+            winMsg(X_ERROR,
+                   "Keyboardlayout \"%s\" (%s) is unknown\n",
+                   layoutFriendlyName, layoutName);
+
+            /*
+               For all scancodes, in the four shift states
+
+               If it produces a VirtualKey code for which we know the
+               corresponding KeySym, use that.
+
+               If it produces a Unicode character, convert that to an X11 KeySym
+               (which may just be a unicode Keysym, if there isn't a better one)
+            */
+            for (j = 0; j < 4; j++) {
+                /* Setup the modifier key state */
+                BYTE state[256];
+                memset(state, 0, 256);
+                if ((j % 2) == 1)
+                    state[VK_SHIFT] = 0x80;
+                if (j >= 2) {
+                    // AltGR = Alt + Control
+                    // (what to use here might depend on layout?)
+                    state[VK_CONTROL] = 0x80;
+                    state[VK_MENU] = 0x80;
+                }
+
+                ErrorF("state %d\n", j);
+
+                for (sc = 0; sc < 128; sc++) {
+                    UINT vk;
+                    KeySym ks;
+                    WCHAR out[2];
+                    char keyName[64];
+
+                    /* Translate scan code to Virtual Key code */
+                    vk = MapVirtualKey(sc, MAPVK_VSC_TO_VK_EX);
+                    if (vk == 0)
+                        continue;
+
+                    GetKeyNameText(sc << 16, keyName, sizeof(keyName));
+
+                    /* Is the KeySym for the VK_ known ?*/
+                    ks = VKToKeySym(vk);
+                    if (ks) {
+                        ErrorF("scan code %x (%s), VK %x -> keysym %x\n", sc, keyName, vk, ks);
+                    } else {
+                        /* What unicode characters are output by that key in
+                           this modifier state */
+                        int result;
+                        result = ToUnicode(vk, sc, state, &out[0], 2, 0);
+
+                        switch (result) {
+                        case -1: // dead-key
+                            ErrorF("scan code %x (%s), VK %x -> deadkey\n", sc, keyName, vk);
+                            break;
+                        case 0: // nothing
+                            ErrorF("scan code %x (%s), VK %x -> nothing\n", sc, keyName, vk);
+                            break;
+                        case 1: // something
+                            {
+                                char outAsUtf8[8];
+                                int len = WideCharToMultiByte(CP_UTF8, 0, out, 1, outAsUtf8, 8, NULL, NULL);
+                                outAsUtf8[len] = '\0';
+
+                                ks = ucs2keysym(out[0]);
+
+                                ErrorF("scan code %x (%s), VK %x -> Unicode %x ('%s') -> keysym %x\n", sc, keyName, vk, out[0], outAsUtf8, ks);
+                            }
+                            break;
+                        case 2: // too much
+                            ErrorF("scan code %x (%s), VK %x produced more than one unicode character\n", sc, keyName, vk);
+                            break;
+                        }
+                    }
+
+                    if (ks) {
+                        KeySym *k;
+                        k = keyInfo.keyMap + sc * GLYPHS_PER_KEY;
+                        k[j] = ks;
+                    }
+                }
+            }
+
+            // Build the modmap
+            BuildModifierMaps(&keyInfo);
+
+            {
+                KeySymsRec keySyms;
+
+                keySyms.map = keyInfo.keyMap;
+                keySyms.mapWidth = GLYPHS_PER_KEY;
+                keySyms.minKeyCode = MIN_KEYCODE;
+                keySyms.maxKeyCode = MAX_KEYCODE;
+
+                // TODO: We should build the entire XkbDescRec and use XkbCopyKeymap
+                XkbApplyMappingChange(pDevice, &keySyms, keySyms.minKeyCode,
+                                      keySyms.maxKeyCode - keySyms.minKeyCode + 1,
+                                      keyInfo.modMap, serverClient);
+            }
         }
 
         if (!bfound) {

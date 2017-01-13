@@ -96,6 +96,8 @@ winKeybdProc(DeviceIntPtr pDeviceInt, int iState)
 
     switch (iState) {
     case DEVICE_INIT:
+        InitKeyboardDeviceStruct(pDeviceInt, NULL, winKeybdBell, winKeybdCtrl);
+
         winConfigKeyboard(pDeviceInt);
 
         /* FIXME: Maybe we should use winGetKbdLeds () here? */
@@ -109,8 +111,18 @@ winKeybdProc(DeviceIntPtr pDeviceInt, int iState)
                       g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "none",
                       g_winInfo.xkb.options ? g_winInfo.xkb.options : "none");
 
-        InitKeyboardDeviceStruct(pDeviceInt,
-                                 &g_winInfo.xkb, winKeybdBell, winKeybdCtrl);
+        //        InitKeyboardDeviceStruct(pDeviceInt,
+        //                                 &g_winInfo.xkb, winKeybdBell, winKeybdCtrl);
+
+#if 0
+        // XXX: apply rmlvo, somehow...
+        XkbRMLVOSet *rmlvo = malloc(sizeof(XkbRMLVOSet));
+        XkbInitRules(rmlvo, g_winInfo.xkb.rules, g_winInfo.xkb.model,
+                     g_winInfo.xkb.layout, g_winInfo.xkb.variant,
+                     g_winInfo.xkb.options);
+        XkbCompileKeymap(pDeviceInt, rmlvo);
+        XkbFreeRMLVOSet(rmlvo);
+#endif
 
         xkbi = pDeviceInt->key->xkbInfo;
         if ((xkbi != NULL) && (xkbi->desc != NULL)) {
