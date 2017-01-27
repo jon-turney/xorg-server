@@ -25,7 +25,7 @@
  *or other dealings in this Software without prior written authorization
  *from the XFree86 Project.
  *
- * Authors: Alexander Gottwald	
+ * Authors: Alexander Gottwald
  */
 
 #ifdef HAVE_XWIN_CONFIG_H
@@ -98,6 +98,7 @@ winInfoRec g_winInfo = {
      NULL,                      /* options */
      }
     ,
+    TRUE,                       /* rmlvo */
     {
      FALSE,
      50}

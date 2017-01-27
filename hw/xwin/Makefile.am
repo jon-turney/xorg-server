@@ -50,6 +50,8 @@ endif
 
 SRCS =	InitInput.c \
 	InitOutput.c \
+	keysym2ucs.c \
+	keysym2ucs.h \
 	winallpriv.c \
 	winauth.c \
 	winblock.c \

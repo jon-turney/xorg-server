@@ -31,6 +31,8 @@
  *		Harold L Hunt II
  */
 
+#define WINVER 0x0600
+
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
@@ -44,6 +46,7 @@
 
 #include "xkbsrv.h"
 #include "dixgrabs.h"
+#include "keysym2ucs.h"
 
 /* C does not have a logical XOR operator, so we use a macro instead */
 #define LOGICAL_XOR(a,b) ((!(a) && (b)) || ((a) && !(b)))
@@ -88,6 +91,358 @@ winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl)
 {
 }
 
+/*
+
+ */
+
+/*
+  Each key can generate 4 glyphs. They are, in order:
+  unshifted, shifted, modeswitch unshifted, modeswitch shifted
+*/
+#define GLYPHS_PER_KEY 4
+#define NUM_KEYCODES   248
+#define MIN_KEYCODE    XkbMinLegalKeyCode      /* unfortunately, this isn't 0... */
+#define MAX_KEYCODE    NUM_KEYCODES + MIN_KEYCODE - 1
+
+typedef struct winKeyboardInfo_struct {
+    CARD8 modMap[MAP_LENGTH];
+    KeySym keyMap[MAP_LENGTH * GLYPHS_PER_KEY];
+} winKeyboardInfo;
+
+winKeyboardInfo keyInfo;
+
+/*
+ * BuildModifierMaps
+ *
+ *      Populate modMap assigning modifier-type keys which are present in the
+ *      keymap to specific modifiers.
+ *
+ */
+static void
+BuildModifierMaps(winKeyboardInfo *info)
+{
+    int i;
+    KeySym *k;
+
+    memset(info->modMap, NoSymbol, sizeof(info->modMap));
+
+    for (i = 0; i < NUM_KEYCODES; i++) {
+        k = info->keyMap + i * GLYPHS_PER_KEY;
+
+        switch (*k) {
+        case XK_Shift_L:
+            info->modMap[MIN_KEYCODE + i] = ShiftMask;
+            break;
+
+        case XK_Shift_R:
+            info->modMap[MIN_KEYCODE + i] = ShiftMask;
+            break;
+
+        case XK_Control_L:
+            info->modMap[MIN_KEYCODE + i] = ControlMask;
+            break;
+
+        case XK_Control_R:
+            info->modMap[MIN_KEYCODE + i] = ControlMask;
+            break;
+
+        case XK_Caps_Lock:
+            info->modMap[MIN_KEYCODE + i] = LockMask;
+            break;
+
+        case XK_Alt_L:
+            info->modMap[MIN_KEYCODE + i] = Mod1Mask;
+            break;
+
+        case XK_Alt_R:
+            info->modMap[MIN_KEYCODE + i] = Mod1Mask;
+            break;
+
+        case XK_Meta_L:
+            info->modMap[MIN_KEYCODE + i] = Mod1Mask;
+            break;
+
+        case XK_Meta_R:
+            info->modMap[MIN_KEYCODE + i] = Mod1Mask;
+            break;
+
+        case XK_Num_Lock:
+            info->modMap[MIN_KEYCODE + i] = Mod2Mask;
+            break;
+
+        case XK_Mode_switch:
+            info->modMap[MIN_KEYCODE + i] = Mod5Mask;
+            break;
+
+        case XK_ISO_Level3_Shift:
+            info->modMap[MIN_KEYCODE + i] = Mod5Mask;
+            break;
+        }
+    }
+}
+
+/* Table of virtualkey->keysym mappings for keys that are not Unicode characters */
+const static struct {
+    int vk;
+    KeySym ks[GLYPHS_PER_KEY];
+} knownVKs[] = {
+    { VK_BACK    , {XK_BackSpace, XK_BackSpace, XK_BackSpace, XK_BackSpace} },
+    { VK_ESCAPE  , {XK_Escape, XK_Escape, XK_Escape, XK_Escape} },
+    { VK_RETURN  , {XK_Return, XK_Return, XK_Return, XK_Return} },
+    { VK_TAB     , {XK_Tab, XK_Tab, XK_Tab, XK_Tab} },
+
+    /* Modifier keys */
+    { VK_CONTROL , { XK_Control_L, XK_Control_L, XK_Control_L, XK_Control_L} },
+    { VK_LCONTROL, { XK_Control_L, XK_Control_L, XK_Control_L, XK_Control_L} },
+    { VK_RCONTROL, { XK_Control_R, XK_Control_R, XK_Control_R, XK_Control_R} },
+    { VK_SHIFT   , { XK_Shift_L, XK_Shift_L, XK_Shift_L, XK_Shift_L} },
+    { VK_LSHIFT  , { XK_Shift_L, XK_Shift_L, XK_Shift_L, XK_Shift_L} },
+    { VK_RSHIFT  , { XK_Shift_R, XK_Shift_R, XK_Shift_R, XK_Shift_R} },
+    { VK_MENU    , { XK_Alt_L, XK_Alt_L, XK_Alt_L, XK_Alt_L} },
+    { VK_LMENU   , { XK_Alt_L, XK_Alt_L, XK_Alt_L, XK_Alt_L} },
+    /*  VK_RMENU ties up with the keyboard state used for modeswitched states */
+    { VK_RMENU   , { XK_ISO_Level3_Shift, XK_ISO_Level3_Shift, XK_ISO_Level3_Shift, XK_ISO_Level3_Shift} },
+    { VK_CAPITAL , { XK_Caps_Lock, XK_Caps_Lock, XK_Caps_Lock, XK_Caps_Lock} },
+    { VK_LWIN    , { XK_Super_L, XK_Super_L, XK_Super_L, XK_Super_L} },
+    { VK_RWIN    , { XK_Super_R, XK_Super_R, XK_Super_R, XK_Super_R} },
+
+    /* */
+    { VK_CANCEL  , { XK_Break, XK_Break, XK_Break, XK_Break} },
+    { VK_PAUSE   , { XK_Pause, XK_Pause, XK_Pause, XK_Pause} },
+    { VK_SCROLL  , { XK_Scroll_Lock, XK_Scroll_Lock, XK_Scroll_Lock, XK_Scroll_Lock} },
+    { VK_SNAPSHOT, { XK_Sys_Req, XK_Sys_Req, XK_Sys_Req, XK_Sys_Req} },
+    { VK_APPS    , { XK_Menu, XK_Menu, XK_Menu, XK_Menu } },
+
+    /* function keys */
+    { VK_F1      , { XK_F1, XK_F1, XK_F1, XK_F1 } },
+    { VK_F2      , { XK_F2, XK_F2, XK_F2, XK_F2 } },
+    { VK_F3      , { XK_F3, XK_F3, XK_F3, XK_F3 } },
+    { VK_F4      , { XK_F4, XK_F4, XK_F4, XK_F4 } },
+    { VK_F5      , { XK_F5, XK_F5, XK_F5, XK_F5 } },
+    { VK_F6      , { XK_F6, XK_F6, XK_F6, XK_F6 } },
+    { VK_F7      , { XK_F7, XK_F7, XK_F7, XK_F7 } },
+    { VK_F8      , { XK_F8, XK_F8, XK_F8, XK_F8 } },
+    { VK_F9      , { XK_F9, XK_F9, XK_F9, XK_F9 } },
+    { VK_F10     , { XK_F10, XK_F10, XK_F10, XK_F10 } },
+    { VK_F11     , { XK_F11, XK_F11, XK_F11, XK_F11 } },
+    { VK_F12     , { XK_F12, XK_F12, XK_F12, XK_F12 } },
+
+    /* numpad */
+    { VK_NUMLOCK , { XK_Num_Lock, XK_Num_Lock, XK_Num_Lock, XK_Num_Lock } },
+    { VK_ADD     , { XK_KP_Add, XK_KP_Add, XK_KP_Add, XK_KP_Add } },
+    { VK_DIVIDE  , { XK_KP_Divide, XK_KP_Divide, XK_KP_Divide, XK_KP_Divide } },
+    { VK_MULTIPLY, { XK_KP_Multiply, XK_KP_Multiply, XK_KP_Multiply, XK_KP_Multiply } },
+    { VK_SUBTRACT, { XK_KP_Subtract, XK_KP_Subtract, XK_KP_Subtract, XK_KP_Subtract } },
+    { VK_DECIMAL , { XK_KP_Delete, XK_KP_Decimal, XK_KP_Delete, XK_KP_Decimal } },
+    { VK_NUMPAD0 , { XK_KP_Insert, XK_KP_0, XK_KP_Insert, XK_KP_0 } },
+    { VK_NUMPAD1 , { XK_KP_End, XK_KP_1, XK_KP_End, XK_KP_1 } },
+    { VK_NUMPAD2 , { XK_KP_Down, XK_KP_2, XK_KP_Down, XK_KP_2 } },
+    { VK_NUMPAD3 , { XK_KP_Next, XK_KP_3, XK_KP_Next, XK_KP_3 } },
+    { VK_NUMPAD4 , { XK_KP_Left, XK_KP_4, XK_KP_Left, XK_KP_4 } },
+    { VK_NUMPAD5 , { XK_KP_Begin, XK_KP_5, XK_KP_Begin, XK_KP_5 } },
+    { VK_NUMPAD6 , { XK_KP_Right, XK_KP_6, XK_KP_Right, XK_KP_6 } },
+    { VK_NUMPAD7 , { XK_KP_Home, XK_KP_7, XK_KP_Home, XK_KP_7 } },
+    { VK_NUMPAD8 , { XK_KP_Up, XK_KP_8, XK_KP_Up, XK_KP_8 } },
+    { VK_NUMPAD9 , { XK_KP_Prior, XK_KP_9, XK_KP_Prior, XK_KP_9 } },
+
+    /* cursor motion */
+    { VK_DELETE  , { XK_Delete, XK_Delete, XK_Delete, XK_Delete } },
+    { VK_DOWN    , { XK_Down, XK_Down, XK_Down, XK_Down } },
+    { VK_END     , { XK_End, XK_End, XK_End, XK_End } },
+    { VK_HOME    , { XK_Home, XK_Home, XK_Home, XK_Home } },
+    { VK_INSERT  , { XK_Insert, XK_Insert, XK_Insert, XK_Insert } },
+    { VK_LEFT    , { XK_Left, XK_Left, XK_Left, XK_Left } },
+    { VK_NEXT    , { XK_Page_Down, XK_Page_Down, XK_Page_Down, XK_Page_Down } },
+    { VK_PRIOR   , { XK_Page_Up, XK_Page_Up, XK_Page_Up, XK_Page_Up } },
+    { VK_RIGHT   , { XK_Right, XK_Right, XK_Right, XK_Right } },
+    { VK_UP      , { XK_Up, XK_Up, XK_Up, XK_Up } },
+};
+
+static KeySym
+VKToKeySym(UINT vk, int state)
+{
+    int i;
+
+    for (i = 0; i < sizeof(knownVKs) / sizeof(knownVKs[0]); i++)
+        if (knownVKs[i].vk == vk) return knownVKs[i].ks[state];
+
+    return 0;
+}
+
+const static struct {
+    WCHAR diacritic;
+    KeySym dead;
+} dead_keys[] = {
+    /* This table is sorted by KeySym value */
+    { L'`',  XK_dead_grave },       /* U+0060 GRAVE ACCENT */
+    { L'\'', XK_dead_acute },       /* U+0027 APOSTROPHE */
+    { L'´',  XK_dead_acute },       /* U+00B4 ACUTE ACCENT */
+    { L'^',  XK_dead_circumflex },  /* U+005E CIRCUMFLEX ACCENT */
+    { L'~',  XK_dead_tilde },       /* U+007E TILDE */
+    { L'¯',  XK_dead_macron },      /* U+00AF MARK */
+    { L'˘',  XK_dead_breve },       /* U+02D8 BREVE */
+    { L'˙',  XK_dead_abovedot },    /* U+02D9 DOT ABOVE */
+    { L'¨',  XK_dead_diaeresis },   /* U+00A8 DIAERESIS */
+    { L'"',  XK_dead_diaeresis },   /* U+0022 QUOTATION MARK */
+    { L'°',  XK_dead_abovering },   /* U+00B0 DEGREE SIGN */
+    { L'˝',  XK_dead_doubleacute }, /* U+02DD DOUBLE ACUTE ACCENT */
+    { L'ˇ',  XK_dead_caron },       /* U+02C7 CARON */
+    { L'¸',  XK_dead_cedilla },     /* U+00B8 CEDILLA */
+    { L'˛',  XK_dead_ogonek },      /* U+02DB OGONEK */
+    /* This table is incomplete ... */
+};
+
+/* Map the spacing form of a diacritic glyph to a deadkey KeySym */
+static KeySym
+make_dead_key(WCHAR in)
+{
+    int i;
+
+    for (i = 0; i < sizeof(dead_keys) / sizeof(dead_keys[0]); i++)
+        if (dead_keys[i].diacritic == in) return dead_keys[i].dead;
+
+    return 0;
+}
+
+static bool
+winKeybdModmapLayout(void)
+{
+    UINT vk;
+    int j;
+    memset(keyInfo.modMap, 0, MAP_LENGTH);
+    memset(keyInfo.keyMap, 0, MAP_LENGTH * GLYPHS_PER_KEY * sizeof(KeySym));
+
+    /*
+      For all scancodes, in the four shift states
+
+      If it produces a VirtualKey code for which we know the
+      corresponding KeySym, use that.
+
+      If it produces a Unicode character, convert that to an X11 KeySym
+      (which may just be a unicode Keysym, if there isn't a better one)
+    */
+    for (j = 0; j < 4; j++) {
+        /* Setup the modifier key state */
+        BYTE state[256];
+        memset(state, 0, 256);
+        if ((j % 2) == 1)
+            state[VK_SHIFT] = 0x80;
+        if (j >= 2) {
+            /* VK_RMENU is mapped to XK_ISO_Level3_Shift
+               AltGR = Alt + Control
+               (what to use here might depend on layout?) */
+            state[VK_CONTROL] = 0x80;
+            state[VK_MENU] = 0x80;
+        }
+
+        winDebug("Examining %s%s layout\n", (j % 2) ? "shift " : "",
+                 (j >= 2) ? "altgr" : "");
+
+        for (vk = 0; vk < 0xff; vk++) {
+            int sc;
+            KeySym ks;
+            char keyName[64];
+
+            /* Translate Virtual Key code to extended scan code */
+            sc = MapVirtualKey(vk, MAPVK_VK_TO_VSC_EX);
+            if (sc == 0)
+                continue;
+
+            /* Workaround what appear to be bugs in MAPVK_VK_TO_VSC_EX */
+            if (((vk >= VK_PRIOR) && (vk <= VK_DOWN)) ||
+                (vk == VK_INSERT) || (vk == VK_DELETE)) {
+                /* cursor keys are extended keys */
+                sc = sc | 0xe000;
+            }
+
+            /* Munge as we do actual key events, to translate extended
+               scancodes into the server generated ones */
+            {
+                int tsc;
+                tsc = winTranslateKey(vk,
+                                      ((sc & 0xff) | (sc & 0xe000 ? 0x100 : 0)) << 16);
+
+                if (tsc != sc) {
+                    winDebug("scan code munged %x -> %x\n", sc, tsc);
+                    sc = tsc;
+                }
+            }
+
+            GetKeyNameText(sc << 16, keyName, sizeof(keyName));
+
+            /* Is the KeySym for the VK_ known ?*/
+            ks = VKToKeySym(vk, j);
+            if (ks) {
+                winDebug("scan code %x (%s), VK %x -> keysym %x\n", sc, keyName, vk, ks);
+            } else {
+                /* What unicode characters are output by that key in
+                   this modifier state */
+                int result;
+                WCHAR out[8];
+                char outAsUtf8[8];
+                memset(outAsUtf8, 0, 8);
+
+                result = ToUnicode(vk, sc, state, &out[0], 8, 0);
+
+                if (result != 0) {
+                    int len = WideCharToMultiByte(CP_UTF8, 0, out, 1, outAsUtf8, 8, NULL, NULL);
+                    outAsUtf8[len] = '\0';
+                }
+
+                switch (result) {
+                case -1: /* dead-key */
+                    ks = make_dead_key(out[0]);
+                    if (ks)
+                        winDebug("scan code %x (%s), VK %x -> deadkey %x ('%s') -> keysym %x\n", sc, keyName, vk, out[0], outAsUtf8, ks);
+                    else
+                        ErrorF("scan code %x (%s), VK %x -> deadkey %x ('%s') -> unknown keysym\n", sc, keyName, vk, out[0], outAsUtf8);
+
+                    /* Force the partially-composed state to be discarded, so it
+                       doesn't effect the next call to ToUnicode() */
+                    ToUnicode(vk, sc, state, &out[0], 8, 0);
+
+                    break;
+                case 0: /* nothing */
+                    winDebug("scan code %x (%s), VK %x -> nothing\n", sc, keyName, vk);
+                    break;
+                case 1: /* something */
+                    ks = ucs2keysym(out[0]);
+                    winDebug("scan code %x (%s), VK %x -> unicode %x ('%s') -> keysym %x\n", sc, keyName, vk, out[0], outAsUtf8, ks);
+                    break;
+                default:
+                case 2: /* too much */
+                    ErrorF("scan code %x (%s), VK %x produced %d unicode characters ('%s')\n", sc, keyName, vk, result, outAsUtf8);
+                    break;
+                }
+            }
+
+            if (ks) {
+                KeySym *k;
+                k = keyInfo.keyMap + (sc & 0xff) * GLYPHS_PER_KEY;
+                if ((k[j]) && (k[j] != ks))
+                    ErrorF("X KeyCode %d state %d KeySym collision %d and %d\n", sc, j, k[j], ks);
+                k[j] = ks;
+            }
+        }
+
+        /* keypad_enter doesn't have a separate VK code, so we need to
+           add it ourselves */
+        {
+            int sc;
+            KeySym *k;
+
+            sc = KEY_KP_Enter;
+            k = keyInfo.keyMap + (sc & 0xff) * GLYPHS_PER_KEY;
+            k[j] = XK_KP_Enter;
+        }
+    }
+
+    /* Build the modmap */
+    BuildModifierMaps(&keyInfo);
+
+    return TRUE;
+}
+
 /* Find the XKB layout corresponding to the current Windows keyboard layout */
 void
 winKeybdLayoutFind(void)
@@ -97,14 +452,16 @@ winKeybdLayoutFind(void)
     unsigned int layoutNum = 0;
     unsigned int deviceIdentifier = 0;
     int keyboardType;
+    Bool bfound = FALSE;
 
     /* Setup defaults */
     XkbGetRulesDflts(&g_winInfo.xkb);
 
+    g_winInfo.rmlvoNotModmap = TRUE;
+
     keyboardType = GetKeyboardType(0);
     if (keyboardType > 0 && GetKeyboardLayoutName(layoutName)) {
         WinKBLayoutPtr pLayout;
-        Bool bfound = FALSE;
         int pass;
 
         layoutNum = strtoul(layoutName, (char **) NULL, 16);
@@ -189,51 +546,78 @@ winKeybdLayoutFind(void)
             if (bfound)
                 break;
         }
+    }
 
-        if (!bfound) {
-            winMsg(X_ERROR,
-                   "Keyboardlayout \"%s\" (%s) is unknown, using X server default layout\n",
-                   layoutFriendlyName, layoutName);
+    /* If that fails, try converting the Windows layout to a modmap */
+    if (!bfound) {
+        winMsg(X_ERROR,
+               "Keyboardlayout \"%s\" (%s) is unknown\n", layoutFriendlyName, layoutName);
+
+        bfound = winKeybdModmapLayout();
+
+        if (bfound) {
+            winMsg(X_INFO, "Converted to modmap\n");
+            g_winInfo.rmlvoNotModmap = FALSE;
+        } else {
+            winMsg(X_INFO, "Conversion to modmap failed\n");
         }
+    }
+
+    if (!bfound) {
+        winMsg(X_ERROR, "using X server default layout\n");
     }
 }
 
 void
 winKeybdLayoutChange(void)
 {
-    pthread_t t;
-    static char cmd[256];
-
     /* Ignore layout changes if static layout was requested */
     if (g_cmdline.xkbStatic)
         return;
 
     winKeybdLayoutFind();
 
-    /* Compile rmlvo keymap and apply it */
-    sprintf(cmd, "/usr/bin/setxkbmap %s%s %s%s %s%s %s%s %s%s",
-            g_winInfo.xkb.rules ? "-rules " : "",
-            g_winInfo.xkb.rules ? g_winInfo.xkb.rules : "",
-            g_winInfo.xkb.model ? "-model " : "",
-            g_winInfo.xkb.model ? g_winInfo.xkb.model : "",
-            g_winInfo.xkb.layout ? "-layout " : "",
-            g_winInfo.xkb.layout ? g_winInfo.xkb.layout : "",
-            g_winInfo.xkb.variant ? "-variant " : "",
-            g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "",
-            g_winInfo.xkb.options ? "-option " : "",
-            g_winInfo.xkb.options ? g_winInfo.xkb.options : "");
+    if (g_winInfo.rmlvoNotModmap) {
+        pthread_t t;
+        static char cmd[256];
 
-    /*
-       Really keymap should be updated synchronously in WM_INPUTLANGCHANGE, so
-       that any subsequent WM_KEY(UP|DOWN) are interpreted correctly.  But this
-       is currently impossible as message pump is run in the server thread, so
-       we create a separate thread to do this work...
-    */
+        /* Compile rmlvo keymap and apply it */
+        sprintf(cmd, "/usr/bin/setxkbmap %s%s %s%s %s%s %s%s %s%s",
+                g_winInfo.xkb.rules ? "-rules " : "",
+                g_winInfo.xkb.rules ? g_winInfo.xkb.rules : "",
+                g_winInfo.xkb.model ? "-model " : "",
+                g_winInfo.xkb.model ? g_winInfo.xkb.model : "",
+                g_winInfo.xkb.layout ? "-layout " : "",
+                g_winInfo.xkb.layout ? g_winInfo.xkb.layout : "",
+                g_winInfo.xkb.variant ? "-variant " : "",
+                g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "",
+                g_winInfo.xkb.options ? "-option " : "",
+                g_winInfo.xkb.options ? g_winInfo.xkb.options : "");
 
-    if (!pthread_create(&t, NULL, ExecAndLogThread, cmd))
-        pthread_detach(t);
-    else
-        ErrorF("Creating setxkbmap failed\n");
+        /*
+          Really keymap should be updated synchronously in WM_INPUTLANGCHANGE,
+          so that any subsequent WM_KEY(UP|DOWN) are interpreted correctly.  But
+          this is currently impossible as message pump is run in the server
+          thread, so we create a separate thread to do this work...
+        */
+
+        if (!pthread_create(&t, NULL, ExecAndLogThread, cmd))
+            pthread_detach(t);
+        else
+            ErrorF("Creating setxkbmap failed\n");
+    } else {
+        KeySymsRec keySyms;
+        keySyms.map = keyInfo.keyMap;
+        keySyms.mapWidth = GLYPHS_PER_KEY;
+        keySyms.minKeyCode = MIN_KEYCODE;
+        keySyms.maxKeyCode = MAX_KEYCODE;
+
+        /* TODO: We should build the entire XkbDescRec and use XkbCopyKeymap */
+        XkbApplyMappingChange(g_pwinKeyboard, &keySyms, keySyms.minKeyCode,
+                              keySyms.maxKeyCode - keySyms.minKeyCode + 1,
+                              keyInfo.modMap, serverClient);
+
+    }
 }
 
 /*

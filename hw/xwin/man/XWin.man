@@ -336,6 +336,10 @@ The RMLVO components of this configuration are then overridden by any
 \fB\-xkbrules\fP, \fB\-xkbmodel\fP, etc. keyboard configuration options
 specified.
 
+If no matching keyboard configuration is known, and no keyboard configuration
+options are specified, the \fIWindows\fP keyboard layout is converted to a
+\fIxmodmap\fP(1) layout.
+
 You can also use the \fIsetxkbmap\fP(1) or \fIxmodmap\fP(1) programs while
 \fIXWin\fP is running to change the keyboard layout.
 

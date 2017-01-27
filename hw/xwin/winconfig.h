@@ -254,6 +254,7 @@ typedef struct {
         long rate;
     } keyboard;
     XkbRMLVOSet xkb;
+    Bool rmlvoNotModmap;
     struct {
         Bool emulate3Buttons;
         long emulate3Timeout;
