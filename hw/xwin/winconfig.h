@@ -165,6 +165,7 @@ typedef struct {
     char *xkbLayout;
     char *xkbVariant;
     char *xkbOptions;
+    Bool xkbStatic;
     /* layout */
     char *screenname;
     /* mouse settings */

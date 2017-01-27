@@ -41,6 +41,7 @@ typedef struct {
    This table is sorted by low byte of winlayout, then by next byte, etc.
 */
 
+static const
 WinKBLayoutRec winKBLayouts[] = {
     {0x00000404, -1, "pc105", "cn", NULL, NULL, "Chinese (Traditional)"},
     {0x00000804, -1, "pc105", "cn", NULL, NULL, "Chinese (Simplified)"},

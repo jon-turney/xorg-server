@@ -1063,27 +1063,42 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-xkbrules")) {
         CHECK_ARGS(1);
         g_cmdline.xkbRules = argv[++i];
+        g_cmdline.xkbStatic = TRUE;
         return 2;
     }
     if (IS_OPTION("-xkbmodel")) {
         CHECK_ARGS(1);
         g_cmdline.xkbModel = argv[++i];
+        g_cmdline.xkbStatic = TRUE;
         return 2;
     }
     if (IS_OPTION("-xkblayout")) {
         CHECK_ARGS(1);
         g_cmdline.xkbLayout = argv[++i];
+        g_cmdline.xkbStatic = TRUE;
         return 2;
     }
     if (IS_OPTION("-xkbvariant")) {
         CHECK_ARGS(1);
         g_cmdline.xkbVariant = argv[++i];
+        g_cmdline.xkbStatic = TRUE;
         return 2;
     }
     if (IS_OPTION("-xkboptions")) {
         CHECK_ARGS(1);
         g_cmdline.xkbOptions = argv[++i];
+        g_cmdline.xkbStatic = TRUE;
         return 2;
+    }
+
+    if (IS_OPTION("-xkbdynamic")) {
+        g_cmdline.xkbStatic = FALSE;
+        return 1;
+    }
+
+    if (IS_OPTION("-noxkbdynamic")) {
+        g_cmdline.xkbStatic = TRUE;
+        return 1;
     }
 
     if (IS_OPTION("-keyhook")) {

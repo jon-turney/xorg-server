@@ -324,8 +324,10 @@ SetDPI (char *dpi)
 static void
 SetXKBLayout (char *layout)
 {
-  if (!g_cmdline.xkbLayout)
+  if (!g_cmdline.xkbLayout) {
     g_cmdline.xkbLayout = layout;
+    g_cmdline.xkbStatic = TRUE;
+  }
   else
     free (layout);
 }
@@ -333,8 +335,10 @@ SetXKBLayout (char *layout)
 static void
 SetXKBModel (char *model)
 {
-  if (!g_cmdline.xkbModel)
-    g_cmdline.xkbModel = model;
+  if (!g_cmdline.xkbModel) {
+      g_cmdline.xkbModel = model;
+      g_cmdline.xkbStatic = TRUE;
+  }
   else
     free (model);
 }
@@ -342,8 +346,10 @@ SetXKBModel (char *model)
 static void
 SetXKBOptions (char *options)
 {
-  if (!g_cmdline.xkbOptions)
-    g_cmdline.xkbOptions = options;
+  if (!g_cmdline.xkbOptions) {
+      g_cmdline.xkbOptions = options;
+      g_cmdline.xkbStatic = TRUE;
+  }
   else
     free (options);
 }
@@ -351,8 +357,10 @@ SetXKBOptions (char *options)
 static void
 SetXKBRules (char *rules)
 {
-  if (!g_cmdline.xkbRules)
-    g_cmdline.xkbRules = rules;
+  if (!g_cmdline.xkbRules) {
+      g_cmdline.xkbRules = rules;
+      g_cmdline.xkbStatic = TRUE;
+  }
   else
     free (rules);
 }
@@ -360,8 +368,10 @@ SetXKBRules (char *rules)
 static void
 SetXKBVariant (char *variant)
 {
-  if (!g_cmdline.xkbVariant)
-    g_cmdline.xkbVariant = variant;
+  if (!g_cmdline.xkbVariant) {
+      g_cmdline.xkbVariant = variant;
+      g_cmdline.xkbStatic = TRUE;
+  }
   else
     free (variant);
 }

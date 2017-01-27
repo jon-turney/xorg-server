@@ -793,6 +793,12 @@ void
 void
  winRestoreModeKeyStates(void);
 
+void
+ winKeybdLayoutFind(void);
+
+void
+ winKeybdLayoutChange(void);
+
 /*
  * winkeyhook.c
  */

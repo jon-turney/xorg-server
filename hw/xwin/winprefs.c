@@ -322,7 +322,7 @@ LogLineFromFd(int fd, const char *fdname, int pid)
         ErrorF("(pid %d %s) %s\n", pid, fdname, buf);
 }
 
-static void *
+void *
 ExecAndLogThread(void *cmd)
 {
     int pid;

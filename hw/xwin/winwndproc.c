@@ -1197,6 +1197,10 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+    case WM_INPUTLANGCHANGE:
+        winKeybdLayoutChange();
+        return 1;
+
     default:
         if (message == s_uTaskbarRestart) {
             winInitNotifyIcon(s_pScreenPriv);

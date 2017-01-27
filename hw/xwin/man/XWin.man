@@ -325,6 +325,20 @@ values will yield a still more detailed debug output.
 .B \-silent-dup-error
 If another instance of \fIXWin\fP with the same display number is found running,
 exit silently and don't display any error message.
+
+.SH "KEYBOARD LAYOUT OPTIONS"
+When the X server starts, and when the \fIWindows\fP keyboard layout changes (if
+\fB\-xkbdynamic\fP is in effect), a keyboard configuration matching your current
+layout as reported by \fIWindows\fP (if known), or the default X server
+configuration (if no matching keyboard configuration is known), is selected.
+
+The RMLVO components of this configuration are then overridden by any
+\fB\-xkbrules\fP, \fB\-xkbmodel\fP, etc. keyboard configuration options
+specified.
+
+You can also use the \fIsetxkbmap\fP(1) or \fIxmodmap\fP(1) programs while
+\fIXWin\fP is running to change the keyboard layout.
+
 .TP 8
 .B "\-xkblayout \fIlayout\fP"
 .TP 8
@@ -335,9 +349,8 @@ exit silently and don't display any error message.
 .B "\-xkbrules \fIrule\fP"
 .TP 8
 .B "\-xkbvariant \fIvariant\fp"
-These options configure the xkeyboard extension to load
-a particular keyboard map as the X server starts.  The behavior is similar
-to the \fIsetxkbmap\fP(1) program.
+These options configure the XKEYBOARD extension to load a particular keyboard
+layout.  The behavior is similar to the \fIsetxkbmap\fP(1) program.
 
 See the \fIxkeyboard-config\fP(__miscmansuffix__) manual page for a list of
 keyboard configurations.
@@ -349,12 +362,12 @@ For example, in order to load a German layout for a pc105 keyboard, use the opti
 .br
 .I " \-xkblayout de \-xkbmodel pc105"
 
-Alternatively, you can use the \fIsetxkbmap\fP(1) program after \fIXWin\fP is
-running.
+These options imply \fB\-noxkbdynamic\fP.
 
-The default is to select a keyboard configuration matching your current layout as
-reported by \fIWindows\fP, if known, or the default X server configuration
-if no matching keyboard configuration was found.
+.TP 8
+.B "\-[no]xkbdynamic"
+Enable [disable] updating the X keyboard layout when the \fIWindows\fP keyboard
+layout changes.  The default is enabled.
 
 .SH UNDOCUMENTED OPTIONS
 These options are undocumented.  Do not use them.

@@ -40,6 +40,7 @@
 #include "wmutil/keyboard.h"
 #include "winconfig.h"
 #include "winmsg.h"
+#include "winlayouts.h"
 
 #include "xkbsrv.h"
 #include "dixgrabs.h"
@@ -53,6 +54,8 @@
 #define KanaMask	Mod4Mask
 #define ScrollLockMask	Mod5Mask
 
+extern void *ExecAndLogThread(void *cmd);
+
 /*
  * Local prototypes
  */
@@ -62,6 +65,9 @@ static void
 
 static void
  winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl);
+
+/* */
+
 
 /* Ring the keyboard bell (system speaker on PCs) */
 static void
@@ -82,6 +88,154 @@ winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl)
 {
 }
 
+/* Find the XKB layout corresponding to the current Windows keyboard layout */
+void
+winKeybdLayoutFind(void)
+{
+    char layoutName[KL_NAMELENGTH];
+    unsigned char layoutFriendlyName[256];
+    unsigned int layoutNum = 0;
+    unsigned int deviceIdentifier = 0;
+    int keyboardType;
+
+    /* Setup defaults */
+    XkbGetRulesDflts(&g_winInfo.xkb);
+
+    keyboardType = GetKeyboardType(0);
+    if (keyboardType > 0 && GetKeyboardLayoutName(layoutName)) {
+        WinKBLayoutPtr pLayout;
+        Bool bfound = FALSE;
+        int pass;
+
+        layoutNum = strtoul(layoutName, (char **) NULL, 16);
+        if ((layoutNum & 0xffff) == 0x411) {
+            if (keyboardType == 7) {
+                /* Japanese layouts have problems with key event messages
+                   such as the lack of WM_KEYUP for Caps Lock key.
+                   Loading US layout fixes this problem. */
+                if (LoadKeyboardLayout("00000409", KLF_ACTIVATE) != NULL)
+                    winMsg(X_INFO, "Loading US keyboard layout.\n");
+                else
+                    winMsg(X_ERROR, "LoadKeyboardLayout failed.\n");
+            }
+        }
+
+        /* Discover the friendly name of the current layout */
+        {
+            HKEY regkey = NULL;
+            const char regtempl[] =
+                "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts\\";
+            char *regpath;
+            DWORD namesize = sizeof(layoutFriendlyName);
+
+            regpath = malloc(sizeof(regtempl) + KL_NAMELENGTH + 1);
+            strcpy(regpath, regtempl);
+            strcat(regpath, layoutName);
+
+            if (!RegOpenKey(HKEY_LOCAL_MACHINE, regpath, &regkey))
+                RegQueryValueEx(regkey, "Layout Text", 0, NULL,
+                                layoutFriendlyName, &namesize);
+
+            /* Close registry key */
+            if (regkey)
+                RegCloseKey(regkey);
+            free(regpath);
+        }
+
+        winMsg(X_PROBED,
+               "Windows keyboard layout: \"%s\" (%08x) \"%s\", type %d\n",
+               layoutName, layoutNum, layoutFriendlyName, keyboardType);
+
+        deviceIdentifier = layoutNum >> 16;
+        for (pass = 0; pass < 2; pass++) {
+            /* If we didn't find an exact match for the input locale identifer,
+               try to find an match on the language identifier part only  */
+            if (pass == 1)
+                layoutNum = (layoutNum & 0xffff);
+
+            for (pLayout = winKBLayouts; pLayout->winlayout != -1; pLayout++) {
+                if (pLayout->winlayout != layoutNum)
+                    continue;
+                if (pLayout->winkbtype > 0 && pLayout->winkbtype != keyboardType)
+                    continue;
+
+                bfound = TRUE;
+                winMsg(X_PROBED,
+                       "Found matching XKB configuration \"%s\"\n",
+                       pLayout->layoutname);
+
+                g_winInfo.xkb.model = pLayout->xkbmodel;
+                g_winInfo.xkb.layout = pLayout->xkblayout;
+                g_winInfo.xkb.variant = pLayout->xkbvariant;
+                g_winInfo.xkb.options = pLayout->xkboptions;
+
+                if (deviceIdentifier == 0xa000) {
+                    winMsg(X_PROBED, "Windows keyboard layout device identifier indicates Macintosh, setting Model = \"macintosh\"");
+                    g_winInfo.xkb.model = "macintosh";
+                }
+
+                winMsg(X_PROBED,
+                       "Rules = \"%s\" Model = \"%s\" Layout = \"%s\""
+                       " Variant = \"%s\" Options = \"%s\"\n",
+                      g_winInfo.xkb.rules ? g_winInfo.xkb.rules : "none",
+                      g_winInfo.xkb.model ? g_winInfo.xkb.model : "none",
+                      g_winInfo.xkb.layout ? g_winInfo.xkb.layout : "none",
+                      g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "none",
+                      g_winInfo.xkb.options ? g_winInfo.xkb.options : "none");
+
+                break;
+            }
+
+            if (bfound)
+                break;
+        }
+
+        if (!bfound) {
+            winMsg(X_ERROR,
+                   "Keyboardlayout \"%s\" (%s) is unknown, using X server default layout\n",
+                   layoutFriendlyName, layoutName);
+        }
+    }
+}
+
+void
+winKeybdLayoutChange(void)
+{
+    pthread_t t;
+    static char cmd[256];
+
+    /* Ignore layout changes if static layout was requested */
+    if (g_cmdline.xkbStatic)
+        return;
+
+    winKeybdLayoutFind();
+
+    /* Compile rmlvo keymap and apply it */
+    sprintf(cmd, "/usr/bin/setxkbmap %s%s %s%s %s%s %s%s %s%s",
+            g_winInfo.xkb.rules ? "-rules " : "",
+            g_winInfo.xkb.rules ? g_winInfo.xkb.rules : "",
+            g_winInfo.xkb.model ? "-model " : "",
+            g_winInfo.xkb.model ? g_winInfo.xkb.model : "",
+            g_winInfo.xkb.layout ? "-layout " : "",
+            g_winInfo.xkb.layout ? g_winInfo.xkb.layout : "",
+            g_winInfo.xkb.variant ? "-variant " : "",
+            g_winInfo.xkb.variant ? g_winInfo.xkb.variant : "",
+            g_winInfo.xkb.options ? "-option " : "",
+            g_winInfo.xkb.options ? g_winInfo.xkb.options : "");
+
+    /*
+       Really keymap should be updated synchronously in WM_INPUTLANGCHANGE, so
+       that any subsequent WM_KEY(UP|DOWN) are interpreted correctly.  But this
+       is currently impossible as message pump is run in the server thread, so
+       we create a separate thread to do this work...
+    */
+
+    if (!pthread_create(&t, NULL, ExecAndLogThread, cmd))
+        pthread_detach(t);
+    else
+        ErrorF("Creating setxkbmap failed\n");
+}
+
 /*
  * See Porting Layer Definition - p. 18
  * winKeybdProc is known as a DeviceProc.
@@ -97,6 +251,36 @@ winKeybdProc(DeviceIntPtr pDeviceInt, int iState)
     switch (iState) {
     case DEVICE_INIT:
         winConfigKeyboard(pDeviceInt);
+
+        /*
+         * Query the windows autorepeat settings and change the xserver defaults.
+         */
+        {
+            int kbd_delay;
+            DWORD kbd_speed;
+
+            if (SystemParametersInfo(SPI_GETKEYBOARDDELAY, 0, &kbd_delay, 0) &&
+                SystemParametersInfo(SPI_GETKEYBOARDSPEED, 0, &kbd_speed, 0)) {
+                switch (kbd_delay) {
+                case 0:
+                    g_winInfo.keyboard.delay = 250;
+                    break;
+                case 1:
+                    g_winInfo.keyboard.delay = 500;
+                    break;
+                case 2:
+                    g_winInfo.keyboard.delay = 750;
+                    break;
+                default:
+                case 3:
+                    g_winInfo.keyboard.delay = 1000;
+                    break;
+                }
+                g_winInfo.keyboard.rate = (kbd_speed > 0) ? kbd_speed : 1;
+                winMsg(X_PROBED, "Setting autorepeat to delay=%ld, rate=%ld\n",
+                       g_winInfo.keyboard.delay, g_winInfo.keyboard.rate);
+            }
+        }
 
         /* FIXME: Maybe we should use winGetKbdLeds () here? */
         defaultKeyboardControl.leds = g_winInfo.keyboard.leds;
