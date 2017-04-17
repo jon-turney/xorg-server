@@ -1116,6 +1116,7 @@ winMultiWindowWMProc(void *pArg)
                -- independently, the WM_TAKE_FOCUS protocol determines whether
                the WM should send a WM_TAKE_FOCUS ClientMessage.
             */
+            if (pNode->msg.iWindow)
             {
               Bool neverFocus = FALSE;
               xcb_get_property_cookie_t cookie;
@@ -1138,6 +1139,13 @@ winMultiWindowWMProc(void *pArg)
                 SendXMessage(pWMInfo->conn,
                              pNode->msg.iWindow,
                              pWMInfo->atmWmProtos, pWMInfo->atmWmTakeFocus);
+
+            }
+            else
+            /* Set the input focus to the root window */
+            {
+              xcb_set_input_focus(pWMInfo->conn, XCB_INPUT_FOCUS_NONE,
+                                  XCB_INPUT_FOCUS_POINTER_ROOT, XCB_CURRENT_TIME);
 
             }
             break;
