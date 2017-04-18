@@ -234,7 +234,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                                                     fMultiWindow
 #endif
                 )) {
-                DWORD dwWidth, dwHeight;
+                DWORD dwWidth = 0, dwHeight = 0;
 
                 if (s_pScreenInfo->fMultipleMonitors) {
                     /* resize to new virtual desktop size */
@@ -258,6 +258,9 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                             ErrorF("Monitor number %d no longer exists!\n",
                                    s_pScreenInfo->iMonitor);
                         }
+                        ErrorF("QueryMonitor %d failed!\n",
+                               s_pScreenInfo->iMonitor);
+
                     }
                 }
 
@@ -270,8 +273,9 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                  */
 
                 /* Set screen size to match new size, if it is different to current */
-                if ((s_pScreenInfo->dwWidth != dwWidth) ||
-                    (s_pScreenInfo->dwHeight != dwHeight)) {
+                if (((dwWidth != 0) && (dwHeight != 0)) &&
+                    ((s_pScreenInfo->dwWidth != dwWidth) ||
+                     (s_pScreenInfo->dwHeight != dwHeight))) {
                     winDoRandRScreenSetSize(s_pScreen,
                                             dwWidth,
                                             dwHeight,
