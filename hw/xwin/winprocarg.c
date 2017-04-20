@@ -324,11 +324,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
         if (i + 2 < argc && 1 == sscanf(argv[i + 2], "@%d", (int *) &iMonitor)) {
             struct GetMonitorInfoData data;
 
-            if (!QueryMonitor(iMonitor, &data)) {
-                ErrorF
-                    ("ddxProcessArgument - screen - Querying monitors failed\n");
-            }
-            else if (data.bMonitorSpecifiedExists == TRUE) {
+            if (QueryMonitor(iMonitor, &data)) {
                 winErrorFVerb(2,
                               "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n",
                               iMonitor);
@@ -349,7 +345,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
                 ErrorF
                     ("ddxProcessArgument - screen - Invalid monitor number %d\n",
                      iMonitor);
-                UseMsg();
                 exit(1);
                 return 0;
             }
@@ -381,11 +376,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
                                 (int *) &iMonitor)) {
                     struct GetMonitorInfoData data;
 
-                    if (!QueryMonitor(iMonitor, &data)) {
-                        ErrorF
-                            ("ddxProcessArgument - screen - Querying monitors failed\n");
-                    }
-                    else if (data.bMonitorSpecifiedExists == TRUE) {
+                    if (QueryMonitor(iMonitor, &data)) {
                         g_ScreenInfo[nScreenNum].iMonitor = iMonitor;
                         g_ScreenInfo[nScreenNum].hMonitor = data.monitorHandle;
                         g_ScreenInfo[nScreenNum].dwInitialX +=
@@ -398,11 +389,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
                         ErrorF
                             ("ddxProcessArgument - screen - Invalid monitor number %d\n",
                              iMonitor);
-                        UseMsg();
                         exit(1);
                         return 0;
                     }
-
                 }
             }
 
@@ -410,11 +399,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
             else if (1 == sscanf(argv[i + 2], "%*dx%*d@%d", (int *) &iMonitor)) {
                 struct GetMonitorInfoData data;
 
-                if (!QueryMonitor(iMonitor, &data)) {
-                    ErrorF
-                        ("ddxProcessArgument - screen - Querying monitors failed\n");
-                }
-                else if (data.bMonitorSpecifiedExists == TRUE) {
+                if (QueryMonitor(iMonitor, &data)) {
                     winErrorFVerb(2,
                                   "ddxProcessArgument - screen - Found Valid ``@Monitor'' = %d arg\n",
                                   iMonitor);
@@ -429,11 +414,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
                     ErrorF
                         ("ddxProcessArgument - screen - Invalid monitor number %d\n",
                          iMonitor);
-                    UseMsg();
                     exit(1);
                     return 0;
                 }
-
             }
         }
         else if (i + 3 < argc && 1 == sscanf(argv[i + 2], "%d", (int *) &iWidth)
