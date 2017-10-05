@@ -1130,7 +1130,7 @@ winMultiWindowWMProc(void *pArg)
               }
 
               if (!neverFocus)
-                xcb_set_input_focus(pWMInfo->conn, XCB_INPUT_FOCUS_PARENT,
+                xcb_set_input_focus(pWMInfo->conn, XCB_INPUT_FOCUS_POINTER_ROOT,
                                     pNode->msg.iWindow, XCB_CURRENT_TIME);
 
               if (IsWmProtocolAvailable(pWMInfo,
