@@ -2442,21 +2442,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
              | (ATTR_VALUE(WGL_DRAW_TO_BITMAP_ARB, 0) ? GLX_PIXMAP_BIT : 0)
              | (ATTR_VALUE(WGL_DRAW_TO_PBUFFER_ARB, 0) ? GLX_PBUFFER_BIT : 0));
 
-        /*
-           Assume OpenGL RGBA rendering is available on all visuals
-           (it is specified to render to red component in single-channel visuals,
-           if supported, but there doesn't seem to be any mechanism to check if it
-           is supported)
-
-           Color index rendering is only supported on single-channel visuals
-         */
-        if (c->base.visualType == GLX_STATIC_COLOR) {
-            c->base.renderType = GLX_RGBA_BIT | GLX_COLOR_INDEX_BIT;
-        }
-        else {
-            c->base.renderType = GLX_RGBA_BIT;
-        }
-
         c->base.fbconfigID = -1;        // will be set by __glXScreenInit()
 
         /* SGIX_pbuffer / GLX 1.3 */
