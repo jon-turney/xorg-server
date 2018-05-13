@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <setjmp.h>
 #include <pthread.h>
+#include <locale.h>
 #include <sys/param.h> // for MAX() macro
 
 #ifdef HAS_WINSOCK
@@ -59,6 +60,7 @@
 #endif
 
 #include <X11/Xatom.h>
+#include <X11/Xlocale.h>
 #include <X11/extensions/Xfixes.h>
 #include "winclipboard.h"
 #include "internal.h"
@@ -131,15 +133,28 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
     winDebug("winClipboardProc - Hello\n");
 
-    /* Allow multiple threads to access Xlib */
-    if (XInitThreads() == 0) {
-        ErrorF("winClipboardProc - XInitThreads failed.\n");
-        goto winClipboardProc_Exit;
-    }
+    {
+        const char *locale;
 
-    /* See if X supports the current locale */
-    if (XSupportsLocale() == False) {
-        ErrorF("winClipboardProc - Warning: Locale not supported by X.\n");
+        /* Allow multiple threads to access Xlib */
+        if (XInitThreads() == 0) {
+            ErrorF("winClipboardProc - XInitThreads failed.\n");
+        }
+
+        /*
+         * setlocale applies to all threads in the current process.
+         * Apply locale specified in LANG environment variable.
+         */
+        locale = setlocale(LC_ALL, "");
+        if (!locale) {
+            ErrorF("winClipboardProc - setlocale failed.\n");
+        }
+
+        /* See if X supports the current locale */
+        if (XSupportsLocale() == FALSE) {
+            ErrorF("Warning: Locale '%s' not supported by X, falling back to 'C' locale.\n", locale);
+            setlocale(LC_ALL, "C");
+        }
     }
 
     g_fpAddClipboardFormatListener = (ADDCLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"AddClipboardFormatListener");
@@ -174,7 +189,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
            "successfully opened the display.\n");
 
     /* Get our connection number */
-    iConnectionNumber = ConnectionNumber(pDisplay);
+    iConnectionNumber = XConnectionNumber(pDisplay);
 
 #ifdef HAS_DEVWINDOWS
     /* Open a file descriptor for the windows message queue */
@@ -199,15 +214,16 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     atoms.atomUTF8String = XInternAtom (pDisplay, "UTF8_STRING", False);
     atoms.atomCompoundText = XInternAtom (pDisplay, "COMPOUND_TEXT", False);
     atoms.atomTargets = XInternAtom (pDisplay, "TARGETS", False);
+    atoms.atomIncr = XInternAtom (pDisplay, "INCR", False);
 
     /* Create a messaging window */
     iWindow = XCreateSimpleWindow(pDisplay,
-                                  DefaultRootWindow(pDisplay),
+                                  XDefaultRootWindow(pDisplay),
                                   1, 1,
                                   500, 500,
                                   0,
-                                  BlackPixel(pDisplay, 0),
-                                  BlackPixel(pDisplay, 0));
+                                  XBlackPixel(pDisplay, 0),
+                                  XBlackPixel(pDisplay, 0));
     if (iWindow == 0) {
         ErrorF("winClipboardProc - Could not create an X window.\n");
         goto winClipboardProc_Done;
@@ -265,6 +281,8 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     }
 
     data.fUseUnicode = fUseUnicode;
+    data.incr = NULL;
+    data.incrsize = 0;
 
     /* Loop for events */
     while (1) {
@@ -353,7 +371,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 #endif
     }
 
- winClipboardProc_Exit:
     /* broke out of while loop on a shutdown message */
     fShutdown = TRUE;
 
@@ -391,7 +408,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     XSync(pDisplay, TRUE);
 
     /* Select event types to watch */
-    XSelectInput(pDisplay, DefaultRootWindow(pDisplay), None);
+    XSelectInput(pDisplay, XDefaultRootWindow(pDisplay), None);
 
     /* Close our X display */
     if (pDisplay) {

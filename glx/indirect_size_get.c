@@ -603,7 +603,11 @@ __glGetBooleanv_size(GLenum e)
     case GL_OCCLUSION_TEST_RESULT_HP:
     case GL_LIGHT_MODEL_COLOR_CONTROL:
     case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH_ARB:
+/*      case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:*/
     case GL_RESET_NOTIFICATION_STRATEGY_ARB:
+/*    case GL_MAX_DEBUG_GROUP_STACK_DEPTH: */
+/*    case GL_DEBUG_GROUP_STACK_DEPTH: */
+/*    case GL_MAX_LABEL_LENGTH: */
     case GL_CURRENT_FOG_COORD:
     case GL_FOG_COORDINATE_ARRAY_TYPE:
     case GL_FOG_COORDINATE_ARRAY_STRIDE:
@@ -749,8 +753,11 @@ __glGetBooleanv_size(GLenum e)
 /*      case GL_MAX_SAMPLES_EXT:*/
     case GL_MAX_SERVER_WAIT_TIMEOUT:
     case GL_MAX_DEBUG_MESSAGE_LENGTH_ARB:
+/*      case GL_MAX_DEBUG_MESSAGE_LENGTH:*/
     case GL_MAX_DEBUG_LOGGED_MESSAGES_ARB:
+/*      case GL_MAX_DEBUG_LOGGED_MESSAGES:*/
     case GL_DEBUG_LOGGED_MESSAGES_ARB:
+/*      case GL_DEBUG_LOGGED_MESSAGES:*/
     case GL_RASTER_POSITION_UNCLIPPED_IBM:
         return 1;
     case GL_SMOOTH_POINT_SIZE_RANGE:
@@ -928,7 +935,9 @@ __glGetPointerv_size(GLenum e)
 {
     switch (e) {
     case GL_DEBUG_CALLBACK_FUNCTION_ARB:
+/*      case GL_DEBUG_CALLBACK_FUNCTION:*/
     case GL_DEBUG_CALLBACK_USER_PARAM_ARB:
+/*      case GL_DEBUG_CALLBACK_USER_PARAM:*/
         return 1;
     default:
         return 0;
@@ -1105,6 +1114,23 @@ __glGetQueryiv_size(GLenum e)
 }
 
 _X_INTERNAL PURE FASTCALL GLint
+__glGetVertexAttribdv_size(GLenum e)
+{
+    switch (e) {
+    case GL_VERTEX_PROGRAM_ARB:
+    case GL_VERTEX_ATTRIB_ARRAY_ENABLED_ARB:
+    case GL_VERTEX_ATTRIB_ARRAY_SIZE_ARB:
+    case GL_VERTEX_ATTRIB_ARRAY_STRIDE_ARB:
+    case GL_VERTEX_ATTRIB_ARRAY_TYPE_ARB:
+    case GL_CURRENT_VERTEX_ATTRIB_ARB:
+    case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING_ARB:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+_X_INTERNAL PURE FASTCALL GLint
 __glGetProgramivARB_size(GLenum e)
 {
     switch (e) {
@@ -1216,5 +1242,7 @@ ALIAS(Fogiv, Fogfv)
     ALIAS(GetMinmaxParameteriv, GetMinmaxParameterfv)
     ALIAS(PointParameteriv, PointParameterfv)
     ALIAS(GetQueryObjectuiv, GetQueryObjectiv)
+    ALIAS(GetVertexAttribfv, GetVertexAttribdv)
+    ALIAS(GetVertexAttribiv, GetVertexAttribdv)
 #undef PURE
 #undef FASTCALL

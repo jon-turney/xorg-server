@@ -83,6 +83,9 @@ extern _X_INTERNAL PURE FASTCALL GLint __glGetMinmaxParameteriv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryObjectiv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryObjectuiv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetQueryiv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribdv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribfv_size(GLenum);
+extern _X_INTERNAL PURE FASTCALL GLint __glGetVertexAttribiv_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint __glGetProgramivARB_size(GLenum);
 extern _X_INTERNAL PURE FASTCALL GLint
 __glGetFramebufferAttachmentParameteriv_size(GLenum);

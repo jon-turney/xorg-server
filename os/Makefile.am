@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libos.la
 
-AM_CFLAGS = $(DIX_CFLAGS) $(SHA1_CFLAGS)
+AM_CFLAGS = $(DIX_CFLAGS) $(SHA1_CFLAGS) -DBINDIR=\"$(bindir)\"
 
 SECURERPC_SRCS = rpcauth.c
 XDMCP_SRCS = xdmcp.c

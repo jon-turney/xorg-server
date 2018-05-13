@@ -163,9 +163,6 @@
 #include "miline.h"
 #include "shadow.h"
 #include "fb.h"
-#ifdef XWIN_MULTIWINDOWEXTWM
-#include "rootless.h"
-#endif
 
 #include "mipict.h"
 #include "picturestr.h"
@@ -187,6 +184,7 @@
 #define WM_TRAYICON		(WM_USER + 1000)
 #define WM_INIT_SYS_MENU	(WM_USER + 1001)
 #define WM_GIVEUP		(WM_USER + 1002)
+#define WM_ASYNCMOVE		(WM_USER + 1003)
 
 /* Local includes */
 #include "winwindow.h"
@@ -271,6 +269,8 @@ typedef Bool (*winFinishScreenInitProcPtr) (int, ScreenPtr, int, char **);
 
 typedef Bool (*winBltExposedRegionsProcPtr) (ScreenPtr);
 
+typedef Bool (*winBltExposedWindowRegionProcPtr) (ScreenPtr, WindowPtr);
+
 typedef Bool (*winActivateAppProcPtr) (ScreenPtr);
 
 typedef Bool (*winRedrawScreenProcPtr) (ScreenPtr pScreen);
@@ -297,10 +297,8 @@ typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
  */
 
 typedef struct {
-    HDC hdcSelected;
     HBITMAP hBitmap;
-    BYTE *pbBits;
-    DWORD dwScanlineBytes;
+    void *pbBits;
     BITMAPINFOHEADER *pbmih;
 } winPrivPixmapRec, *winPrivPixmapPtr;
 
@@ -390,11 +388,9 @@ typedef struct {
 #endif
     Bool fFullScreen;
     Bool fDecoration;
-#ifdef XWIN_MULTIWINDOWEXTWM
-    Bool fMWExtWM;
-#endif
     Bool fRootless;
     Bool fMultiWindow;
+    Bool fCompositeWM;
     Bool fMultiMonitorOverride;
     Bool fMultipleMonitors;
     Bool fLessPointer;
@@ -408,6 +404,10 @@ typedef struct {
 
     /* Did the user explicitly set this screen? */
     Bool fExplicitScreen;
+
+    /* Icons for screen window */
+    HICON hIcon;
+    HICON hIconSm;
 } winScreenInfo, *winScreenInfoPtr;
 
 /*
@@ -464,18 +464,10 @@ typedef struct _winPrivScreenRec {
     LPDIRECTDRAWCLIPPER pddcPrimary;
     BOOL fRetryCreateSurface;
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    /* Privates used by multi-window external window manager */
-    RootlessFrameID widTop;
-    Bool fRestacking;
-#endif
-
     /* Privates used by multi-window */
     pthread_t ptWMProc;
     pthread_t ptXMsgProc;
     void *pWMInfo;
-
-    /* Privates used by both multi-window and rootless */
     Bool fRootWindowShown;
 
     /* Privates used for any module running in a seperate thread */
@@ -493,6 +485,7 @@ typedef struct _winPrivScreenRec {
     winCreateBoundingWindowProcPtr pwinCreateBoundingWindow;
     winFinishScreenInitProcPtr pwinFinishScreenInit;
     winBltExposedRegionsProcPtr pwinBltExposedRegions;
+    winBltExposedWindowRegionProcPtr pwinBltExposedWindowRegion;
     winActivateAppProcPtr pwinActivateApp;
     winRedrawScreenProcPtr pwinRedrawScreen;
     winRealizeInstalledPaletteProcPtr pwinRealizeInstalledPalette;
@@ -521,29 +514,12 @@ typedef struct _winPrivScreenRec {
     ResizeWindowProcPtr ResizeWindow;
     MoveWindowProcPtr MoveWindow;
     SetShapeProcPtr SetShape;
+    ModifyPixmapHeaderProcPtr ModifyPixmapHeader;
 
     winCursorRec cursor;
 
     Bool fNativeGlActive;
 } winPrivScreenRec;
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-typedef struct {
-    RootlessWindowPtr pFrame;
-    HWND hWnd;
-    int dwWidthBytes;
-    BITMAPINFOHEADER *pbmihShadow;
-    HBITMAP hbmpShadow;
-    HDC hdcShadow;
-    HDC hdcScreen;
-    BOOL fResized;
-    BOOL fRestackingNow;
-    BOOL fClose;
-    BOOL fMovingOrSizing;
-    BOOL fDestroyed;            //for debug
-    char *pfb;
-} win32RootlessWindowRec, *win32RootlessWindowPtr;
-#endif
 
 typedef struct {
     void *value;
@@ -794,9 +770,6 @@ void
  */
 
 int
- winTranslateKey(WPARAM wParam, LPARAM lParam);
-
-int
  winKeybdProc(DeviceIntPtr pDeviceInt, int iState);
 
 void
@@ -804,20 +777,6 @@ void
 
 void
  winRestoreModeKeyStates(void);
-
-Bool
- winIsFakeCtrl_L(UINT message, WPARAM wParam, LPARAM lParam);
-
-void
- winKeybdReleaseKeys(void);
-
-void
- winSendKeyEvent(DWORD dwKey, Bool fDown);
-
-BOOL winCheckKeyPressed(WPARAM wParam, LPARAM lParam);
-
-void
- winFixShiftKeys(int iScanCode);
 
 /*
  * winkeyhook.c
@@ -847,14 +806,7 @@ int
  winMouseProc(DeviceIntPtr pDeviceInt, int iState);
 
 int
- winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown);
-
-void
- winMouseButtonsSendEvent(int iEventType, int iButton);
-
-int
-
-winMouseButtonsHandle(ScreenPtr pScreen,
+ winMouseButtonsHandle(ScreenPtr pScreen,
                       int iEventType, int iButton, WPARAM wParam);
 
 void
@@ -974,11 +926,27 @@ void
 winCopyWindowMultiWindow(WindowPtr pWin, DDXPointRec oldpt,
                          RegionPtr oldRegion);
 
+PixmapPtr
+winCreatePixmapMultiwindow(ScreenPtr pScreen, int width, int height, int depth,
+                           unsigned usage_hint);
+Bool
+winDestroyPixmapMultiwindow(PixmapPtr pPixmap);
+
+Bool
+winModifyPixmapHeaderMultiwindow(PixmapPtr pPixmap,
+                                 int width,
+                                 int height,
+                                 int depth,
+                                 int bitsPerPixel, int devKind, void *pPixData);
+
 XID
  winGetWindowID(WindowPtr pWin);
 
 int
  winAdjustXWindow(WindowPtr pWin, HWND hwnd);
+
+void
+ winAdjustWindowsWindow(WindowPtr pWin, HWND hwnd);
 
 /*
  * winmultiwindowwndproc.c
@@ -986,6 +954,8 @@ int
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 /*
  * wintrayicon.c
@@ -1008,105 +978,6 @@ winHandleIconMessage(HWND hwnd, UINT message,
 
 LRESULT CALLBACK
 winWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-/*
- * winwin32rootless.c
- */
-
-Bool
-
-winMWExtWMCreateFrame(RootlessWindowPtr pFrame, ScreenPtr pScreen,
-                      int newX, int newY, RegionPtr pShape);
-
-void
- winMWExtWMDestroyFrame(RootlessFrameID wid);
-
-void
-
-winMWExtWMMoveFrame(RootlessFrameID wid, ScreenPtr pScreen, int newX, int newY);
-
-void
-
-winMWExtWMResizeFrame(RootlessFrameID wid, ScreenPtr pScreen,
-                      int newX, int newY, unsigned int newW, unsigned int newH,
-                      unsigned int gravity);
-
-void
- winMWExtWMRestackFrame(RootlessFrameID wid, RootlessFrameID nextWid);
-
-void
- winMWExtWMReshapeFrame(RootlessFrameID wid, RegionPtr pShape);
-
-void
- winMWExtWMUnmapFrame(RootlessFrameID wid);
-
-void
-
-winMWExtWMStartDrawing(RootlessFrameID wid, char **pixelData, int *bytesPerRow);
-
-void
- winMWExtWMStopDrawing(RootlessFrameID wid, Bool flush);
-
-void
- winMWExtWMUpdateRegion(RootlessFrameID wid, RegionPtr pDamage);
-
-void
-
-winMWExtWMDamageRects(RootlessFrameID wid, int count, const BoxRec * rects,
-                      int shift_x, int shift_y);
-
-void
- winMWExtWMRootlessSwitchWindow(RootlessWindowPtr pFrame, WindowPtr oldWin);
-
-void
-
-winMWExtWMCopyBytes(unsigned int width, unsigned int height,
-                    const void *src, unsigned int srcRowBytes,
-                    void *dst, unsigned int dstRowBytes);
-
-void
-
-winMWExtWMCopyWindow(RootlessFrameID wid, int dstNrects,
-                     const BoxRec * dstRects, int dx, int dy);
-#endif
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-/*
- * winwin32rootlesswindow.c
- */
-
-void
- winMWExtWMReorderWindows(ScreenPtr pScreen);
-
-void
- winMWExtWMMoveXWindow(WindowPtr pWin, int x, int y);
-
-void
- winMWExtWMResizeXWindow(WindowPtr pWin, int w, int h);
-
-void
- winMWExtWMMoveResizeXWindow(WindowPtr pWin, int x, int y, int w, int h);
-
-void
-
-winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
-                                 winScreenInfoPtr pScreenInfo);
-
-wBOOL CALLBACK winMWExtWMDecorateWindow(HWND hwnd, LPARAM lParam);
-
-void
- winMWExtWMRestackWindows(ScreenPtr pScreen);
-#endif
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-/*
- * winwin32rootlesswndproc.c
- */
-
-LRESULT CALLBACK
-winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-#endif
 
 /*
  * winwindowswm.c

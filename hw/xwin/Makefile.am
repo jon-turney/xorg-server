@@ -27,18 +27,8 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwndproc.c \
 	propertystore.h \
 	winSetAppUserModelID.c
-MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
-
-if XWIN_MULTIWINDOWEXTWM
-SRCS_MULTIWINDOWEXTWM = \
-	winwin32rootless.c \
-	winwin32rootlesswindow.c \
-	winwin32rootlesswndproc.c \
-	winwindowswm.c
-DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
-MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
-MULTIWINDOWEXTWM_CFLAGS = -I$(top_srcdir)/miext/rootless
-endif
+MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32 -ldwmapi
+MULTIWINDOW_LIBS = $(top_builddir)/hw/xwin/wmutil/libXWinWMUtil.la
 
 SRCS_RANDR = \
 	winrandr.c
@@ -83,8 +73,6 @@ SRCS =	InitInput.c \
 	winconfig.h \
 	win.h \
 	winglobals.h \
-	winkeybd.h \
-	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
 	winmonitors.h \
@@ -101,7 +89,6 @@ SRCS =	InitInput.c \
 	$(top_srcdir)/mi/miinitext.c \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \
-	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_RANDR)
 
 DEFS = \
@@ -117,7 +104,7 @@ XWIN_LIBS += \
 	$(top_builddir)/Xi/libXistubs.la
 
 XWin_DEPENDENCIES = \
-	$(MULTIWINDOWEXTWM_LIBS) \
+	$(MULTIWINDOW_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -125,7 +112,7 @@ XWin_DEPENDENCIES = \
 
 
 XWin_LDADD = \
-	$(MULTIWINDOWEXTWM_LIBS) \
+	$(MULTIWINDOW_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -139,9 +126,12 @@ XWin_LDFLAGS = -mwindows -Wl,--disable-stdcall-fixup $(LD_EXPORT_SYMBOLS_FLAG)
 
 
 .rc.o:
-	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
+	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DHOST=\"$(host)\"
 
 XWin.o: XWin.rc XWin.exe.manifest X.ico
+
+X.ico: X.svg
+	$(AM_V_GEN)convert -background transparent $(srcdir)/X.svg -trim -define icon:auto-resize X.ico
 
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
@@ -154,7 +144,6 @@ AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -I$(top_srcdir) \
-            $(MULTIWINDOWEXTWM_CFLAGS) \
             -Wno-bad-function-cast
 
 xwinconfigdir = $(sysconfdir)/X11
@@ -172,5 +161,5 @@ EXTRA_DIST = \
 relink:
 	$(AM_V_at)rm -f XWin$(EXEEXT) && $(MAKE) XWin$(EXEEXT)
 
-SUBDIRS = man $(GLX_DIR) winclipboard .
-DIST_SUBDIRS = man dri glx winclipboard .
+SUBDIRS = man $(GLX_DIR) winclipboard wmutil .
+DIST_SUBDIRS = man dri glx winclipboard wmutil .

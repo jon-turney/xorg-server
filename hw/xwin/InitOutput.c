@@ -35,12 +35,12 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#include "X11/Xlocale.h"
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
 #ifdef __CYGWIN__
 #include <mntent.h>
+#include <sys/statvfs.h>
 #endif
 #if defined(WIN32)
 #include "xkbsrv.h"
@@ -87,6 +87,8 @@ Bool
 #ifdef RELOCATE_PROJECTROOT
 const char *winGetBaseDir(void);
 #endif
+
+static void winCheckMount(void);
 
 /*
  * For the depth 24 pixmap we default to 32 bits per pixel, but
@@ -156,6 +158,8 @@ main(int argc, char *argv[], char *envp[])
 {
     int iReturn;
 
+    xorg_crashreport_init(NULL);
+
     /* Create & acquire the termination mutex */
     iReturn = pthread_mutex_init(&g_pmTerminating, NULL);
     if (iReturn != 0) {
@@ -166,6 +170,8 @@ main(int argc, char *argv[], char *envp[])
     if (iReturn != 0) {
         ErrorF("ddxMain - pthread_mutex_lock () failed: %d\n", iReturn);
     }
+
+    winCheckMount();
 
     return dix_main(argc, argv, envp);
 }
@@ -204,10 +210,6 @@ ddxGiveUp(enum ExitCode error)
     }
 #endif
 
-    if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
-        g_fLogInited = TRUE;
-    }
     LogClose(error);
 
     /*
@@ -251,6 +253,8 @@ AbortDDX(enum ExitCode error)
 }
 
 #ifdef __CYGWIN__
+extern Bool nolock;
+
 /* hasmntopt is currently not implemented for cygwin */
 static const char *
 winCheckMntOpt(const struct mntent *mnt, const char *opt)
@@ -275,6 +279,9 @@ winCheckMntOpt(const struct mntent *mnt, const char *opt)
     return NULL;
 }
 
+/*
+  Check mounts and issue warnings/activate workarounds as needed
+ */
 static void
 winCheckMount(void)
 {
@@ -284,6 +291,7 @@ winCheckMount(void)
     enum { none = 0, sys_root, user_root, sys_tmp, user_tmp }
         level = none, curlevel;
     BOOL binary = TRUE;
+    struct statvfs buf;
 
     mnt = setmntent("/etc/mtab", "r");
     if (mnt == NULL) {
@@ -331,6 +339,21 @@ winCheckMount(void)
 
     if (!binary)
         winMsg(X_WARNING, "/tmp mounted in textmode\n");
+
+    /*
+       Use statvfs(), which on Cygwin passes through the flags returned by
+       GetVolumeInformation(), to determine if hardlinks are available
+
+       This should use the same LOCK_DIR as LockServer()
+    */
+    if (!statvfs("/tmp", &buf)) {
+        if (!(buf.f_flag & FILE_SUPPORTS_HARD_LINKS)) {
+            winMsg(X_WARNING, "/tmp mounted on a filesystem without hardlinks, activating -nolock\n");
+            nolock = TRUE;
+        }
+    } else {
+        winMsg(X_WARNING, "statvfs() /tmp failed\n");
+    }
 }
 #else
 static void
@@ -586,13 +609,13 @@ winFixupPaths(void)
             winMsg(X_ERROR, "Can not determine HOME directory\n");
         }
     }
-    if (!g_fLogFileChanged) {
+    if (!g_fLogFile) {
         static char buffer[MAX_PATH];
         DWORD size = GetTempPath(sizeof(buffer), buffer);
 
         if (size && size < sizeof(buffer)) {
             snprintf(buffer + size, sizeof(buffer) - size,
-                     "XWin.%s.log", display);
+                     g_pszLogFileFormat, display);
             buffer[sizeof(buffer) - 1] = 0;
             g_pszLogFile = buffer;
             winMsg(X_DEFAULT, "Logfile set to \"%s\"\n", g_pszLogFile);
@@ -623,16 +646,16 @@ OsVendorInit(void)
         OsVendorVErrorFProc = OsVendorVErrorF;
 #endif
 
-    if (!g_fLogInited) {
-        /* keep this order. If LogInit fails it calls Abort which then calls
-         * ddxGiveUp where LogInit is called again and creates an infinite
-         * recursion. If we set g_fLogInited to TRUE before the init we
-         * avoid the second call
-         */
-        g_fLogInited = TRUE;
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
+    if (serverGeneration == 1) {
+        if (g_pszLogFile)
+            g_pszLogFile = LogInit(g_pszLogFile, ".old");
+        else
+            g_pszLogFile = LogInit(g_pszLogFileFormat, ".old");
 
+        /* Tell crashreporter logfile name */
+        xorg_crashreport_init(g_pszLogFile);
     }
+
     LogSetParameter(XLOG_FLUSH, 1);
     LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
     LogSetParameter(XLOG_FILE_VERBOSITY, g_iLogVerbose);
@@ -717,6 +740,13 @@ winUseMsg(void)
            "\tthe updated region when num_boxes, or more, are in the\n"
            "\tupdated region.\n");
 
+    ErrorF("-[no]compositealpha\n"
+           "\tX windows with per-pixel alpha are composited into the Windows desktop.\n");
+    ErrorF("-[no]compositewm\n"
+           "\tUse the Composite extension to keep a bitmap image of each top-level\n"
+           "\tX window, so window contents which are occluded show correctly in\n"
+           "\ttask bar and task switcher previews.\n");
+
 #ifdef XWIN_XF86CONFIG
     ErrorF("-config\n" "\tSpecify a configuration file.\n");
 
@@ -751,6 +781,8 @@ winUseMsg(void)
     ErrorF("-[no]hostintitle\n"
            "\tIn multiwindow mode, add remote host names to window titles.\n");
 
+    ErrorF("-icon icon_specifier\n" "\tSet screen window icon in windowed mode.\n");
+
     ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
 
 #ifdef XWIN_XF86CONFIG
@@ -784,11 +816,6 @@ winUseMsg(void)
 
     ErrorF("-multiwindow\n" "\tRun the server in multi-window mode.\n");
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    ErrorF("-mwextwm\n"
-           "\tRun the server in multi-window external window manager mode.\n");
-#endif
-
     ErrorF("-nodecoration\n"
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only.\n");
@@ -804,7 +831,7 @@ winUseMsg(void)
            "\tSpecify an optional refresh rate to use in fullscreen mode\n"
            "\twith a DirectDraw engine.\n");
 
-    ErrorF("-resize=none|scrollbars|randr"
+    ErrorF("-resize=none|scrollbars|randr\n"
            "\tIn windowed mode, [don't] allow resizing of the window. 'scrollbars'\n"
            "\tmode gives the window scrollbars as needed, 'randr' mode uses the RANR\n"
            "\textension to resize the X screen.  'randr' is the default.\n");
@@ -820,6 +847,11 @@ winUseMsg(void)
            "\t -screen 0 800x600+100+100@2 ; 2nd monitor offset 100,100 size 800x600\n"
            "\t -screen 0 1024x768@3        ; 3rd monitor size 1024x768\n"
            "\t -screen 0 @1 ; on 1st monitor using its full resolution (the default)\n");
+
+    ErrorF("-silent-dup-error\n"
+           "\tIf another instance of " EXECUTABLE_NAME
+           " with the same display number is running\n"
+           "\texit silently and don't display any error message.\n");
 
     ErrorF("-swcursor\n"
            "\tDisable the usage of the Windows cursor and use the X11 software\n"
@@ -862,24 +894,7 @@ winUseMsg(void)
 void
 ddxUseMsg(void)
 {
-    /* Set a flag so that FatalError won't give duplicate warning message */
-    g_fSilentFatalError = TRUE;
-
     winUseMsg();
-
-    /* Log file will not be opened for UseMsg unless we open it now */
-    if (!g_fLogInited) {
-        g_pszLogFile = LogInit(g_pszLogFile, ".old");
-        g_fLogInited = TRUE;
-    }
-    LogClose(EXIT_NO_ERROR);
-
-    /* Notify user where UseMsg text can be found. */
-    if (!g_fNoHelpMessageBox)
-        winMessageBoxF("The " PROJECT_NAME " help text has been printed to "
-                       "%s.\n"
-                       "Please open %s to read the help text.\n",
-                       MB_ICONINFORMATION, g_pszLogFile, g_pszLogFile);
 }
 
 /* See Porting Layer Definition - p. 20 */
@@ -980,8 +995,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
           for (iMonitor = 1; ; iMonitor++)
             {
               struct GetMonitorInfoData data;
-              QueryMonitor(iMonitor, &data);
-              if (data.bMonitorSpecifiedExists)
+              if (QueryMonitor(iMonitor, &data))
                 {
                   MONITORINFO mi;
                   mi.cbSize = sizeof(MONITORINFO);
@@ -1018,14 +1032,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();
 
-    /* Perform some one time initialization */
-    if (1 == serverGeneration) {
-        /*
-         * setlocale applies to all threads in the current process.
-         * Apply locale specified in LANG environment variable.
-         */
-        setlocale(LC_ALL, "");
-    }
 
 #if CYGDEBUG || YES
     winDebug("InitOutput - Returning.\n");

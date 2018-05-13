@@ -35,12 +35,19 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
 #include "win.h"
 #include "dixevents.h"
 #include "winmultiwindowclass.h"
 #include "winprefs.h"
 #include "winmsg.h"
 #include "inputstr.h"
+#include "wmutil/keyboard.h"
+#include <dwmapi.h>
+
+#ifndef WM_DWMCOMPOSITIONCHANGED
+#define WM_DWMCOMPOSITIONCHANGED 0x031e
+#endif
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
@@ -294,6 +301,144 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
                                             MOUSE_POLLING_INTERVAL, NULL);
 }
 
+static
+void
+winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
+{
+    /* Do nothing if window has not yet been given initial state */
+    if (!GetProp(wmMsg->hwndWindow, WIN_STATE_PROP))
+        return;
+
+    wmMsg->msg = WM_WM_CHANGE_STATE;
+    if (IsIconic(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 3; // IconicState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsZoomed(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 2; // ZoomState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsWindowVisible(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 1; // NormalState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+     }
+    else {
+        /* Only the client, not the user can Withdraw windows, so it doesn't make
+           much sense to handle that state here, and anything else is an
+           unanticapted state. */
+        ErrorF("winAdjustXWindowState - Unknown state for %p\n", wmMsg->hwndWindow);
+    }
+}
+
+/* Undocumented */
+typedef struct _ACCENTPOLICY
+{
+    ULONG AccentState;
+    ULONG AccentFlags;
+    ULONG GradientColor;
+    ULONG AnimationId;
+} ACCENTPOLICY;
+
+#define ACCENT_ENABLE_BLURBEHIND 3
+
+typedef struct _WINCOMPATTR
+{
+    DWORD attribute;
+    PVOID pData;
+    ULONG dataSize;
+} WINCOMPATTR;
+
+#define WCA_ACCENT_POLICY 19
+
+typedef WINBOOL WINAPI (*PFNSETWINDOWCOMPOSITIONATTRIBUTE)(HWND, WINCOMPATTR *);
+
+static void
+CheckForAlpha(HWND hWnd, WindowPtr pWin, winScreenInfo *pScreenInfo)
+{
+    /* Check (once) which API we should use */
+    static Bool doOnce = TRUE;
+    static PFNSETWINDOWCOMPOSITIONATTRIBUTE pSetWindowCompositionAttribute = NULL;
+    static Bool useDwmEnableBlurBehindWindow = FALSE;
+
+    if (doOnce)
+        {
+            /* XXX: when mingw-w64-headers 5.0 is available, just include
+               versionhelper.h and use the appropriate macros here */
+            OSVERSIONINFOEX osvi = {0};
+            osvi.dwOSVersionInfoSize = sizeof(osvi);
+            GetVersionEx((LPOSVERSIONINFO)&osvi);
+
+            /* SetWindowCompositionAttribute() exists on Windows 7 and later,
+               but doesn't work for this purpose, so first check for Windows 10
+               or later */
+            if (osvi.dwMajorVersion >= 10)
+                {
+                    HMODULE hUser32 = GetModuleHandle("user32");
+
+                    if (hUser32)
+                        pSetWindowCompositionAttribute = (PFNSETWINDOWCOMPOSITIONATTRIBUTE) GetProcAddress(hUser32, "SetWindowCompositionAttribute");
+                    winDebug("SetWindowCompositionAttribute %s\n", pSetWindowCompositionAttribute ? "found" : "not found");
+                }
+            /* On Windows 7 and Windows Vista, use DwmEnableBlurBehindWindow() */
+            else if ((osvi.dwMajorVersion == 6) && (osvi.dwMinorVersion <= 1))
+                {
+                    useDwmEnableBlurBehindWindow = TRUE;
+                }
+            /* On Windows 8 and Windows 8.1, using the alpha channel on those
+               seems near impossible, so we don't do anything. */
+
+            doOnce = FALSE;
+        }
+
+    /* alpha-channel use is wanted */
+    if (!g_fCompositeAlpha || !pScreenInfo->fCompositeWM)
+        return;
+
+    /* Image has alpha ... */
+    if (pWin->drawable.depth != 32)
+        return;
+
+    /* ... and we can do something useful with it? */
+    if (pSetWindowCompositionAttribute)
+        {
+            WINBOOL rc;
+            /* Use the (undocumented) SetWindowCompositionAttribute, if
+               available, to turn on alpha channel use on Windows 10. */
+            ACCENTPOLICY policy = { ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 } ;
+            WINCOMPATTR data = { WCA_ACCENT_POLICY,  &policy, sizeof(ACCENTPOLICY) };
+
+            /* This turns on DWM looking at the alpha-channel of this window */
+            winDebug("enabling alpha for XID %08x hWnd %p, using SetWindowCompositionAttribute()\n", (unsigned int)pWin->drawable.id, hWnd);
+            rc = pSetWindowCompositionAttribute(hWnd, &data);
+            if (!rc)
+                ErrorF("SetWindowCompositionAttribute failed: %d\n", (int)GetLastError());
+        }
+    else if (useDwmEnableBlurBehindWindow)
+        {
+            HRESULT rc;
+            WINBOOL enabled;
+
+            rc = DwmIsCompositionEnabled(&enabled);
+            if ((rc == S_OK) && enabled)
+                {
+                    /* Use DwmEnableBlurBehindWindow, to turn on alpha channel
+                       use on Windows Vista and Windows 7 */
+                    DWM_BLURBEHIND bbh;
+                    bbh.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED;
+                    bbh.fEnable = TRUE;
+                    bbh.hRgnBlur = NULL;
+                    bbh.fTransitionOnMaximized = TRUE; /* What does this do ??? */
+
+                    /* This terribly-named function actually controls if DWM
+                       looks at the alpha channel of this window */
+                    winDebug("enabling alpha for XID %08x hWnd %p, using DwmEnableBlurBehindWindow()\n", (unsigned int)pWin->drawable.id, hWnd);
+                    rc = DwmEnableBlurBehindWindow(hWnd, &bbh);
+                    if (rc != S_OK)
+                        ErrorF("DwmEnableBlurBehindWindow failed: %x, %d\n", (int)rc, (int)GetLastError());
+                }
+        }
+}
+
 /*
  * winTopLevelWindowProc - Window procedure for all top-level Windows windows.
  */
@@ -302,7 +447,6 @@ LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     POINT ptMouse;
-    HDC hdcUpdate;
     PAINTSTRUCT ps;
     WindowPtr pWin = NULL;
     winPrivWinPtr pWinPriv = NULL;
@@ -322,6 +466,20 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
 #endif
+
+    /*
+       If this is WM_CREATE, set up the Windows window properties which point to X window information,
+       before we populate other local variables...
+     */
+    if (message == WM_CREATE) {
+        SetProp(hwnd,
+                WIN_WINDOW_PROP,
+                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
+        SetProp(hwnd,
+                WIN_WID_PROP,
+                (HANDLE) (INT_PTR)winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                 lpCreateParams));
+    }
 
     /* Check if the Windows window property for our X window pointer is valid */
     if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL) {
@@ -383,18 +541,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     /* Branch on message type */
     switch (message) {
     case WM_CREATE:
-
-        /* */
-        SetProp(hwnd,
-                WIN_WINDOW_PROP,
-                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
-
-        /* */
-        SetProp(hwnd,
-                WIN_WID_PROP,
-                (HANDLE) (INT_PTR) winGetWindowID(((LPCREATESTRUCT) lParam)->
-                                                  lpCreateParams));
-
         /*
          * Make X windows' Z orders sync with Windows windows because
          * there can be AlwaysOnTop windows overlapped on the window
@@ -414,6 +560,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) XMING_SIGNATURE);
+
+        /* Tell our Window Manager thread to style and then show the window */
+        wmMsg.msg = WM_WM_CREATE;
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+        CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
         return 0;
 
@@ -457,17 +610,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_PAINT:
         /* Only paint if our window handle is valid */
-        if (hwndScreen == NULL)
+        if (hwnd == NULL)
             break;
-
-        /* BeginPaint gives us an hdc that clips to the invalidated region */
-        hdcUpdate = BeginPaint(hwnd, &ps);
-        /* Avoid the BitBlt's if the PAINTSTRUCT is bogus */
-        if (ps.rcPaint.right == 0 && ps.rcPaint.bottom == 0 &&
-            ps.rcPaint.left == 0 && ps.rcPaint.top == 0) {
-            EndPaint(hwnd, &ps);
-            return 0;
-        }
 
 #ifdef XWIN_GLX_WINDOWS
         if (pWinPriv->fWglUsed) {
@@ -478,36 +622,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                XXX: For now, just leave it alone, but ideally we want to send an expose event to
                the window so it really redraws the affected region...
              */
+            BeginPaint(hwnd, &ps);
             ValidateRect(hwnd, &(ps.rcPaint));
+            EndPaint(hwnd, &ps);
         }
         else
 #endif
-            /* Try to copy from the shadow buffer */
-        if (!BitBlt(hdcUpdate,
-                        ps.rcPaint.left, ps.rcPaint.top,
-                        ps.rcPaint.right - ps.rcPaint.left,
-                        ps.rcPaint.bottom - ps.rcPaint.top,
-                        s_pScreenPriv->hdcShadow,
-                        ps.rcPaint.left + pWin->drawable.x,
-                        ps.rcPaint.top + pWin->drawable.y, SRCCOPY)) {
-            LPVOID lpMsgBuf;
+            /* Call the engine dependent repainter */
+            if (*s_pScreenPriv->pwinBltExposedWindowRegion)
+                (*s_pScreenPriv->pwinBltExposedWindowRegion) (s_pScreen, pWin);
 
-            /* Display a fancy error message */
-            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL,
-                          GetLastError(),
-                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                          (LPTSTR) &lpMsgBuf, 0, NULL);
-
-            ErrorF("winTopLevelWindowProc - BitBlt failed: %s\n",
-                   (LPSTR) lpMsgBuf);
-            LocalFree(lpMsgBuf);
-        }
-
-        /* EndPaint frees the DC */
-        EndPaint(hwnd, &ps);
         return 0;
 
     case WM_MOUSEMOVE:
@@ -868,6 +992,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         RemoveProp(hwnd, WIN_WINDOW_PROP);
         RemoveProp(hwnd, WIN_WID_PROP);
         RemoveProp(hwnd, WIN_NEEDMANAGE_PROP);
+        RemoveProp(hwnd, WIN_STATE_PROP);
 
         break;
 
@@ -876,77 +1001,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove)
             winAdjustXWindow(pWin, hwnd);
         /* else: Wait for WM_EXITSIZEMOVE */
-        return 0;
-
-    case WM_SHOWWINDOW:
-        /* Bail out if the window is being hidden */
-        if (!wParam)
-            return 0;
-
-        /* */
-        if (!pWin->overrideRedirect) {
-            HWND zstyle = HWND_NOTOPMOST;
-
-            /* Flag that this window needs to be made active when clicked */
-            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
-
-            /* Set the transient style flags */
-            if (GetParent(hwnd))
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-            /* Set the window standard style flags */
-            else
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                 & ~WS_CAPTION & ~WS_SIZEBOX);
-
-            winUpdateWindowPosition(hwnd, &zstyle);
-
-            {
-                WinXWMHints hints;
-
-                if (winMultiWindowGetWMHints(pWin, &hints)) {
-                    /*
-                       Give the window focus, unless it has an InputHint
-                       which is FALSE (this is used by e.g. glean to
-                       avoid every test window grabbing the focus)
-                     */
-                    if (!((hints.flags & InputHint) && (!hints.input))) {
-                        SetForegroundWindow(hwnd);
-                    }
-                }
-            }
-            wmMsg.msg = WM_WM_MAP3;
-        }
-        else {                  /* It is an overridden window so make it top of Z stack */
-
-            HWND forHwnd = GetForegroundWindow();
-
-#if CYGWINDOWING_DEBUG
-            ErrorF("overridden window is shown\n");
-#endif
-            if (forHwnd != NULL) {
-                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
-                    XMING_SIGNATURE) {
-                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    else
-                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                }
-            }
-            wmMsg.msg = WM_WM_MAP2;
-        }
-
-        /* Tell our Window Manager thread to map the window */
-        if (fWMMsgInitialized)
-            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
-
-        winStartMousePolling(s_pScreenPriv);
-
         return 0;
 
     case WM_SIZING:
@@ -1001,12 +1055,75 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
         }
+
+      /* Window is being shown */
+      if (pWinPos->flags & SWP_SHOWWINDOW) {
+        if (!pWin->overrideRedirect) {
+            HWND zstyle = HWND_NOTOPMOST;
+
+            /* Flag that this window needs to be made active when clicked */
+            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
+
+            winUpdateWindowPosition(hwnd, &zstyle);
+
+            {
+                WinXWMHints hints;
+
+                if (winMultiWindowGetWMHints(pWin, &hints)) {
+                    /*
+                       Give the window focus, unless it has an InputHint
+                       which is FALSE (this is used by e.g. glean to
+                       avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input))) {
+                        SetForegroundWindow(hwnd);
+                    }
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_MANAGED;
+        }
+        else {                  /* It is an overridden window so make it top of Z stack */
+            HWND forHwnd = GetForegroundWindow();
+
+            if (forHwnd != NULL) {
+                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
+                    XMING_SIGNATURE) {
+                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    else
+                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_UNMANAGED;
+        }
+
+        /* Tell our Window Manager thread to map the window */
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+        winStartMousePolling(s_pScreenPriv);
+      }
+
+      /*
+        We don't react to SWP_HIDEWINDOW indicating window is being hidden in
+        a symmetrical way (i.e. by sending WM_WM_UNMAP)
+
+        If the cause of the window being hidden is the X windows being unmapped,
+        (WM_STATE has changed to WithdrawnState), then the window has already
+        been unmapped.
+
+        Virtual desktop software (like VirtuaWin or Dexpot) uses SWP_HIDEWINDOW
+        to hide windows on other desktops.  We mustn't unmap the X window in
+        that situation, as it becomes inaccessible.
+      */
     }
-        /*
-         * Pass the message to DefWindowProc to let the function
-         * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
-         */
-        break;
+    /*
+     * Pass the message to DefWindowProc to let the function
+     * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
+     */
+    break;
 
     case WM_ENTERSIZEMOVE:
         hasEnteredSizeMove = TRUE;
@@ -1016,6 +1133,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Adjust the X Window to the moved Windows window */
         hasEnteredSizeMove = FALSE;
         winAdjustXWindow(pWin, hwnd);
+        if (fWMMsgInitialized)
+            winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         return 0;
 
     case WM_SIZE:
@@ -1044,6 +1163,10 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove) {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow(pWin, hwnd);
+            if (fWMMsgInitialized)
+                winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
         }
         /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
@@ -1142,6 +1265,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+
+    case WM_DWMCOMPOSITIONCHANGED:
+        /* This message is only sent on Vista/W7 */
+        CheckForAlpha(hwnd, pWin, s_pScreenInfo);
+
+        return 0;
+
     default:
         break;
     }
@@ -1154,4 +1287,117 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (needRestack)
         winReorderWindowsMultiWindow();
     return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    WindowPtr pWin = NULL;
+
+#if CYGDEBUG
+    winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+    /*
+      If this is WM_CREATE, set up the Windows window properties which point to
+      X window information
+    */
+    if (message == WM_CREATE) {
+        SetProp(hwnd,
+                WIN_WINDOW_PROP,
+                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
+        SetProp(hwnd,
+                WIN_WID_PROP,
+                (HANDLE) (INT_PTR)winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                 lpCreateParams));
+    }
+
+    /* Retrieve the Windows window property for our X window pointer */
+    pWin = GetProp(hwnd, WIN_WINDOW_PROP);
+
+    switch (message) {
+    case WM_ERASEBKGND:
+        return TRUE;
+
+    case WM_PAINT:
+        /*
+           We don't have the bits to draw into the window, they went straight into the OpenGL
+           surface
+
+           XXX: For now, just leave it alone, but ideally we want to send an expose event to
+           the window so it really redraws the affected region...
+         */
+    {
+        PAINTSTRUCT ps;
+        BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+        /* XXX: this is exactly what DefWindowProc does? */
+
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+void
+winUpdateWindowPosition(HWND hWnd, HWND * zstyle)
+{
+    int iX, iY, iWidth, iHeight;
+    int iDx, iDy;
+    RECT rcNew;
+    WindowPtr pWin = GetProp(hWnd, WIN_WINDOW_PROP);
+    DrawablePtr pDraw = NULL;
+
+    if (!pWin)
+        return;
+    pDraw = &pWin->drawable;
+    if (!pDraw)
+        return;
+
+    /* Get the X and Y location of the X window */
+    iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
+    iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+    /* Get the height and width of the X window */
+    iWidth = pWin->drawable.width;
+    iHeight = pWin->drawable.height;
+
+    /* Setup a rectangle with the X window position and size */
+    SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
+
+    winDebug("winUpdateWindowPosition - drawable extent (%d, %d)-(%d, %d)\n",
+             (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom);
+
+    AdjustWindowRectEx(&rcNew, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE,
+                       GetWindowLongPtr(hWnd, GWL_EXSTYLE));
+
+    /* Don't allow window decoration to disappear off to top-left as a result of this adjustment */
+    if (rcNew.left < GetSystemMetrics(SM_XVIRTUALSCREEN)) {
+        iDx = GetSystemMetrics(SM_XVIRTUALSCREEN) - rcNew.left;
+        rcNew.left += iDx;
+        rcNew.right += iDx;
+    }
+
+    if (rcNew.top < GetSystemMetrics(SM_YVIRTUALSCREEN)) {
+        iDy = GetSystemMetrics(SM_YVIRTUALSCREEN) - rcNew.top;
+        rcNew.top += iDy;
+        rcNew.bottom += iDy;
+    }
+
+    winDebug("winUpdateWindowPosition - Window extent (%d, %d)-(%d, %d)\n",
+             (int)rcNew.left, (int)rcNew.top, (int)rcNew.right, (int)rcNew.bottom);
+
+    /* Position the Windows window */
+    SetWindowPos(hWnd, *zstyle, rcNew.left, rcNew.top,
+                 rcNew.right - rcNew.left, rcNew.bottom - rcNew.top, 0);
+
 }

@@ -14,6 +14,41 @@
 void
  winCreateWindowsWindow(WindowPtr pWin);
 
+static void
+winCreateWindowsWindowHierarchy(WindowPtr pWin)
+{
+    winWindowPriv(pWin);
+
+    winDebug("winCreateWindowsWindowHierarchy - pWin:%p XID:0x%x \n", pWin,
+             (unsigned int)pWin->drawable.id);
+
+    if (!pWin)
+        return;
+
+    /* stop recursion at root window */
+    if (pWin == pWin->drawable.pScreen->root)
+        return;
+
+    /* recursively ensure parent window exists */
+    if (pWin->parent)
+        winCreateWindowsWindowHierarchy(pWin->parent);
+
+    /* ensure this window exists */
+    if (pWinPriv->hWnd == NULL) {
+        winCreateWindowsWindow(pWin);
+
+        /* ... and if it's already been mapped, make sure it's visible */
+        if (pWin->mapped) {
+            /* Display the window without activating it */
+            if (pWin->drawable.class != InputOnly)
+                ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
+
+            /* Send first paint message */
+            UpdateWindow(pWinPriv->hWnd);
+        }
+    }
+}
+
 /**
  * Return size and handles of a window.
  * If pWin is NULL, then the information for the root window is requested.
@@ -49,7 +84,7 @@ winGetWindowInfo(WindowPtr pWin)
             }
 
             if (pWinPriv->hWnd == NULL) {
-                winCreateWindowsWindow(pWin);
+                winCreateWindowsWindowHierarchy(pWin);
                 winDebug("winGetWindowInfo: forcing window to exist\n");
             }
 
@@ -63,24 +98,6 @@ winGetWindowInfo(WindowPtr pWin)
 
             return hwnd;
         }
-#ifdef XWIN_MULTIWINDOWEXTWM
-        /* check for multiwindow external wm mode */
-        if (pScreenInfo->fMWExtWM) {
-            win32RootlessWindowPtr pRLWinPriv
-                = (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
-
-            if (pRLWinPriv == NULL) {
-                ErrorF("winGetWindowInfo: window has no privates\n");
-                return hwnd;
-            }
-
-            if (pRLWinPriv->hWnd != NULL) {
-                /* copy window handle */
-                hwnd = pRLWinPriv->hWnd;
-            }
-            return hwnd;
-        }
-#endif
     }
     else {
         ScreenPtr pScreen = g_ScreenInfo[0].pScreen;
@@ -107,11 +124,6 @@ winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
 
     if (pScreenInfo->fMultiWindow)
         return TRUE;
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    if (pScreenInfo->fMWExtWM)
-        return TRUE;
-#endif
 
     return FALSE;
 }

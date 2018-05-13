@@ -77,6 +77,7 @@ BOTTOM                  { return BOTTOM; }
 NOTITLE                 { return NOTITLE; }
 OUTLINE                 { return OUTLINE; }
 NOFRAME                 { return NOFRAME; }
+SKIPTASKBAR             { return SKIPTASKBAR; }
 ROOTMENU                { return ROOTMENU; }
 DEFAULTSYSMENU          { return DEFAULTSYSMENU; }
 SYSMENU                 { return SYSMENU; }
@@ -90,6 +91,12 @@ RELOAD                  { return RELOAD; }
 TRAYICON                { return TRAYICON; }
 FORCEEXIT		{ return FORCEEXIT; }
 SILENTEXIT		{ return SILENTEXIT; }
+DPI                     { return DPI; }
+XKBLAYOUT               { return XKBLAYOUT; }
+XKBMODEL                { return XKBMODEL; }
+XKBOPTIONS              { return XKBOPTIONS; }
+XKBRULES                { return XKBRULES; }
+XKBVARIANT              { return XKBVARIANT; }
 "{"                     { return LB; }
 "}"                     { return RB; }
 "\""[^\"\r\n]+"\""      { yylval.sVal = makestr(yytext+1); \

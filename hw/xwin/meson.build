@@ -18,6 +18,8 @@ xwin_c_args = []
 xwin_c_args += '-DHAVE_XWIN_CONFIG_H'
 xwin_c_args += '-Wno-bad-function-cast'
 
+subdir('wmutil')
+
 srcs_windows = [
     'winclipboardinit.c',
     'winclipboardwrappers.c',
@@ -42,7 +44,7 @@ srcs_windows += [
      'propertystore.h',
      'winSetAppUserModelID.c',
 ]
-xwin_sys_libs += ['-lshlwapi', '-lole32']
+xwin_sys_libs += ['-lshlwapi', '-lole32', '-ldwmapi']
 
 srcs_windows += [
      'winrandr.c',
@@ -87,8 +89,6 @@ srcs_windows += [
     'winconfig.h',
     'win.h',
     'winglobals.h',
-    'winkeybd.h',
-    'winkeynames.h',
     'winlayouts.h',
     'winmessages.h',
     'winmonitors.h',
@@ -104,7 +104,19 @@ srcs_windows += [
     '../../mi/miinitext.c',
 ]
 
-rsrc = windows.compile_resources('XWin.rc', include_directories: include_directories('../../include/'))
+convert = find_program('convert')
+custom_target(
+    'xlogo-icon',
+    command: [convert, '-background', 'transparent', '-trim', '-define', 'icon:auto-resize', '@INPUT@', '@OUTPUT@'],
+    input: 'X.svg',
+    output: 'X.ico',
+)
+
+rsrc = windows.compile_resources(
+     'XWin.rc',
+     args: ['--use-temp-file', '-DHOST="@0@-@1@"'.format(host_machine.system(), host_machine.cpu_family())],
+     include_directories: [include_directories('.'), include_directories('../../include/')],
+)
 srcs_windows += rsrc
 
 flex = find_program('flex')
@@ -135,6 +147,7 @@ xwin_dep = [
     dependency('xcb-image'),
     dependency('xcb-ewmh'),
     dependency('xcb-icccm'),
+    dependency('xcb-composite'),
 ]
 
 executable(
@@ -146,6 +159,7 @@ executable(
         xwin_windowsdri,
         xwin_glx,
         xwin_clipboard,
+        xwin_wmutil,
         libxserver_fb,
         libxserver,
         libxserver_glx,
@@ -172,3 +186,10 @@ xwin_man = configure_file(
     configuration: manpage_config,
 )
 install_man(xwin_man)
+
+xwinrc_man = configure_file(
+    input: 'man/XWinrc.man',
+    output: 'XWinrc.5',
+    configuration: manpage_config,
+)
+install_man(xwinrc_man)
