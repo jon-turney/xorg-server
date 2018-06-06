@@ -1663,7 +1663,7 @@ case "$host_os" in
     cygwin*)
 	LD_EXPORT_SYMBOLS_FLAG="-Wl,--export-all,--out-implib,lib\$@.a"
 	LD_NO_UNDEFINED_FLAG="-no-undefined -Wl,\$(top_builddir)/hw/xfree86/libXorg.exe.a"
-	XORG_DRIVER_LIBS="-lXorg.exe -L\${moduledir} -lshadow -lfb -no-undefined"
+	XORG_DRIVER_LIBS="-lXorg.exe -L\${moduledir} -lshadow -no-undefined"
 	CYGWIN=yes
 	;;
     solaris*)
