@@ -148,7 +148,10 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winDebug("winClipboardWindowProc - WM_DESTROY\n");
 
         /* Remove clipboard listener */
-        RemoveClipboardFormatListener(hwnd);
+        typedef WINBOOL WINAPI (*REMOVECLIPBOARDFORMATLISTENERPROC)(HWND hwnd);
+        REMOVECLIPBOARDFORMATLISTENERPROC fpRemoveClipboardFormatListener = (REMOVECLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"RemoveClipboardFormatListener");
+        if (fpRemoveClipboardFormatListener)
+            fpRemoveClipboardFormatListener(hwnd);
     }
         return 0;
 
@@ -171,7 +174,10 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         atoms = cwcp->atoms;
         fRunning = TRUE;
 
-        AddClipboardFormatListener(hwnd);
+        typedef WINBOOL WINAPI (*ADDCLIPBOARDFORMATLISTENERPROC)(HWND hwnd);
+        ADDCLIPBOARDFORMATLISTENERPROC fpAddClipboardFormatListener = (ADDCLIPBOARDFORMATLISTENERPROC)GetProcAddress(GetModuleHandle("user32"),"AddClipboardFormatListener");
+        if (fpAddClipboardFormatListener)
+            fpAddClipboardFormatListener(hwnd);
     }
         return 0;
 
