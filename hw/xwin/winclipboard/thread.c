@@ -106,7 +106,7 @@ static int
  */
 
 Bool
-winClipboardProc(Bool fUseUnicode, char *szDisplay)
+winClipboardProc(char *szDisplay)
 {
     ClipboardAtoms atoms;
     int iReturn;
@@ -271,7 +271,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
         }
     }
 
-    data.fUseUnicode = fUseUnicode;
     data.incr = NULL;
     data.incrsize = 0;
 
