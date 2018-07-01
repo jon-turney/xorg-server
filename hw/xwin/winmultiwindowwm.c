@@ -77,6 +77,7 @@
 #include "winglobals.h"
 #include "windisplay.h"
 #include "winmultiwindowicons.h"
+#include "winauth.h"
 
 /* We need the native HWND atom for intWM, so for consistency use the
    same name as extWM does */
@@ -89,7 +90,6 @@
 extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
-extern xcb_auth_info_t *winGetXcbAuthInfo(void);
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 #ifndef CYGDEBUG
