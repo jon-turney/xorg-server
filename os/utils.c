@@ -52,19 +52,23 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#if defined(WIN32) || defined(__CYGWIN__)
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
+#if !defined(__CYGWIN__)
+#include <X11/Xwinsock.h>
+#endif
+#include <X11/Xwindows.h>
+#endif
+
 #ifdef __CYGWIN__
 #include <stdlib.h>
 #include <signal.h>
-/*
-   Sigh... We really need a prototype for this to know it is stdcall,
-   but #include-ing <windows.h> here is not a good idea...
-*/
-__stdcall unsigned long GetTickCount(void);
+#include <assert.h> /* defines made by windows.h prevent misc.h from including assert.h */
+#undef WIN32 /* for the benefit of the conditionals in this file */
 #endif
 
-#if defined(WIN32) && !defined(__CYGWIN__)
-#include <X11/Xwinsock.h>
-#endif
 #include <X11/Xos.h>
 #include <stdio.h>
 #include <time.h>
@@ -253,7 +257,7 @@ UnlockServer(void)
 {}
 #else /* LOCK_SERVER */
 static Bool StillLocking = FALSE;
-static char LockFile[PATH_MAX];
+static char lockFile[PATH_MAX];
 Bool nolock = FALSE;
 
 /*
@@ -280,10 +284,10 @@ LockServer(void)
     len = strlen(LOCK_PREFIX) > strlen(LOCK_TMP_PREFIX) ? strlen(LOCK_PREFIX) :
         strlen(LOCK_TMP_PREFIX);
     len += strlen(tmppath) + strlen(port) + strlen(LOCK_SUFFIX) + 1;
-    if (len > sizeof(LockFile))
+    if (len > sizeof(lockFile))
         FatalError("Display name `%s' is too long\n", port);
     (void) sprintf(tmp, "%s" LOCK_TMP_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
-    (void) sprintf(LockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
+    (void) sprintf(lockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
 
     /*
      * Create a temporary file containing our PID.  Attempt three times
@@ -326,7 +330,7 @@ LockServer(void)
     i = 0;
     haslock = 0;
     while ((!haslock) && (i++ < 3)) {
-        haslock = (link(tmp, LockFile) == 0);
+        haslock = (link(tmp, lockFile) == 0);
         if (haslock) {
             /*
              * We're done.
@@ -337,17 +341,17 @@ LockServer(void)
             /*
              * Read the pid from the existing file
              */
-            lfd = open(LockFile, O_RDONLY | O_NOFOLLOW);
+            lfd = open(lockFile, O_RDONLY | O_NOFOLLOW);
             if (lfd < 0) {
                 unlink(tmp);
-                FatalError("Can't read lock file %s\n", LockFile);
+                FatalError("Can't read lock file %s\n", lockFile);
             }
             pid_str[0] = '\0';
             if (read(lfd, pid_str, 11) != 11) {
                 /*
                  * Bogus lock file.
                  */
-                unlink(LockFile);
+                unlink(lockFile);
                 close(lfd);
                 continue;
             }
@@ -364,7 +368,7 @@ LockServer(void)
                 /*
                  * Stale lock file.
                  */
-                unlink(LockFile);
+                unlink(lockFile);
                 continue;
             }
             else if (((t < 0) && (errno == EPERM)) || (t == 0)) {
@@ -375,19 +379,19 @@ LockServer(void)
                 FatalError
                     ("Server is already active for display %s\n%s %s\n%s\n",
                      port, "\tIf this server is no longer running, remove",
-                     LockFile, "\tand start again.");
+                     lockFile, "\tand start again.");
             }
         }
         else {
             unlink(tmp);
             FatalError
                 ("Linking lock file (%s) in place failed: %s\n",
-                 LockFile, strerror(errno));
+                 lockFile, strerror(errno));
         }
     }
     unlink(tmp);
     if (!haslock)
-        FatalError("Could not create server lock file: %s\n", LockFile);
+        FatalError("Could not create server lock file: %s\n", lockFile);
     StillLocking = FALSE;
 }
 
@@ -403,7 +407,7 @@ UnlockServer(void)
 
     if (!StillLocking) {
 
-        (void) unlink(LockFile);
+        (void) unlink(lockFile);
     }
 }
 #endif /* LOCK_SERVER */
@@ -459,7 +463,7 @@ GetTimeInMillis(void)
 CARD64
 GetTimeInMicros(void)
 {
-    return (CARD64) GetTickCount() * 1000;
+    return (CARD64) GetTickCount64() * 1000;
 }
 #else
 CARD32
@@ -1682,8 +1686,6 @@ Fclose(void *iop)
 #endif                          /* !WIN32 */
 
 #ifdef WIN32
-
-#include <X11/Xwindows.h>
 
 const char *
 Win32TempDir(void)
