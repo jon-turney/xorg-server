@@ -64,7 +64,13 @@ usage(int argc, char **argv)
 static int
 start_server(char *const *server_args)
 {
-    int server_pid = fork();
+    int server_pid;
+
+    char *const *arg;
+    for (arg = server_args; *arg; arg++)
+        fprintf(stderr, "server arg: %s\n", *arg);
+
+    server_pid = fork();
 
     if (server_pid == -1) {
         fprintf(stderr, "Fork failed: %s\n", strerror(errno));
@@ -106,6 +112,7 @@ start_client(char *const *client_args, int display)
     char *display_string;
     int ret;
     int client_pid;
+    char *const *arg;
 
     ret = asprintf(&display_string, ":%d", display);
     if (ret < 0) {
@@ -118,6 +125,9 @@ start_client(char *const *client_args, int display)
         fprintf(stderr, "Failed to set DISPLAY\n");
         exit(1);
     }
+
+    for (arg = client_args; *arg; arg++)
+        fprintf(stderr, "client arg: %s\n", *arg);
 
     client_pid = fork();
     if (client_pid == -1) {
@@ -227,8 +237,11 @@ main(int argc, char **argv)
     parse_args(argc, argv, &client_args, &server_args, displayfd_pipe[1]);
     server_pid = start_server(server_args);
     display = get_display(displayfd_pipe[0]);
+    fprintf(stderr, "server started, allocated display is %d\n", display);
     ret = start_client(client_args, display);
+    fprintf(stderr, "client exited, status %d\n", ret);
     kill_server(server_pid);
+    fprintf(stderr, "server terminated\n");
 
     exit(ret);
 }
