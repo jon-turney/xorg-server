@@ -23,6 +23,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <poll.h>
 #include <xcb/xcb.h>
 #include <xcb/bigreq.h>
@@ -31,6 +32,13 @@
 int main(int argc, char **argv)
 {
     xcb_connection_t *c = xcb_connect(NULL, NULL);
+
+    int e = xcb_connection_has_error(c);
+    if (e) {
+        fprintf(stderr, "connection has error %d\n", e);
+        return e;
+    }
+
     int fd = xcb_get_file_descriptor(c);
 
     struct {

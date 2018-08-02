@@ -133,8 +133,10 @@ start_client(char *const *client_args, int display)
             return 1;
         }
 
-        if (!WIFEXITED(wstatus))
+        if (!WIFEXITED(wstatus)) {
+            fprintf(stderr, "Client stopped or terminated by signal %d\n", WTERMSIG(wstatus));
             return 1;
+        }
 
         return WEXITSTATUS(wstatus);
     } else {
