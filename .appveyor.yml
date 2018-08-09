@@ -25,6 +25,7 @@ ninja,\
 pkg-config,\
 python3,\
 tar,\
+xz,\
 windowsdriproto,\
 xorgproto,\
 libdmx-devel,\
@@ -65,13 +66,24 @@ khronos-opengl-registry,\
 python3-lxml,\
 xtrans,\
 xkbcomp,\
-xkeyboard-config"
+xkeyboard-config,\
+python2-mako,\
+python2-six"
 - echo Install done
 cache:
 - C:\cache
 build_script:
+- SET ORIG_PATH=%PATH%
 - SET PATH=%CYGWIN_ROOT%/bin
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./test/scripts/build-appveyor.sh"'
 artifacts:
 - path: staging
 deploy: off
+test: off
+# publish log artifacts on success or failure
+on_finish:
+- tar -Jcf meson-log.tar.xz build/meson-logs
+- tar -Jcf xvfb-piglit.tar.xz build/test/piglit-results/xvfb
+- SET PATH=%ORIG_PATH%
+- appveyor PushArtifact meson-log.tar.xz
+- appveyor PushArtifact xvfb-piglit.tar.xz

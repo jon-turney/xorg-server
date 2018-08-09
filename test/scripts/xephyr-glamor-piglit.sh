@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# this times out on Travis, because the tests take too long.
-if test "x$TRAVIS_BUILD_DIR" != "x"; then
+# this times out on CI, because the tests take too long.
+if test "x$TRAVIS_BUILD_DIR" != "x" || test "x$APPVEYOR" != "x"; then
     exit 77
 fi
 
