@@ -9,7 +9,6 @@ environment:
   CACHE: C:\cache
   matrix:
   - BUILD: i686-pc-cygwin
-  - BUILD: x86_64-pc-cygwin
 install:
 - if "%BUILD%"=="x86_64-pc-cygwin" set SETUP=setup-x86_64.exe && set CYGWIN_ROOT=C:\cygwin64
 - if "%BUILD%"=="i686-pc-cygwin" set SETUP=setup-x86.exe && set CYGWIN_ROOT=C:\cygwin
@@ -87,3 +86,4 @@ on_finish:
 - SET PATH=%ORIG_PATH%
 - appveyor PushArtifact meson-log.tar.xz
 - appveyor PushArtifact xvfb-piglit.tar.xz
+- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
