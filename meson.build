@@ -4,7 +4,7 @@ project('xserver', 'c',
             'c_std=gnu99',
         ],
         version: '1.20.1',
-        meson_version: '>= 0.42.0',
+        meson_version: '>= 0.47.0',
 )
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: 'c')
 cc = meson.get_compiler('c')
@@ -652,6 +652,13 @@ if build_xorg
     sdkconfig.set('SDK_REQUIRED_MODULES', ' '.join(sdk_required_modules))
     sdkconfig.set('symbol_visibility', '-fvisibility=hidden')
     sdkconfig.set('XORG_DRIVER_LIBS', '')
+
+    # On Windows, modules built with the SDK will need to link with server and
+    # module implibs to resolve symbols
+    if (host_machine.system() == 'cygwin' or
+        host_machine.system() == 'windows')
+        sdkconfig.set('XORG_DRIVER_LIBS', '-lXorg.exe -L\${moduledir} -lshadow -lfb -no-undefined')
+    endif
 
     configure_file(
         input: 'xorg-server.pc.in',
