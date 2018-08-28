@@ -1177,7 +1177,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     default:
-        if (message == s_uTaskbarRestart) {
+        if ((message == s_uTaskbarRestart) && !s_pScreenInfo->fNoTrayIcon)  {
             winInitNotifyIcon(s_pScreenPriv);
         }
         break;
