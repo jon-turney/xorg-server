@@ -3,7 +3,7 @@ project('xserver', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '1.20.0',
+        version: '1.20.1',
         meson_version: '>= 0.42.0',
 )
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: 'c')
@@ -518,9 +518,9 @@ manpage_config.set('libmansuffix', '3')
 manpage_config.set('miscmansuffix', '7')
 manpage_config.set('filemansuffix', '5')
 manpage_config.set('logdir', log_dir)
-manpage_config.set('datadir', get_option('datadir'))
-manpage_config.set('mandir', get_option('mandir'))
-manpage_config.set('sysconfdir', get_option('sysconfdir'))
+manpage_config.set('datadir', join_paths(get_option('prefix'), get_option('datadir')))
+manpage_config.set('mandir', join_paths(get_option('prefix'), get_option('mandir')))
+manpage_config.set('sysconfdir', join_paths(get_option('prefix'), get_option('sysconfdir')))
 manpage_config.set('xconfigdir', 'xorg.conf.d')
 manpage_config.set('xkbdir', xkb_dir)
 manpage_config.set('XKB_DFLT_RULES', get_option('xkb_default_rules'))
