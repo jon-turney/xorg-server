@@ -40,4 +40,6 @@ status=$?
 cat build/meson-logs/testlog.txt
 cat build/test/piglit-results/xvfb/long-summary
 
+find -name *.stackdump
+
 exit $status
