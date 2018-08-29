@@ -2,7 +2,9 @@
 
 export PREFIX=/usr
 
-git clone --depth 1 git://anongit.freedesktop.org/git/piglit
+#git clone --depth 1 git://anongit.freedesktop.org/git/piglit
+# XXX: use personal piglit repo with some additional patches for debugging
+git clone --depth 1 git://people.freedesktop.org/~jturney/piglit
 export PIGLIT_DIR=$(pwd)/piglit
 
 # currently, the 'xts' test set in piglit expects to be pointed at a built copy
