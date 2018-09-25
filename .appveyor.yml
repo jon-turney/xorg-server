@@ -67,7 +67,10 @@ xtrans,\
 xkbcomp,\
 xkeyboard-config,\
 python3-mako,\
-python3-six"
+python3-six,\
+nano,\
+psmisc,\
+procps-ng"
 - echo Install done
 cache:
 - C:\cache
