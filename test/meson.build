@@ -12,6 +12,7 @@ if get_option('xvfb')
     test('xvfb-piglit', find_program('scripts/xvfb-piglit.sh'),
         env: piglit_env,
         timeout: 1200,
+        is_parallel: false,
     )
 
     if get_option('xephyr') and build_glamor
@@ -19,6 +20,7 @@ if get_option('xvfb')
             find_program('scripts/xephyr-glamor-piglit.sh'),
             env: piglit_env,
             timeout: 1200,
+            is_parallel: false,
         )
     endif
 endif
