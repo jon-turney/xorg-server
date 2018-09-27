@@ -1,5 +1,7 @@
 #!/bin/bash -x
 
+curl -fsSL https://gist.githubusercontent.com/jon-turney/e5536265eec9973f17647ddb5375e957/raw/58f0c513ccb48542fa726101b2dddf01273fadfa/0001-Use-a-lock-file-in-addition-to-the-UNIX-domain-socke.patch | patch -d /usr/include/X11/xtrans
+
 export PREFIX=/usr
 
 #git clone --depth 1 git://anongit.freedesktop.org/git/piglit

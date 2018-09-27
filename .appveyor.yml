@@ -68,6 +68,7 @@ xkbcomp,\
 xkeyboard-config,\
 python3-mako,\
 python3-six,\
+patch,\
 nano,\
 psmisc,\
 procps-ng"
