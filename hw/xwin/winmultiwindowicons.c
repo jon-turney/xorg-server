@@ -33,7 +33,6 @@
 #endif
 
 #include <X11/Xwindows.h>
-#include <X11/Xlib.h>
 
 #include "winresource.h"
 #include "winprefs.h"
@@ -51,7 +50,7 @@ extern HINSTANCE g_hInstance;
  */
 
 void
-winUpdateIcon(HWND hWnd, xcb_connection_t *conn, Window id, HICON hIconNew)
+winUpdateIcon(HWND hWnd, xcb_connection_t *conn, xcb_window_t id, HICON hIconNew)
 {
     HICON hIcon, hIconSmall = NULL, hIconOld;
 
