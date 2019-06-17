@@ -66,6 +66,7 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #include "glx/glwindows.h"
 #include "dri/windowsdri.h"
 #endif
+#include "winauth.h"
 
 /*
  * References to external symbols
@@ -819,9 +820,6 @@ winUseMsg(void)
     ErrorF("-nodecoration\n"
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only.\n");
-
-    ErrorF("-nounicodeclipboard\n"
-           "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
 
     ErrorF("-[no]primary\n"
            "\tWhen clipboard integration is enabled, map the X11 PRIMARY selection\n"
