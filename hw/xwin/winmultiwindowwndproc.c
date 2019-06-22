@@ -978,12 +978,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Branch on if the window was killed in X already */
         if (pWinPriv && !pWinPriv->fXKilled) {
-            ErrorF("winTopLevelWindowProc - WM_DESTROY - WM_WM_KILL\n");
+            /* Unowned i.e. at the top of a TRANSIENT_FOR hierarchy */
+            HWND owner = GetWindow(hwnd, GW_OWNER);
+            if (!owner) {
+                ErrorF("winTopLevelWindowProc - WM_DESTROY - WM_WM_KILL\n");
 
-            /* Tell our Window Manager thread to kill the window */
-            wmMsg.msg = WM_WM_KILL;
-            if (fWMMsgInitialized)
-                winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+                /* Tell our Window Manager thread to kill the window */
+                wmMsg.msg = WM_WM_KILL;
+                if (fWMMsgInitialized)
+                    winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+            }
         }
 
         RemoveProp(hwnd, WIN_WINDOW_PROP);
