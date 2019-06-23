@@ -976,7 +976,7 @@ winReorderWindowsMultiWindow(void)
     /* Loop through top level Window windows, descending in Z order */
     for (hwnd = GetTopWindow(NULL);
          hwnd; hwnd = GetNextWindow(hwnd, GW_HWNDNEXT)) {
-        /* Don't take care of other Cygwin/X process's windows */
+        /* Don't touch other process's windows */
         GetWindowThreadProcessId(hwnd, &dwWindowProcessID);
 
         if (GetProp(hwnd, WIN_WINDOW_PROP)
