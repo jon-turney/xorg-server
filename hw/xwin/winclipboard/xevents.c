@@ -560,7 +560,7 @@ winClipboardFlushXEvents(HWND hwnd,
             winClipboardDOStoUNIX(pszConvertData, strlen(pszConvertData));
 
             xtpText_value = strdup(pszConvertData);
-            xtpText_nitems = iConvertDataLen - 1;
+            xtpText_nitems = strlen(pszConvertData);
 
             /* data will fit into a single X request? (INCR not yet supported) */
             {
