@@ -6,7 +6,7 @@ XWinrc\- XWin Server Resource Configuration File.
 
 
 .SH DESCRIPTION
-The X Server for the X Window System on the Cygwin/X environment
+The X Server for the X Window System on the Cygwin environment
 running on Microsoft Windows, \fIXWin\fP can be optionally configured
 with the \fIXWinrc\fP file.  A system-wide configuration file should
 be placed in \fI
