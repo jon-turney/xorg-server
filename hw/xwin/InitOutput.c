@@ -115,10 +115,8 @@ static PixmapFormatRec g_PixmapFormats[] = {
 };
 
 static const ExtensionModule xwinExtensions[] = {
-#ifdef GLXEXT
 #ifdef XWIN_WINDOWS_DRI
   { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
-#endif
 #endif
 };
 
@@ -133,10 +131,11 @@ void XwinExtensionInit(void)
     if (g_fNativeGl) {
         /* install the native GL provider */
         glxWinPushNativeProvider();
+
+        /* load the Windows-DRI extension */
+        LoadExtensionList(xwinExtensions, ARRAY_SIZE(xwinExtensions), TRUE);
     }
 #endif
-
-    LoadExtensionList(xwinExtensions, ARRAY_SIZE(xwinExtensions), TRUE);
 }
 
 #if defined(DDXBEFORERESET)
