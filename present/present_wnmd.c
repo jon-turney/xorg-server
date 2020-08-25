@@ -278,7 +278,9 @@ present_wnmd_check_flip(RRCrtcPtr           crtc,
     if (x_off || y_off)
         return FALSE;
 
-    // TODO: Check for valid region?
+    /* Valid area must contain window (for simplicity for now just never flip when one is set). */
+    if (valid)
+        return FALSE;
 
     /* Flip pixmap must have same dimensions as window */
     if (window->drawable.width != pixmap->drawable.width ||
@@ -325,11 +327,11 @@ present_wnmd_check_flip_window (WindowPtr window)
 
     if (flip_pending) {
         if (!present_wnmd_check_flip(flip_pending->crtc, flip_pending->window, flip_pending->pixmap,
-                                flip_pending->sync_flip, NULL, 0, 0, NULL))
+                                flip_pending->sync_flip, flip_pending->valid, 0, 0, NULL))
             present_wnmd_set_abort_flip(window);
     } else if (flip_active) {
         if (!present_wnmd_check_flip(flip_active->crtc, flip_active->window, flip_active->pixmap,
-                                     flip_active->sync_flip, NULL, 0, 0, NULL))
+                                     flip_active->sync_flip, flip_active->valid, 0, 0, NULL))
             present_wnmd_flips_stop(window);
     }
 
@@ -337,7 +339,7 @@ present_wnmd_check_flip_window (WindowPtr window)
     xorg_list_for_each_entry(vblank, &window_priv->vblank, window_list) {
         if (vblank->queued && vblank->flip &&
                 !present_wnmd_check_flip(vblank->crtc, window, vblank->pixmap,
-                                         vblank->sync_flip, NULL, 0, 0, &reason)) {
+                                         vblank->sync_flip, vblank->valid, 0, 0, &reason)) {
             vblank->flip = FALSE;
             vblank->reason = reason;
             if (vblank->sync_flip)
@@ -648,8 +650,6 @@ present_wnmd_abort_vblank(ScreenPtr screen, WindowPtr window, RRCrtcPtr crtc, ui
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
     present_window_priv_ptr window_priv = present_window_priv(window);
     present_vblank_ptr      vblank;
-
-    assert(crtc);
 
     (*screen_priv->wnmd_info->abort_vblank) (window, crtc, event_id, msc);
 

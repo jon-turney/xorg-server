@@ -36,6 +36,7 @@
 #include <drm_fourcc.h>
 
 #define MESA_EGL_NO_X11_HEADERS
+#define EGL_NO_X11
 #include <gbm.h>
 #include <glamor_egl.h>
 
@@ -169,6 +170,8 @@ xwl_glamor_gbm_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo,
                                           xwl_screen->egl_context,
                                           EGL_NATIVE_PIXMAP_KHR,
                                           xwl_pixmap->bo, NULL);
+    if (xwl_pixmap->image == EGL_NO_IMAGE_KHR)
+      goto error;
 
     glGenTextures(1, &xwl_pixmap->texture);
     glBindTexture(GL_TEXTURE_2D, xwl_pixmap->texture);
@@ -176,14 +179,31 @@ xwl_glamor_gbm_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, xwl_pixmap->image);
+    if (eglGetError() != EGL_SUCCESS)
+      goto error;
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    glamor_set_pixmap_texture(pixmap, xwl_pixmap->texture);
+    /* `set_pixmap_texture()` may fail silently if the FBO creation failed,
+     * so we check again the texture to be sure it worked.
+     */
+    if (!glamor_get_pixmap_texture(pixmap))
+      goto error;
+
+    glamor_set_pixmap_type(pixmap, GLAMOR_TEXTURE_DRM);
     xwl_pixmap_set_private(pixmap, xwl_pixmap);
 
-    glamor_set_pixmap_texture(pixmap, xwl_pixmap->texture);
-    glamor_set_pixmap_type(pixmap, GLAMOR_TEXTURE_DRM);
-
     return pixmap;
+
+error:
+    if (xwl_pixmap->image != EGL_NO_IMAGE_KHR)
+      eglDestroyImageKHR(xwl_screen->egl_display, xwl_pixmap->image);
+    if (pixmap)
+      glamor_destroy_pixmap(pixmap);
+    free(xwl_pixmap);
+
+    return NULL;
 }
 
 static PixmapPtr
@@ -194,6 +214,7 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
     struct gbm_bo *bo;
+    PixmapPtr pixmap = NULL;
 
     if (width > 0 && height > 0 && depth >= 15 &&
         (hint == 0 ||
@@ -218,11 +239,22 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
                                GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
         }
 
-        if (bo)
-            return xwl_glamor_gbm_create_pixmap_for_bo(screen, bo, depth);
+        if (bo) {
+            pixmap = xwl_glamor_gbm_create_pixmap_for_bo(screen, bo, depth);
+
+            if (!pixmap) {
+                gbm_bo_destroy(bo);
+            }
+            else if (xwl_screen->rootless && hint == CREATE_PIXMAP_USAGE_BACKING_PIXMAP) {
+                glamor_clear_pixmap(pixmap);
+            }
+        }
     }
 
-    return glamor_create_pixmap(screen, width, height, depth, hint);
+    if (!pixmap)
+        pixmap = glamor_create_pixmap(screen, width, height, depth, hint);
+
+    return pixmap;
 }
 
 static Bool
@@ -253,6 +285,9 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
     unsigned short width = pixmap->drawable.width;
     unsigned short height = pixmap->drawable.height;
+    uint32_t format;
+    struct xwl_format *xwl_format = NULL;
+    Bool modifier_supported = FALSE;
     int prime_fd;
     int num_planes;
     uint32_t strides[4];
@@ -277,6 +312,8 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     if (!xwl_pixmap->bo)
        return NULL;
 
+    format = wl_drm_format_for_depth(pixmap->drawable.depth);
+
     prime_fd = gbm_bo_get_fd(xwl_pixmap->bo);
     if (prime_fd == -1)
         return NULL;
@@ -295,7 +332,23 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     offsets[0] = 0;
 #endif
 
-    if (xwl_gbm->dmabuf && modifier != DRM_FORMAT_MOD_INVALID) {
+    for (i = 0; i < xwl_screen->num_formats; i++) {
+       if (xwl_screen->formats[i].format == format) {
+          xwl_format = &xwl_screen->formats[i];
+          break;
+       }
+    }
+
+    if (xwl_format) {
+        for (i = 0; i < xwl_format->num_modifiers; i++) {
+            if (xwl_format->modifiers[i] == modifier) {
+                modifier_supported = TRUE;
+                break;
+            }
+        }
+    }
+
+    if (xwl_gbm->dmabuf && modifier_supported) {
         struct zwp_linux_buffer_params_v1 *params;
 
         params = zwp_linux_dmabuf_v1_create_params(xwl_gbm->dmabuf);
@@ -307,13 +360,12 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
 
         xwl_pixmap->buffer =
            zwp_linux_buffer_params_v1_create_immed(params, width, height,
-                                                   wl_drm_format_for_depth(pixmap->drawable.depth),
-                                                   0);
+                                                   format, 0);
         zwp_linux_buffer_params_v1_destroy(params);
     } else if (num_planes == 1) {
         xwl_pixmap->buffer =
             wl_drm_create_prime_buffer(xwl_gbm->drm, prime_fd, width, height,
-                                       wl_drm_format_for_depth(pixmap->drawable.depth),
+                                       format,
                                        0, gbm_bo_get_stride(xwl_pixmap->bo),
                                        0, 0,
                                        0, 0);
@@ -469,7 +521,8 @@ glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
           data.strides[i] = strides[i];
           data.offsets[i] = offsets[i];
        }
-       bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD_MODIFIER, &data, 0);
+       bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD_MODIFIER, &data,
+                          GBM_BO_USE_RENDERING);
 #endif
     } else if (num_fds == 1) {
        struct gbm_import_fd_data data;
@@ -480,7 +533,7 @@ glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
        data.stride = strides[0];
        data.format = gbm_format_for_depth(depth);
        bo = gbm_bo_import(xwl_gbm->gbm, GBM_BO_IMPORT_FD, &data,
-             GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+                          GBM_BO_USE_RENDERING);
     } else {
        goto error;
     }
@@ -765,6 +818,10 @@ xwl_dmabuf_handle_modifier(void *data, struct zwp_linux_dmabuf_v1 *dmabuf,
    struct xwl_screen *xwl_screen = data;
     struct xwl_format *xwl_format = NULL;
     int i;
+
+    if (modifier_hi == (DRM_FORMAT_MOD_INVALID >> 32) &&
+        modifier_lo == (DRM_FORMAT_MOD_INVALID & 0xffffffff))
+        return;
 
     for (i = 0; i < xwl_screen->num_formats; i++) {
         if (xwl_screen->formats[i].format == format) {

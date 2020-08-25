@@ -355,8 +355,8 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
     return TRUE;
 }
 
-struct gbm_bo *
-glamor_gbm_bo_from_pixmap(ScreenPtr screen, PixmapPtr pixmap)
+static struct gbm_bo *
+glamor_gbm_bo_from_pixmap_internal(ScreenPtr screen, PixmapPtr pixmap)
 {
     struct glamor_egl_screen_private *glamor_egl =
         glamor_egl_get_screen_private(xf86ScreenToScrn(screen));
@@ -368,6 +368,15 @@ glamor_gbm_bo_from_pixmap(ScreenPtr screen, PixmapPtr pixmap)
 
     return gbm_bo_import(glamor_egl->gbm, GBM_BO_IMPORT_EGL_IMAGE,
                          pixmap_priv->image, 0);
+}
+
+struct gbm_bo *
+glamor_gbm_bo_from_pixmap(ScreenPtr screen, PixmapPtr pixmap)
+{
+    if (!glamor_make_pixmap_exportable(pixmap, TRUE))
+        return NULL;
+
+    return glamor_gbm_bo_from_pixmap_internal(screen, pixmap);
 }
 
 int
@@ -385,7 +394,7 @@ glamor_egl_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
     if (!glamor_make_pixmap_exportable(pixmap, TRUE))
         return 0;
 
-    bo = glamor_gbm_bo_from_pixmap(screen, pixmap);
+    bo = glamor_gbm_bo_from_pixmap_internal(screen, pixmap);
     if (!bo)
         return 0;
 
@@ -423,7 +432,7 @@ glamor_egl_fd_from_pixmap(ScreenPtr screen, PixmapPtr pixmap,
     if (!glamor_make_pixmap_exportable(pixmap, FALSE))
         return -1;
 
-    bo = glamor_gbm_bo_from_pixmap(screen, pixmap);
+    bo = glamor_gbm_bo_from_pixmap_internal(screen, pixmap);
     if (!bo)
         return -1;
 
@@ -452,7 +461,7 @@ glamor_egl_fd_name_from_pixmap(ScreenPtr screen,
     if (!glamor_make_pixmap_exportable(pixmap, FALSE))
         goto failure;
 
-    bo = glamor_gbm_bo_from_pixmap(screen, pixmap);
+    bo = glamor_gbm_bo_from_pixmap_internal(screen, pixmap);
     if (!bo)
         goto failure;
 
@@ -678,6 +687,22 @@ glamor_get_modifiers(ScreenPtr screen, uint32_t format,
     return TRUE;
 #endif
 }
+
+_X_EXPORT const char *
+glamor_egl_get_driver_name(ScreenPtr screen)
+{
+#ifdef GLAMOR_HAS_EGL_QUERY_DRIVER
+    struct glamor_egl_screen_private *glamor_egl;
+
+    glamor_egl = glamor_egl_get_screen_private(xf86ScreenToScrn(screen));
+
+    if (epoxy_has_egl_extension(glamor_egl->display, "EGL_MESA_query_driver"))
+        return eglGetDisplayDriverName(glamor_egl->display);
+#endif
+
+    return NULL;
+}
+
 
 static Bool
 glamor_egl_destroy_pixmap(PixmapPtr pixmap)

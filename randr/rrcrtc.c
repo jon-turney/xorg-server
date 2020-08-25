@@ -401,17 +401,22 @@ RRCrtcDetachScanoutPixmap(RRCrtcPtr crtc)
         if (crtc->scanout_pixmap_back) {
             pScrPriv->rrDisableSharedPixmapFlipping(crtc);
 
-            master->StopFlippingPixmapTracking(mrootdraw,
-                                               crtc->scanout_pixmap,
-                                               crtc->scanout_pixmap_back);
+            if (mrootdraw) {
+                master->StopFlippingPixmapTracking(mrootdraw,
+                                                   crtc->scanout_pixmap,
+                                                   crtc->scanout_pixmap_back);
+            }
 
             rrDestroySharedPixmap(crtc, crtc->scanout_pixmap_back);
             crtc->scanout_pixmap_back = NULL;
         }
         else {
             pScrPriv->rrCrtcSetScanoutPixmap(crtc, NULL);
-            master->StopPixmapTracking(mrootdraw,
-                                       crtc->scanout_pixmap);
+
+            if (mrootdraw) {
+                master->StopPixmapTracking(mrootdraw,
+                                           crtc->scanout_pixmap);
+            }
         }
 
         rrDestroySharedPixmap(crtc, crtc->scanout_pixmap);
@@ -2007,8 +2012,14 @@ RRReplaceScanoutPixmap(DrawablePtr pDrawable, PixmapPtr pPixmap, Bool enable)
 Bool
 RRHasScanoutPixmap(ScreenPtr pScreen)
 {
-    rrScrPriv(pScreen);
+    rrScrPrivPtr pScrPriv;
     int i;
+
+    /* Bail out if RandR wasn't initialized. */
+    if (!dixPrivateKeyRegistered(rrPrivKey))
+        return FALSE;
+
+    pScrPriv = rrGetScrPriv(pScreen);
 
     if (!pScreen->is_output_slave)
         return FALSE;

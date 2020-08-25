@@ -30,7 +30,6 @@
 #include "xwayland.h"
 #include <randrstr.h>
 
-#define DEFAULT_DPI 96
 #define ALL_ROTATIONS (RR_Rotate_0   | \
                        RR_Rotate_90  | \
                        RR_Rotate_180 | \
@@ -143,56 +142,57 @@ output_get_new_size(struct xwl_output *xwl_output,
         *height = xwl_output->y + output_height;
 }
 
-/* Approximate some kind of mmpd (m.m. per dot) of the screen given the outputs
- * associated with it.
- *
- * It either calculates the mean mmpd of all the outputs or, if no reasonable
- * value could be calculated, defaults to the mmpd of a screen with a DPI value
- * of DEFAULT_DPI.
- */
-static double
-approximate_mmpd(struct xwl_screen *xwl_screen)
+static int
+xwl_set_pixmap_visit_window(WindowPtr window, void *data)
 {
-    struct xwl_output *it;
-    int total_width_mm = 0;
-    int total_width = 0;
+    ScreenPtr screen = window->drawable.pScreen;
 
-    xorg_list_for_each_entry(it, &xwl_screen->output_list, link) {
-        if (it->randr_output->mmWidth == 0)
-            continue;
-
-        total_width_mm += it->randr_output->mmWidth;
-        total_width += it->width;
+    if (screen->GetWindowPixmap(window) == data) {
+        screen->SetWindowPixmap(window, screen->GetScreenPixmap(screen));
+        return WT_WALKCHILDREN;
     }
 
-    if (total_width_mm != 0)
-        return (double)total_width_mm / total_width;
-    else
-        return 25.4 / DEFAULT_DPI;
+    return WT_DONTWALKCHILDREN;
+}
+
+static void
+update_backing_pixmaps(struct xwl_screen *xwl_screen, int width, int height)
+{
+    ScreenPtr pScreen = xwl_screen->screen;
+    WindowPtr pRoot = pScreen->root;
+    PixmapPtr old_pixmap, new_pixmap;
+
+    old_pixmap = pScreen->GetScreenPixmap(pScreen);
+    new_pixmap = pScreen->CreatePixmap(pScreen, width, height,
+                                       pScreen->rootDepth,
+                                       CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
+    pScreen->SetScreenPixmap(new_pixmap);
+
+    if (old_pixmap) {
+        TraverseTree(pRoot, xwl_set_pixmap_visit_window, old_pixmap);
+        pScreen->DestroyPixmap(old_pixmap);
+    }
+
+    pScreen->ResizeWindow(pRoot, 0, 0, width, height, NULL);
 }
 
 static void
 update_screen_size(struct xwl_output *xwl_output, int width, int height)
 {
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
-    double mmpd;
 
     if (xwl_screen->root_clip_mode == ROOT_CLIP_FULL)
         SetRootClip(xwl_screen->screen, ROOT_CLIP_NONE);
+
+    if (!xwl_screen->rootless && xwl_screen->screen->root)
+        update_backing_pixmaps (xwl_screen, width, height);
 
     xwl_screen->width = width;
     xwl_screen->height = height;
     xwl_screen->screen->width = width;
     xwl_screen->screen->height = height;
-
-    if (xwl_output->width == width && xwl_output->height == height) {
-        xwl_screen->screen->mmWidth = xwl_output->randr_output->mmWidth;
-        xwl_screen->screen->mmHeight = xwl_output->randr_output->mmHeight;
-    } else {
-        mmpd = approximate_mmpd(xwl_screen);
-        xwl_screen->screen->mmWidth = width * mmpd;
-        xwl_screen->screen->mmHeight = height * mmpd;
-    }
+    xwl_screen->screen->mmWidth = (width * 25.4) / monitorResolution;
+    xwl_screen->screen->mmHeight = (height * 25.4) / monitorResolution;
 
     SetRootClip(xwl_screen->screen, xwl_screen->root_clip_mode);
 
@@ -439,7 +439,7 @@ xwl_screen_init_output(struct xwl_screen *xwl_screen)
     if (!RRScreenInit(xwl_screen->screen))
         return FALSE;
 
-    RRScreenSetSizeRange(xwl_screen->screen, 320, 200, 8192, 8192);
+    RRScreenSetSizeRange(xwl_screen->screen, 16, 16, 32767, 32767);
 
     rp = rrGetScrPriv(xwl_screen->screen);
     rp->rrGetInfo = xwl_randr_get_info;
