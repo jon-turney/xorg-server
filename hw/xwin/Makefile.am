@@ -154,7 +154,7 @@ install-exec-hook:
 
 EXTRA_DIST = \
 	$(xwinconfig_DATA) \
-	X.ico \
+	X.svg \
 	XWin.rc \
 	XWin.exe.manifest
 
