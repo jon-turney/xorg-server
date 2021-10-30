@@ -32,6 +32,8 @@
 #if !defined(_WINWINDOW_H_)
 #define _WINWINDOW_H_
 
+#include <pthread.h>
+
 #ifndef NO
 #define NO			0
 #endif

@@ -58,7 +58,6 @@
 #include "winwindow.h"
 #include "winprefs.h"
 #include "window.h"
-#include "pixmapstr.h"
 #include "windowstr.h" // XXX: this shouldn't be in X client code
 #include "winglobals.h"
 #include "windisplay.h"

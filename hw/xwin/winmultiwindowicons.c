@@ -49,6 +49,7 @@
 #include "winmsg.h"
 #include "winmultiwindowicons.h"
 #include "winglobals.h"
+#include "misc.h"
 
 /*
  * global variables
