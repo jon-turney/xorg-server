@@ -27,7 +27,7 @@ ImageMagick,\
 meson,\
 ninja,\
 pkg-config,\
-python3,\
+python38,\
 windowsdriproto,\
 xorgproto,\
 libepoxy-devel,\
@@ -59,10 +59,11 @@ libxcb-render-util-devel,\
 libxcb-shape-devel,\
 libxcb-util-devel,\
 libxcb-xkb-devel,\
+libxcvt-devel,\
 libxkbfile-devel,\
 font-util,\
 khronos-opengl-registry,\
-python3-lxml,\
+python38-lxml,\
 xkbcomp-devel,\
 xkeyboard-config,\
 xtrans"
