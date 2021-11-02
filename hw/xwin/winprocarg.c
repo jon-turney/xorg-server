@@ -86,29 +86,6 @@ winInitializeScreenDefaults(void)
                   "winInitializeScreenDefaults - primary monitor w %d h %d\n",
                   (int) dwWidth, (int) dwHeight);
 
-    /* Set a default DPI, if no '-dpi' option was used */
-    if (monitorResolution == 0) {
-        HDC hdc = GetDC(NULL);
-
-        if (hdc) {
-            int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-            int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
-
-            winErrorFVerb(2,
-                          "winInitializeScreenDefaults - native DPI x %d y %d\n",
-                          dpiX, dpiY);
-
-            monitorResolution = dpiY;
-            ReleaseDC(NULL, hdc);
-        }
-        else {
-            winErrorFVerb(1,
-                          "winInitializeScreenDefaults - Failed to retrieve native DPI, falling back to default of %d DPI\n",
-                          WIN_DEFAULT_DPI);
-            monitorResolution = WIN_DEFAULT_DPI;
-        }
-    }
-
     defaultScreenInfo.iMonitor = 1;
     defaultScreenInfo.hMonitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
     defaultScreenInfo.dwWidth = dwWidth;
@@ -942,6 +919,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
      */
     if (IS_OPTION("-dpi")) {
         g_cmdline.customDPI = TRUE;
+        g_fixedDPI = TRUE;
         return 0;               /* Let DIX parse this again */
     }
 

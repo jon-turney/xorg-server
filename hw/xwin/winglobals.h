@@ -82,4 +82,6 @@ extern Bool g_fButton[3];
 
 extern pthread_mutex_t g_pmTerminating;
 
+extern Bool g_fixedDPI;
+
 #endif                          /* WINGLOBALS_H */

@@ -48,6 +48,10 @@
 #define WM_DWMCOMPOSITIONCHANGED 0x031e
 #endif
 
+#ifndef WM_GETDPISCALEDSIZE
+#define WM_GETDPISCALEDSIZE 0x02E4
+#endif
+
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
@@ -1262,12 +1266,17 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-
     case WM_DWMCOMPOSITIONCHANGED:
         /* This message is only sent on Vista/W7 */
         CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
         return 0;
+
+    case WM_GETDPISCALEDSIZE:
+        winDebug("winTopLevelWindowProc - WM_GETDPISCALEDSIZE\n");
+        // We don't change the lParam SIZE, so the Window retains the same size
+        // in pixels (rather than getting linearly scaled by the dpi value)
+        return TRUE;
 
     case WM_ASYNCMOVE:
         winAdjustWindowsWindow(pWin, hwnd);

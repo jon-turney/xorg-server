@@ -318,7 +318,10 @@ static void
 SetDPI (char *dpi)
 {
   if (!g_cmdline.customDPI)
-    monitorResolution = atoi (dpi);
+      {
+          monitorResolution = atoi (dpi);
+          g_fixedDPI = TRUE;
+      }
 }
 
 static void

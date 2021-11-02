@@ -938,6 +938,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     winConfigFiles();
 #endif
 
+    winUpdateDpi();
+
     /* Load preferences from XWinrc file */
     LoadPreferences();
 

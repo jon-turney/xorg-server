@@ -80,6 +80,7 @@ Bool g_fSilentDupError = FALSE;
 Bool g_fNativeGl = TRUE;
 Bool g_fHostInTitle = TRUE;
 pthread_mutex_t g_pmTerminating = PTHREAD_MUTEX_INITIALIZER;
+Bool g_fixedDPI = FALSE;
 
 /*
  * Wrapped DIX functions
