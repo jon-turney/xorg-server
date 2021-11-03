@@ -48,6 +48,10 @@
 #define WM_DWMCOMPOSITIONCHANGED 0x031e
 #endif
 
+#ifndef WM_GETDPISCALEDSIZE
+#define WM_GETDPISCALEDSIZE 0x02E4
+#endif
+
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
 /*
@@ -300,6 +304,35 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
                                             MOUSE_POLLING_INTERVAL, NULL);
 }
 
+static
+void
+winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
+{
+    /* Do nothing if window has not yet been given initial state */
+    if (!GetProp(wmMsg->hwndWindow, WIN_STATE_PROP))
+        return;
+
+    wmMsg->msg = WM_WM_CHANGE_STATE;
+    if (IsIconic(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 3; // IconicState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsZoomed(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 2; // ZoomState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+    }
+    else if (IsWindowVisible(wmMsg->hwndWindow)) {
+        wmMsg->dwID = 1; // NormalState
+        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+     }
+    else {
+        /* Only the client, not the user can Withdraw windows, so it doesn't make
+           much sense to handle that state here, and anything else is an
+           unanticapted state. */
+        ErrorF("winAdjustXWindowState - Unknown state for %p\n", wmMsg->hwndWindow);
+    }
+}
+
 /* Undocumented */
 typedef struct _ACCENTPOLICY
 {
@@ -528,6 +561,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) XMING_SIGNATURE);
+
+        /* Tell our Window Manager thread to style and then show the window */
+        wmMsg.msg = WM_WM_CREATE;
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
 
         CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
@@ -801,6 +839,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Add the keyboard hook if possible */
         if (g_fKeyboardHookLL)
             g_fKeyboardHookLL = winInstallKeyboardHookLL();
+
+        /* Tell our Window Manager thread to activate the window */
+        if (fWMMsgInitialized)
+            {
+                wmMsg.msg = WM_WM_ACTIVATE;
+                /* don't focus override redirect windows (e.g. menus) */
+                if (!pWin || !pWin->overrideRedirect)
+                    winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+            }
+
         return 0;
 
     case WM_KILLFOCUS:
@@ -810,9 +858,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Remove our keyboard hook if it is installed */
         winRemoveKeyboardHookLL();
 
-        /* Revert the X focus as well, but only if the Windows focus is going to another window */
-        if (!wParam && pWin)
-            DeleteWindowFromAnyEvents(pWin, FALSE);
+        /* Revert the X focus as well */
+        if (fWMMsgInitialized)
+            {
+                wmMsg.msg = WM_WM_ACTIVATE;
+                wmMsg.iWindow = 0;
+                winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+            }
 
         return 0;
 
@@ -896,26 +948,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Pass the message to the root window */
         SendMessage(hwndScreen, message, wParam, lParam);
 
-        if (LOWORD(wParam) != WA_INACTIVE) {
-            /* Raise the window to the top in Z order */
-            /* ago: Activate does not mean putting it to front! */
-            /*
-               wmMsg.msg = WM_WM_RAISE;
-               if (fWMMsgInitialized)
-               winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
-             */
-
-            /* Tell our Window Manager thread to activate the window */
-            wmMsg.msg = WM_WM_ACTIVATE;
-            if (fWMMsgInitialized)
-                if (!pWin || !pWin->overrideRedirect)   /* for OOo menus */
-                    winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
-        }
-        /* Prevent the mouse wheel from stalling when another window is minimized */
-        if (HIWORD(wParam) == 0 && LOWORD(wParam) == WA_ACTIVE &&
-            (HWND) lParam != NULL && (HWND) lParam != GetParent(hwnd))
-            SetFocus(hwnd);
-        return 0;
+        /* Allow DefWindowProc to SetFocus() as needed */
+        break;
 
     case WM_ACTIVATEAPP:
         /*
@@ -944,17 +978,22 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Branch on if the window was killed in X already */
         if (pWinPriv && !pWinPriv->fXKilled) {
-            ErrorF("winTopLevelWindowProc - WM_DESTROY - WM_WM_KILL\n");
+            /* Unowned i.e. at the top of a TRANSIENT_FOR hierarchy */
+            HWND owner = GetWindow(hwnd, GW_OWNER);
+            if (!owner) {
+                ErrorF("winTopLevelWindowProc - WM_DESTROY - WM_WM_KILL\n");
 
-            /* Tell our Window Manager thread to kill the window */
-            wmMsg.msg = WM_WM_KILL;
-            if (fWMMsgInitialized)
-                winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+                /* Tell our Window Manager thread to kill the window */
+                wmMsg.msg = WM_WM_KILL;
+                if (fWMMsgInitialized)
+                    winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+            }
         }
 
         RemoveProp(hwnd, WIN_WINDOW_PROP);
         RemoveProp(hwnd, WIN_WID_PROP);
         RemoveProp(hwnd, WIN_NEEDMANAGE_PROP);
+        RemoveProp(hwnd, WIN_STATE_PROP);
 
         break;
 
@@ -963,77 +1002,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove)
             winAdjustXWindow(pWin, hwnd);
         /* else: Wait for WM_EXITSIZEMOVE */
-        return 0;
-
-    case WM_SHOWWINDOW:
-        /* Bail out if the window is being hidden */
-        if (!wParam)
-            return 0;
-
-        /* */
-        if (!pWin->overrideRedirect) {
-            HWND zstyle = HWND_NOTOPMOST;
-
-            /* Flag that this window needs to be made active when clicked */
-            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
-
-            /* Set the transient style flags */
-            if (GetParent(hwnd))
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 WS_POPUP | WS_OVERLAPPED | WS_SYSMENU |
-                                 WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-            /* Set the window standard style flags */
-            else
-                SetWindowLongPtr(hwnd, GWL_STYLE,
-                                 (WS_POPUP | WS_OVERLAPPEDWINDOW |
-                                  WS_CLIPCHILDREN | WS_CLIPSIBLINGS)
-                                 & ~WS_CAPTION & ~WS_SIZEBOX);
-
-            winUpdateWindowPosition(hwnd, &zstyle);
-
-            {
-                WinXWMHints hints;
-
-                if (winMultiWindowGetWMHints(pWin, &hints)) {
-                    /*
-                       Give the window focus, unless it has an InputHint
-                       which is FALSE (this is used by e.g. glean to
-                       avoid every test window grabbing the focus)
-                     */
-                    if (!((hints.flags & InputHint) && (!hints.input))) {
-                        SetForegroundWindow(hwnd);
-                    }
-                }
-            }
-            wmMsg.msg = WM_WM_MAP_MANAGED;
-        }
-        else {                  /* It is an overridden window so make it top of Z stack */
-
-            HWND forHwnd = GetForegroundWindow();
-
-#if CYGWINDOWING_DEBUG
-            ErrorF("overridden window is shown\n");
-#endif
-            if (forHwnd != NULL) {
-                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
-                    XMING_SIGNATURE) {
-                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    else
-                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                }
-            }
-            wmMsg.msg = WM_WM_MAP_UNMANAGED;
-        }
-
-        /* Tell our Window Manager thread to map the window */
-        if (fWMMsgInitialized)
-            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
-
-        winStartMousePolling(s_pScreenPriv);
-
         return 0;
 
     case WM_SIZING:
@@ -1088,12 +1056,75 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
         }
+
+      /* Window is being shown */
+      if (pWinPos->flags & SWP_SHOWWINDOW) {
+        if (!pWin->overrideRedirect) {
+            HWND zstyle = HWND_NOTOPMOST;
+
+            /* Flag that this window needs to be made active when clicked */
+            SetProp(hwnd, WIN_NEEDMANAGE_PROP, (HANDLE) 1);
+
+            winUpdateWindowPosition(hwnd, &zstyle);
+
+            {
+                WinXWMHints hints;
+
+                if (winMultiWindowGetWMHints(pWin, &hints)) {
+                    /*
+                       Give the window focus, unless it has an InputHint
+                       which is FALSE (this is used by e.g. glean to
+                       avoid every test window grabbing the focus)
+                     */
+                    if (!((hints.flags & InputHint) && (!hints.input))) {
+                        SetForegroundWindow(hwnd);
+                    }
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_MANAGED;
+        }
+        else {                  /* It is an overridden window so make it top of Z stack */
+            HWND forHwnd = GetForegroundWindow();
+
+            if (forHwnd != NULL) {
+                if (GetWindowLongPtr(forHwnd, GWLP_USERDATA) & (LONG_PTR)
+                    XMING_SIGNATURE) {
+                    if (GetWindowLongPtr(forHwnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    else
+                        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                }
+            }
+            wmMsg.msg = WM_WM_MAP_UNMANAGED;
+        }
+
+        /* Tell our Window Manager thread to map the window */
+        if (fWMMsgInitialized)
+            winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
+
+        winStartMousePolling(s_pScreenPriv);
+      }
+
+      /*
+        We don't react to SWP_HIDEWINDOW indicating window is being hidden in
+        a symmetrical way (i.e. by sending WM_WM_UNMAP)
+
+        If the cause of the window being hidden is the X windows being unmapped,
+        (WM_STATE has changed to WithdrawnState), then the window has already
+        been unmapped.
+
+        Virtual desktop software (like VirtuaWin or Dexpot) uses SWP_HIDEWINDOW
+        to hide windows on other desktops.  We mustn't unmap the X window in
+        that situation, as it becomes inaccessible.
+      */
     }
-        /*
-         * Pass the message to DefWindowProc to let the function
-         * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
-         */
-        break;
+    /*
+     * Pass the message to DefWindowProc to let the function
+     * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
+     */
+    break;
 
     case WM_ENTERSIZEMOVE:
         hasEnteredSizeMove = TRUE;
@@ -1103,6 +1134,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Adjust the X Window to the moved Windows window */
         hasEnteredSizeMove = FALSE;
         winAdjustXWindow(pWin, hwnd);
+        if (fWMMsgInitialized)
+            winAdjustXWindowState(s_pScreenPriv, &wmMsg);
         return 0;
 
     case WM_SIZE:
@@ -1131,6 +1164,10 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!hasEnteredSizeMove) {
             /* Adjust the X Window to the moved Windows window */
             winAdjustXWindow(pWin, hwnd);
+            if (fWMMsgInitialized)
+                winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+            if (wParam == SIZE_MINIMIZED)
+                winReorderWindowsMultiWindow();
         }
         /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
@@ -1229,12 +1266,22 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-
     case WM_DWMCOMPOSITIONCHANGED:
         /* This message is only sent on Vista/W7 */
         CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
         return 0;
+
+    case WM_GETDPISCALEDSIZE:
+        winDebug("winTopLevelWindowProc - WM_GETDPISCALEDSIZE\n");
+        // We don't change the lParam SIZE, so the Window retains the same size
+        // in pixels (rather than getting linearly scaled by the dpi value)
+        return TRUE;
+
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+
     default:
         break;
     }
@@ -1247,4 +1294,63 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (needRestack)
         winReorderWindowsMultiWindow();
     return ret;
+}
+
+/*
+ * winChildWindowProc - Window procedure for all top-level Windows windows.
+ */
+
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    WindowPtr pWin = NULL;
+
+#if CYGDEBUG
+    winDebugWin32Message("winChildWindowProc", hwnd, message, wParam, lParam);
+#endif
+
+    /*
+      If this is WM_CREATE, set up the Windows window properties which point to
+      X window information
+    */
+    if (message == WM_CREATE) {
+        SetProp(hwnd,
+                WIN_WINDOW_PROP,
+                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
+        SetProp(hwnd,
+                WIN_WID_PROP,
+                (HANDLE) (INT_PTR)winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                 lpCreateParams));
+    }
+
+    /* Retrieve the Windows window property for our X window pointer */
+    pWin = GetProp(hwnd, WIN_WINDOW_PROP);
+
+    switch (message) {
+    case WM_ERASEBKGND:
+        return TRUE;
+
+    case WM_PAINT:
+        /*
+           We don't have the bits to draw into the window, they went straight into the OpenGL
+           surface
+
+           XXX: For now, just leave it alone, but ideally we want to send an expose event to
+           the window so it really redraws the affected region...
+         */
+    {
+        PAINTSTRUCT ps;
+        BeginPaint(hwnd, &ps);
+        ValidateRect(hwnd, &(ps.rcPaint));
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+        /* XXX: this is exactly what DefWindowProc does? */
+
+    case WM_ASYNCMOVE:
+        winAdjustWindowsWindow(pWin, hwnd);
+        break;
+    }
+
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }

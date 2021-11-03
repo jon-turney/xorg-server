@@ -291,9 +291,11 @@ winClipboardSelectionNotifyData(HWND hwnd, xcb_window_t iWindow, xcb_connection_
         ErrorF("SelectionNotify: data in COMPOUND_TEXT encoding which is not implemented, discarding\n");
         pszReturnData = malloc(1);
         pszReturnData[0] = '\0';
+        codepage = CP_UTF8;
     } else { // shouldn't happen as we accept no other encodings
         pszReturnData = malloc(1);
         pszReturnData[0] = '\0';
+        codepage = CP_UTF8;
     }
 
     /* Free the data returned from xcb_get_property */

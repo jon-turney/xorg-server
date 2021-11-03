@@ -57,7 +57,6 @@
 #define WIN_DEFAULT_BLACKPIXEL			0
 #define WIN_DEFAULT_LINEBIAS			0
 #define WIN_DEFAULT_E3B_TIME			50      /* milliseconds */
-#define WIN_DEFAULT_DPI				96
 #define WIN_DEFAULT_REFRESH			0
 #define WIN_DEFAULT_WIN_KILL			TRUE
 #define WIN_DEFAULT_UNIX_KILL			FALSE
@@ -184,6 +183,7 @@
 #define WM_TRAYICON		(WM_USER + 1000)
 #define WM_INIT_SYS_MENU	(WM_USER + 1001)
 #define WM_GIVEUP		(WM_USER + 1002)
+#define WM_ASYNCMOVE		(WM_USER + 1003)
 
 /* Local includes */
 #include "winwindow.h"
@@ -961,12 +961,17 @@ XID
 int
  winAdjustXWindow(WindowPtr pWin, HWND hwnd);
 
+void
+ winAdjustWindowsWindow(WindowPtr pWin, HWND hwnd);
+
 /*
  * winmultiwindowwndproc.c
  */
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK
+winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 /*
  * wintrayicon.c
@@ -1025,6 +1030,8 @@ void
 winDoRandRScreenSetSize(ScreenPtr pScreen,
                         CARD16 width,
                         CARD16 height, CARD32 mmWidth, CARD32 mmHeight);
+
+void winUpdateDpi(void);
 
 /*
  * winmsgwindow.c

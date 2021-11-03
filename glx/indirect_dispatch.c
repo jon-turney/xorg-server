@@ -4035,6 +4035,99 @@ __glXDisp_DrawBuffers(GLbyte * pc)
     DrawBuffers(n, (const GLenum *) (pc + 4));
 }
 
+int
+__glXDisp_GetVertexAttribdv(__GLXclientState * cl, GLbyte * pc)
+{
+    PFNGLGETVERTEXATTRIBDVPROC GetVertexAttribdv =
+        __glGetProcAddress("glGetVertexAttribdv");
+    xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
+    int error;
+    __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
+
+    pc += __GLX_VENDPRIV_HDR_SIZE;
+    if (cx != NULL) {
+        const GLenum pname = *(GLenum *) (pc + 4);
+
+        const GLuint compsize = __glGetVertexAttribdv_size(pname);
+        GLdouble answerBuffer[200];
+        GLdouble *params =
+            __glXGetAnswerBuffer(cl, compsize * 8, answerBuffer,
+                                 sizeof(answerBuffer), 8);
+
+        if (params == NULL)
+            return BadAlloc;
+        __glXClearErrorOccured();
+
+        GetVertexAttribdv(*(GLuint *) (pc + 0), pname, params);
+        __glXSendReply(cl->client, params, compsize, 8, GL_FALSE, 0);
+        error = Success;
+    }
+
+    return error;
+}
+
+int
+__glXDisp_GetVertexAttribfv(__GLXclientState * cl, GLbyte * pc)
+{
+    PFNGLGETVERTEXATTRIBFVPROC GetVertexAttribfv =
+        __glGetProcAddress("glGetVertexAttribfv");
+    xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
+    int error;
+    __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
+
+    pc += __GLX_VENDPRIV_HDR_SIZE;
+    if (cx != NULL) {
+        const GLenum pname = *(GLenum *) (pc + 4);
+
+        const GLuint compsize = __glGetVertexAttribfv_size(pname);
+        GLfloat answerBuffer[200];
+        GLfloat *params =
+            __glXGetAnswerBuffer(cl, compsize * 4, answerBuffer,
+                                 sizeof(answerBuffer), 4);
+
+        if (params == NULL)
+            return BadAlloc;
+        __glXClearErrorOccured();
+
+        GetVertexAttribfv(*(GLuint *) (pc + 0), pname, params);
+        __glXSendReply(cl->client, params, compsize, 4, GL_FALSE, 0);
+        error = Success;
+    }
+
+    return error;
+}
+
+int
+__glXDisp_GetVertexAttribiv(__GLXclientState * cl, GLbyte * pc)
+{
+    PFNGLGETVERTEXATTRIBIVPROC GetVertexAttribiv =
+        __glGetProcAddress("glGetVertexAttribiv");
+    xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
+    int error;
+    __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
+
+    pc += __GLX_VENDPRIV_HDR_SIZE;
+    if (cx != NULL) {
+        const GLenum pname = *(GLenum *) (pc + 4);
+
+        const GLuint compsize = __glGetVertexAttribiv_size(pname);
+        GLint answerBuffer[200];
+        GLint *params =
+            __glXGetAnswerBuffer(cl, compsize * 4, answerBuffer,
+                                 sizeof(answerBuffer), 4);
+
+        if (params == NULL)
+            return BadAlloc;
+        __glXClearErrorOccured();
+
+        GetVertexAttribiv(*(GLuint *) (pc + 0), pname, params);
+        __glXSendReply(cl->client, params, compsize, 4, GL_FALSE, 0);
+        error = Success;
+    }
+
+    return error;
+}
+
 void
 __glXDisp_VertexAttrib1dv(GLbyte * pc)
 {
@@ -5124,4 +5217,20 @@ __glXDisp_ActiveStencilFaceEXT(GLbyte * pc)
     PFNGLACTIVESTENCILFACEEXTPROC ActiveStencilFaceEXT =
         __glGetProcAddress("glActiveStencilFaceEXT");
     ActiveStencilFaceEXT(*(GLenum *) (pc + 0));
+}
+
+void
+__glXDisp_BindFramebufferEXT(GLbyte * pc)
+{
+    PFNGLBINDFRAMEBUFFEREXTPROC BindFramebufferEXT =
+        __glGetProcAddress("glBindFramebufferEXT");
+    BindFramebufferEXT(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
+}
+
+void
+__glXDisp_BindRenderbufferEXT(GLbyte * pc)
+{
+    PFNGLBINDRENDERBUFFEREXTPROC BindRenderbufferEXT =
+        __glGetProcAddress("glBindRenderbufferEXT");
+    BindRenderbufferEXT(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
 }

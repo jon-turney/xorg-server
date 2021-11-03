@@ -54,6 +54,8 @@ static HMODULE g_hmodDirectDraw = NULL;
 void
 winDetectSupportedEngines(void)
 {
+    ErrorF("winDetectSupportedEngines - RemoteSession: %s\n",  GetSystemMetrics(SM_REMOTESESSION) ? "yes" : "no");
+
     /* Initialize the engine support flags */
     g_dwEnginesSupported = WIN_SERVER_SHADOW_GDI;
 

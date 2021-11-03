@@ -32,6 +32,8 @@
 #if !defined(_WINWINDOW_H_)
 #define _WINWINDOW_H_
 
+#include <pthread.h>
+
 #ifndef NO
 #define NO			0
 #endif
@@ -45,18 +47,20 @@
 #endif
 #define EXECUTABLE_NAME         "XWin"
 #define WINDOW_CLASS		"cygwin/x"
-#define WINDOW_TITLE		PROJECT_NAME ":%s.%d"
-#define WINDOW_TITLE_XDMCP	"%s:%s.%d"
+#define WINDOW_TITLE		PROJECT_NAME ":%s.%d" /* X screen window title */
+#define WINDOW_TITLE_XDMCP	"%s:%s.%d" /* X screen window title with XDMCP */
 #define WIN_SCR_PROP		"cyg_screen_prop rl"
 #define WINDOW_CLASS_X		"cygwin/x X rl"
 #define WINDOW_CLASS_X_MSG      "cygwin/x X msg"
-#define WINDOW_TITLE_X		PROJECT_NAME " X"
+#define WINDOW_CLASS_X_CHILD    "cygwin/x X child"
+#define WINDOW_TITLE_X		"Unnamed X Window" /* default multiwindow window title */
 #define WIN_WINDOW_PROP		"cyg_window_prop_rl"
 #ifdef HAS_DEVWINDOWS
 #define WIN_MSG_QUEUE_FNAME	"/dev/windows"
 #endif
 #define WIN_WID_PROP		"cyg_wid_prop_rl"
 #define WIN_NEEDMANAGE_PROP	"cyg_override_redirect_prop_rl"
+#define WIN_STATE_PROP		"cyg_state_prop_rl"
 #ifndef CYGMULTIWINDOW_DEBUG
 #define CYGMULTIWINDOW_DEBUG    NO
 #endif
@@ -110,6 +114,7 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_MAP_UNMANAGED	(WM_USER + 12)
 #define		WM_WM_MAP_MANAGED	(WM_USER + 13)
 #define		WM_WM_HINTS_EVENT	(WM_USER + 14)
+#define		WM_WM_CREATE		(WM_USER + 15)
 
 #define		MwmHintsDecorations	(1L << 1)
 

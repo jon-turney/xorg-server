@@ -126,9 +126,12 @@ XWin_LDFLAGS = -mwindows -Wl,--disable-stdcall-fixup $(LD_EXPORT_SYMBOLS_FLAG)
 
 
 .rc.o:
-	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
+	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include -DHOST=\"$(host)\"
 
 XWin.o: XWin.rc XWin.exe.manifest X.ico
+
+X.ico: X.svg
+	$(AM_V_GEN)convert -background transparent $(srcdir)/X.svg -trim -define icon:auto-resize X.ico
 
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
@@ -151,7 +154,7 @@ install-exec-hook:
 
 EXTRA_DIST = \
 	$(xwinconfig_DATA) \
-	X.ico \
+	X.svg \
 	XWin.rc \
 	XWin.exe.manifest
 

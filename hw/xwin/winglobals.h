@@ -40,19 +40,17 @@ extern int g_iNumScreens;
 extern int g_iLastScreen;
 extern char *g_pszCommandLine;
 extern Bool g_fSilentFatalError;
+extern const char *g_pszLogFileFormat;
 extern const char *g_pszLogFile;
 
-#ifdef RELOCATE_PROJECTROOT
-extern Bool g_fLogFileChanged;
-#endif
 extern int g_iLogVerbose;
-extern Bool g_fLogInited;
 
 extern Bool g_fAuthEnabled;
 extern Bool g_fXdmcpEnabled;
 extern Bool g_fCompositeAlpha;
 
 extern Bool g_fNoHelpMessageBox;
+extern Bool g_fSilentDupError;
 extern Bool g_fNativeGl;
 extern Bool g_fHostInTitle;
 
@@ -83,5 +81,7 @@ extern Bool g_fKeyboardHookLL;
 extern Bool g_fButton[3];
 
 extern pthread_mutex_t g_pmTerminating;
+
+extern Bool g_fixedDPI;
 
 #endif                          /* WINGLOBALS_H */

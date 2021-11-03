@@ -302,3 +302,82 @@ winRandRInit(ScreenPtr pScreen)
 
     return TRUE;
 }
+
+/*
+  Update the DPI value
+
+ (or do nothing, if it's fixed)
+ */
+#define WIN_DEFAULT_DPI 96
+
+typedef enum MONITOR_DPI_TYPE {
+  MDT_EFFECTIVE_DPI = 0,
+} MONITOR_DPI_TYPE;
+
+typedef HRESULT WINAPI (*PFNGETDPIFORMONITOR)(HMONITOR, MONITOR_DPI_TYPE, UINT *, UINT *);
+
+void
+winUpdateDpi(void)
+{
+    /* If no '-dpi' option was used */
+    if (!g_fixedDPI)
+        {
+            // It seems that GetDeviceCaps reports the DPI when the Windows
+            // session started (or the process, if "Fix scaling for apps" is
+            // on), so instead use GetDpiForMonitor on the primary monitor, if
+            // that is available
+
+            static Bool tryLoad = TRUE;
+            if (tryLoad)
+                {
+                    LoadLibrary("shcore.dll");
+                    tryLoad = FALSE;
+                }
+
+            PFNGETDPIFORMONITOR pGDFM = (PFNGETDPIFORMONITOR) GetProcAddress(GetModuleHandle("shcore.dll"), "GetDpiForMonitor");
+
+            if (pGDFM)
+                {
+                    // Get HMONITOR of primary monitor
+                    // (by definition the primary monitor contains the point (0,0))
+                    const POINT ptZero = { 0, 0 };
+                    HMONITOR hPriMon = MonitorFromPoint(ptZero, MONITOR_DEFAULTTOPRIMARY);
+
+                    // Get DPI of primary monitor
+                    unsigned int dpiX, dpiY;
+                    HRESULT res = pGDFM(hPriMon, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+                    if (res == S_OK)
+                        {
+                            ErrorF("winUpdateDpi - primary monitor native DPI x %u y %u\n", dpiX, dpiY);
+                            monitorResolution = dpiY;
+                        }
+                    else
+                        {
+                            ErrorF("winUpdateDpi - Failed to retrieve native DPI for primary monitor, falling back to default of %d DPI\n", WIN_DEFAULT_DPI);
+                            monitorResolution = WIN_DEFAULT_DPI;
+                        }
+                }
+            else
+                {
+                    HDC hdc = GetDC(NULL);
+
+                    if (hdc) {
+                        int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+                        int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+
+                        ErrorF("winUpdateDpi - native DPI x %d y %d\n", dpiX, dpiY);
+
+                        monitorResolution = dpiY;
+                        ReleaseDC(NULL, hdc);
+                    }
+                    else {
+                        ErrorF("winUpdateDpi - Failed to retrieve native DPI, falling back to default of %d DPI\n", WIN_DEFAULT_DPI);
+                        monitorResolution = WIN_DEFAULT_DPI;
+                    }
+                }
+        }
+    else
+        {
+            ErrorF("winUpdateDpi - Using fixed %d DPI\n", monitorResolution);
+        }
+}

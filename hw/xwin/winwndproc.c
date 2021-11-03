@@ -44,6 +44,10 @@
 #include "inputstr.h"
 #include "winclipboard/winclipboard.h"
 
+#ifndef WM_GETDPISCALEDSIZE
+#define WM_GETDPISCALEDSIZE 0x02E4
+#endif
+
 /*
  * Global variables
  */
@@ -140,6 +144,12 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         return 0;
 
+    case WM_GETDPISCALEDSIZE:
+        winDebug("winTopLevelWindowProc - WM_GETDPISCALEDSIZE\n");
+        // We don't change the lParam SIZE, so the Window retains the same size
+        // in pixels (rather than getting linearly scaled by the dpi value)
+        return TRUE;
+
     case WM_DISPLAYCHANGE:
         /*
            WM_DISPLAYCHANGE seems to be sent when the monitor layout or
@@ -167,6 +177,8 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         ErrorF("winWindowProc - WM_DISPLAYCHANGE - new width: %d "
                "new height: %d new bpp: %d\n",
                LOWORD(lParam), HIWORD(lParam), (int)wParam);
+
+        ErrorF("winWindowProc - RemoteSession: %s\n",  GetSystemMetrics(SM_REMOTESESSION) ? "yes" : "no");
 
         /* 0 bpp has no defined meaning, ignore this message */
         if (wParam == 0)
@@ -251,6 +263,8 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                         }
                 }
 
+                winUpdateDpi();
+
                 /*
                    XXX: probably a small bug here: we don't compute the work area
                    and allow for task bar
@@ -259,10 +273,8 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                    the server is started
                  */
 
-                /* Set screen size to match new size, if it is different to current */
-                if (((dwWidth != 0) && (dwHeight != 0)) &&
-                    ((s_pScreenInfo->dwWidth != dwWidth) ||
-                     (s_pScreenInfo->dwHeight != dwHeight))) {
+                /* Set screen size to match new size */
+                if ((dwWidth != 0) && (dwHeight != 0)) {
                     winDoRandRScreenSetSize(s_pScreen,
                                             dwWidth,
                                             dwHeight,

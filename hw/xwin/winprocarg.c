@@ -86,29 +86,6 @@ winInitializeScreenDefaults(void)
                   "winInitializeScreenDefaults - primary monitor w %d h %d\n",
                   (int) dwWidth, (int) dwHeight);
 
-    /* Set a default DPI, if no '-dpi' option was used */
-    if (monitorResolution == 0) {
-        HDC hdc = GetDC(NULL);
-
-        if (hdc) {
-            int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-            int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
-
-            winErrorFVerb(2,
-                          "winInitializeScreenDefaults - native DPI x %d y %d\n",
-                          dpiX, dpiY);
-
-            monitorResolution = dpiY;
-            ReleaseDC(NULL, hdc);
-        }
-        else {
-            winErrorFVerb(1,
-                          "winInitializeScreenDefaults - Failed to retrieve native DPI, falling back to default of %d DPI\n",
-                          WIN_DEFAULT_DPI);
-            monitorResolution = WIN_DEFAULT_DPI;
-        }
-    }
-
     defaultScreenInfo.iMonitor = 1;
     defaultScreenInfo.hMonitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
     defaultScreenInfo.dwWidth = dwWidth;
@@ -291,6 +268,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
         /* Display the usage message if the argument is malformed */
         if (i + 1 >= argc) {
+            ErrorF("ddxProcessArgument - screen - Missing screen number\n");
+            UseMsg();
+            FatalError("-screen missing screen number\n");
             return 0;
         }
 
@@ -935,6 +915,15 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
+     * Look for the '-dpi' argument
+     */
+    if (IS_OPTION("-dpi")) {
+        g_cmdline.customDPI = TRUE;
+        g_fixedDPI = TRUE;
+        return 0;               /* Let DIX parse this again */
+    }
+
+    /*
      * Look for the '-config' argument
      */
     if (IS_OPTION("-config")
@@ -989,9 +978,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-logfile")) {
         CHECK_ARGS(1);
         g_pszLogFile = argv[++i];
-#ifdef RELOCATE_PROJECTROOT
-        g_fLogFileChanged = TRUE;
-#endif
         return 2;
     }
 
@@ -1042,6 +1028,11 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
     if (IS_OPTION("-swcursor")) {
         g_fSoftwareCursor = TRUE;
+        return 1;
+    }
+
+    if (IS_OPTION("-silent-dup-error")) {
+        g_fSilentDupError = TRUE;
         return 1;
     }
 
@@ -1188,6 +1179,5 @@ winLogVersionInfo(void)
     winOS();
     if (strlen(BUILDERSTRING))
         ErrorF("%s\n", BUILDERSTRING);
-    ErrorF("Contact: %s\n", BUILDERADDR);
     ErrorF("\n");
 }

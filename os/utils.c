@@ -52,19 +52,23 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#if defined(WIN32) || defined(__CYGWIN__)
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
+#if !defined(__CYGWIN__)
+#include <X11/Xwinsock.h>
+#endif
+#include <X11/Xwindows.h>
+#endif
+
 #ifdef __CYGWIN__
 #include <stdlib.h>
 #include <signal.h>
-/*
-   Sigh... We really need a prototype for this to know it is stdcall,
-   but #include-ing <windows.h> here is not a good idea...
-*/
-__stdcall unsigned long GetTickCount(void);
+#include <assert.h> /* defines made by windows.h prevent misc.h from including assert.h */
+#undef WIN32 /* for the benefit of the conditionals in this file */
 #endif
 
-#if defined(WIN32) && !defined(__CYGWIN__)
-#include <X11/Xwinsock.h>
-#endif
 #include <X11/Xos.h>
 #include <stdio.h>
 #include <time.h>
@@ -113,6 +117,8 @@ __stdcall unsigned long GetTickCount(void);
 #include "miinitext.h"
 
 #include "present.h"
+
+Bool install_os_signal_handler = TRUE;
 
 Bool noTestExtensions;
 
@@ -251,8 +257,8 @@ UnlockServer(void)
 {}
 #else /* LOCK_SERVER */
 static Bool StillLocking = FALSE;
-static char LockFile[PATH_MAX];
-static Bool nolock = FALSE;
+static char lockFile[PATH_MAX];
+Bool nolock = FALSE;
 
 /*
  * LockServer --
@@ -278,10 +284,10 @@ LockServer(void)
     len = strlen(LOCK_PREFIX) > strlen(LOCK_TMP_PREFIX) ? strlen(LOCK_PREFIX) :
         strlen(LOCK_TMP_PREFIX);
     len += strlen(tmppath) + strlen(port) + strlen(LOCK_SUFFIX) + 1;
-    if (len > sizeof(LockFile))
+    if (len > sizeof(lockFile))
         FatalError("Display name `%s' is too long\n", port);
     (void) sprintf(tmp, "%s" LOCK_TMP_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
-    (void) sprintf(LockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
+    (void) sprintf(lockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
 
     /*
      * Create a temporary file containing our PID.  Attempt three times
@@ -324,7 +330,7 @@ LockServer(void)
     i = 0;
     haslock = 0;
     while ((!haslock) && (i++ < 3)) {
-        haslock = (link(tmp, LockFile) == 0);
+        haslock = (link(tmp, lockFile) == 0);
         if (haslock) {
             /*
              * We're done.
@@ -335,17 +341,17 @@ LockServer(void)
             /*
              * Read the pid from the existing file
              */
-            lfd = open(LockFile, O_RDONLY | O_NOFOLLOW);
+            lfd = open(lockFile, O_RDONLY | O_NOFOLLOW);
             if (lfd < 0) {
                 unlink(tmp);
-                FatalError("Can't read lock file %s\n", LockFile);
+                FatalError("Can't read lock file %s\n", lockFile);
             }
             pid_str[0] = '\0';
             if (read(lfd, pid_str, 11) != 11) {
                 /*
                  * Bogus lock file.
                  */
-                unlink(LockFile);
+                unlink(lockFile);
                 close(lfd);
                 continue;
             }
@@ -362,7 +368,7 @@ LockServer(void)
                 /*
                  * Stale lock file.
                  */
-                unlink(LockFile);
+                unlink(lockFile);
                 continue;
             }
             else if (((t < 0) && (errno == EPERM)) || (t == 0)) {
@@ -373,19 +379,19 @@ LockServer(void)
                 FatalError
                     ("Server is already active for display %s\n%s %s\n%s\n",
                      port, "\tIf this server is no longer running, remove",
-                     LockFile, "\tand start again.");
+                     lockFile, "\tand start again.");
             }
         }
         else {
             unlink(tmp);
             FatalError
                 ("Linking lock file (%s) in place failed: %s\n",
-                 LockFile, strerror(errno));
+                 lockFile, strerror(errno));
         }
     }
     unlink(tmp);
     if (!haslock)
-        FatalError("Could not create server lock file: %s\n", LockFile);
+        FatalError("Could not create server lock file: %s\n", lockFile);
     StillLocking = FALSE;
 }
 
@@ -401,7 +407,7 @@ UnlockServer(void)
 
     if (!StillLocking) {
 
-        (void) unlink(LockFile);
+        (void) unlink(lockFile);
     }
 }
 #endif /* LOCK_SERVER */
@@ -457,7 +463,7 @@ GetTimeInMillis(void)
 CARD64
 GetTimeInMicros(void)
 {
-    return (CARD64) GetTickCount() * 1000;
+    return (CARD64) GetTickCount64() * 1000;
 }
 #else
 CARD32
@@ -551,6 +557,7 @@ UseMsg(void)
 #ifdef RLIMIT_STACK
     ErrorF("-ls int                limit stack space to N Kb\n");
 #endif
+    ErrorF("-notrapsignals         disable catching of fatal signals\n");
 #ifdef LOCK_SERVER
     ErrorF("-nolock                disable the locking mechanism\n");
 #endif
@@ -844,6 +851,9 @@ ProcessCommandLine(int argc, char *argv[])
                 UseMsg();
         }
 #endif
+        else if (strcmp(argv[i], "-notrapsignals") == 0) {
+            install_os_signal_handler = FALSE;
+        }
 #ifdef LOCK_SERVER
         else if (strcmp(argv[i], "-nolock") == 0) {
 #if !defined(WIN32) && !defined(__CYGWIN__)
@@ -1004,6 +1014,9 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-schedInterval") == 0) {
             if (++i < argc) {
+#ifdef HAVE_SETITIMER
+                SmartScheduleSignalEnable = TRUE;
+#endif
                 SmartScheduleInterval = atoi(argv[i]);
                 SmartScheduleSlice = SmartScheduleInterval;
             }
@@ -1012,6 +1025,9 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-schedMax") == 0) {
             if (++i < argc) {
+#ifdef HAVE_SETITIMER
+                SmartScheduleSignalEnable = TRUE;
+#endif
                 SmartScheduleMaxSlice = atoi(argv[i]);
             }
             else
@@ -1363,6 +1379,26 @@ OsAbort(void)
  * as well.  As it is now, xkbcomp messages don't end up in the log file.
  */
 
+#ifdef __CYGWIN__
+#include <process.h>
+int
+System(const char *command)
+{
+    int status;
+
+    if (!command)
+        return 1;
+
+    DebugF("System: `%s'\n", command);
+
+    /*
+       Use spawnl() rather than execl() to implement System() on cygwin to
+       avoid fork emulation overhead and brittleness
+     */
+    status = spawnl(_P_WAIT, "/bin/sh", "sh", "-c", command, (char *) NULL);
+    return status;
+}
+#else
 int
 System(const char *command)
 {
@@ -1405,6 +1441,7 @@ System(const char *command)
 
     return p == -1 ? -1 : status;
 }
+#endif
 
 static struct pid {
     struct pid *next;
@@ -1650,8 +1687,6 @@ Fclose(void *iop)
 
 #ifdef WIN32
 
-#include <X11/Xwindows.h>
-
 const char *
 Win32TempDir(void)
 {
@@ -1718,6 +1753,20 @@ System(const char *cmdline)
     free(cmd);
 
     return dwExitCode;
+}
+#elif defined(__CYGWIN__)
+const char*
+Win32TempDir(void)
+{
+    const char *temp = getenv("TEMP");
+    if ((temp != NULL) && (access(temp, W_OK | X_OK) == 0))
+        return temp;
+
+    temp = getenv("TMP");
+    if ((temp != NULL) && (access(temp, W_OK | X_OK) == 0))
+        return temp;
+
+    return "/tmp";
 }
 #endif
 

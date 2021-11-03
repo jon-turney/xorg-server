@@ -91,6 +91,8 @@ if enable_input_thread
     os_dep += cc.find_library('pthread')
 endif
 
+os_c_args += '-DBINDIR="@0@"'.format(join_paths(get_option('prefix'), get_option('bindir')))
+
 libxserver_os = static_library('libxserver_os',
     srcs_os,
     include_directories: inc,

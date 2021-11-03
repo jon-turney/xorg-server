@@ -104,7 +104,7 @@ These parameters only apply to windowed mode screens i.e. not
 in \fB-multiwindow\fP or \fB-rootless\fP mode.
 .TP 8
 .B "\-fullscreen"
-The X server window takes the full screen, covering completely the
+The X screen window takes the full screen, covering completely the
 \fIWindows\fP desktop.
 Currently \fB\-fullscreen\fP may only be applied to one X screen.
 .TP 8
@@ -113,7 +113,7 @@ Override the window icon for the screen window from the default.
 The \fIicon-specifier\fP is as defined in \fIXWinrc(@filemansuffix@)\fP.
 .TP 8
 .B \-nodecoration
-Do not give the Cygwin/X window a \fIWindows\fP window border, title bar,
+Do not give the X screen window a \fIWindows\fP window border, title bar,
 etc.
 This parameter is ignored when the \fB\-fullscreen\fP parameter is specified.
 .TP 8
@@ -213,8 +213,8 @@ Server instead of letting \fIWindows\fP handle them.
 .TP 8
 .B \-lesspointer
 Normally the \fIWindows\fP mouse cursor is hidden when the mouse is
-over an active Cygwin/X window.  This option causes the mouse cursor
-also to be hidden when it is over an inactive Cygwin/X window.  This
+over an active X window.  This option causes the mouse cursor
+also to be hidden when it is over an inactive X window.  This
 prevents the \fIWindows\fP mouse cursor from being drawn on top of the X
 cursor.
 This parameter has no effect unless \fB-swcursor\fP is also specified.
@@ -263,7 +263,7 @@ This option probably has limited effect on current \fIWindows\fP versions
 as they already perform GDI batching.
 .TP 8
 .B "\-engine \fIengine_type_id\fP"
-This option, which is intended for Cygwin/X developers,
+This option, which is intended for developers,
 overrides the server's automatically selected drawing engine type.  This
 parameter will be ignored if the specified drawing engine type is not
 supported on the current system.
@@ -317,6 +317,10 @@ additional runtime information is recorded
 and for \fIlevel\fP=3 detailed log
 information (including trace and debug output) is produced.  Bigger
 values will yield a still more detailed debug output.
+.TP 8
+.B \-silent-dup-error
+If another instance of \fIXWin\fP with the same display number is found running,
+exit silently and don't display any error message.
 .TP 8
 .B "\-xkblayout \fIlayout\fP"
 .TP 8

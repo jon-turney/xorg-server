@@ -29,6 +29,7 @@ apt-get install -y \
 	flex \
 	gcc-mingw-w64-i686 \
 	git \
+	imagemagick \
 	libaudit-dev \
 	libbsd-dev \
 	libcairo2 \
@@ -49,6 +50,7 @@ apt-get install -y \
 	libnvidia-egl-wayland-dev \
 	libpciaccess-dev \
 	libpixman-1-dev \
+	librsvg2-bin \
 	libselinux1-dev \
 	libsystemd-dev \
 	libtool \
