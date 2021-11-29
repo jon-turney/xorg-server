@@ -424,7 +424,6 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
           {
             /* Paste no data, to satisfy required call to SetClipboardData */
             SetClipboardData(CF_UNICODETEXT, NULL);
-            SetClipboardData(CF_TEXT, NULL);
           }
 
         winDebug("winClipboardWindowProc - WM_RENDERFORMAT - Returning.\n");
