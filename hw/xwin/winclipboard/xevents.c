@@ -380,7 +380,6 @@ winClipboardSelectionNotifyData(HWND hwnd, xcb_window_t iWindow, xcb_connection_
         GlobalUnlock(hGlobal);
     if (fSetClipboardData) {
         SetClipboardData(CF_UNICODETEXT, NULL);
-        SetClipboardData(CF_TEXT, NULL);
     }
     return WIN_XEVENTS_NOTIFY_DATA;
 }
@@ -796,9 +795,8 @@ winClipboardFlushXEvents(HWND hwnd,
                     break;
                 }
 
-                /* Advertise regular text and unicode */
+                /* Advertise unicode */
                 SetClipboardData(CF_UNICODETEXT, NULL);
-                SetClipboardData(CF_TEXT, NULL);
 
                 /* Release the clipboard */
                 if (!CloseClipboard()) {
