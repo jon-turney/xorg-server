@@ -345,12 +345,9 @@ winClipboardProc(char *szDisplay, xcb_auth_info_t *auth_info)
 
     /* Close our X window */
     if (!xcb_connection_has_error(conn) && iWindow) {
-        cookie = xcb_destroy_window_checked(conn, iWindow);
-        if ((error = xcb_request_check(conn, cookie)))
-            ErrorF("winClipboardProc - XDestroyWindow failed.\n");
-        else
-            ErrorF("winClipboardProc - XDestroyWindow succeeded.\n");
-        free(error);
+        /* This must be unchecked to avoid a deadlock if the server is in the
+           process of exiting.*/
+        xcb_destroy_window(conn, iWindow);
     }
 
 #ifdef HAS_DEVWINDOWS
