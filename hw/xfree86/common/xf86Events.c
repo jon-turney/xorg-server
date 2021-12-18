@@ -382,6 +382,7 @@ xf86VTLeave(void)
     for (i = 0; i < xf86NumGPUScreens; i++)
         xf86GPUScreens[i]->LeaveVT(xf86GPUScreens[i]);
 
+#ifdef XSERVER_PLATFORM_BUS
     if (systemd_logind_controls_session()) {
         for (i = 0; i < xf86_num_platform_devices; i++) {
             if (xf86_platform_devices[i].flags & XF86_PDEV_SERVER_FD) {
@@ -392,6 +393,7 @@ xf86VTLeave(void)
             }
         }
     }
+#endif
 
     if (!xf86VTSwitchAway())
         goto switch_failed;
