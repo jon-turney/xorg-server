@@ -308,13 +308,30 @@ cleanup:
  * and ensure the drm_drop_master is done before
  * VT_RELDISP when switching VT
  */
-void systemd_logind_drop_master(int _major, int _minor)
+void systemd_logind_drop_master(void)
 {
-    struct systemd_logind_info *info = &logind_info;
-    dbus_int32_t major = _major;
-    dbus_int32_t minor = _minor;
+    int i;
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        if (xf86_platform_devices[i].flags & XF86_PDEV_SERVER_FD) {
+            dbus_int32_t major, minor;
+            struct systemd_logind_info *info = &logind_info;
 
-    systemd_logind_ack_pause(info, minor, major);
+            xf86_platform_devices[i].flags |= XF86_PDEV_PAUSED;
+            major = xf86_platform_odev_attributes(i)->major;
+            minor = xf86_platform_odev_attributes(i)->minor;
+            systemd_logind_ack_pause(info, minor, major);
+        }
+    }
+}
+
+static Bool are_platform_devices_resumed(void) {
+    int i;
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        if (xf86_platform_devices[i].flags & XF86_PDEV_PAUSED) {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }
 
 static DBusHandlerResult
@@ -410,13 +427,11 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
 
         if (pdev) {
             pdev->flags &= ~XF86_PDEV_PAUSED;
-            systemd_logind_vtenter();
         } else
             systemd_logind_set_input_fd_for_all_devs(major, minor, fd,
                                                      info->vt_active);
-
-        /* Always call vtenter(), only if there are only legacy video devs */
-        if (!xf86_num_platform_devices)
+        /* Call vtenter if all platform devices are resumed, or if there are no platform device */
+        if (are_platform_devices_resumed())
             systemd_logind_vtenter();
     }
     return DBUS_HANDLER_RESULT_HANDLED;
