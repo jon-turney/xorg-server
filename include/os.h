@@ -304,8 +304,8 @@ OsRegisterSigWrapper(OsSigWrapperPtr newWrap);
 
 extern _X_EXPORT int auditTrailLevel;
 
-extern _X_EXPORT void
-LockServer(void);
+extern _X_EXPORT Bool
+LockServer(int);
 extern _X_EXPORT void
 UnlockServer(void);
 

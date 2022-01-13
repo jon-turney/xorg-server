@@ -285,7 +285,6 @@ OsInit(void)
             }
         }
 #endif
-        LockServer();
         been_here = TRUE;
     }
     TimerInit();
