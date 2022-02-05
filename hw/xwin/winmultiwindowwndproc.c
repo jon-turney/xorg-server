@@ -1350,6 +1350,11 @@ winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_ASYNCMOVE:
         winAdjustWindowsWindow(pWin, hwnd);
         break;
+
+    case WM_GETDPISCALEDSIZE:
+        // We don't change the lParam SIZE, so the Window retains the same size
+        // in pixels (rather than getting linearly scaled by the dpi value)
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
