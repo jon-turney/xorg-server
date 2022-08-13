@@ -319,25 +319,6 @@ PopMessage(WMMsgQueuePtr pQueue, WMInfoPtr pWMInfo)
     return pNode;
 }
 
-#if 0
-/*
- * HaveMessage -
- */
-
-static Bool
-HaveMessage(WMMsgQueuePtr pQueue, UINT msg, xcb_window_t iWindow)
-{
-    WMMsgNodePtr pNode;
-
-    for (pNode = pQueue->pHead; pNode != NULL; pNode = pNode->pNext) {
-        if (pNode->msg.msg == msg && pNode->msg.iWindow == iWindow)
-            return True;
-    }
-
-    return False;
-}
-#endif
-
 /*
  * InitQueue - Initialize the Window Manager message queue
  */
