@@ -17,6 +17,7 @@ environment:
     SETUP: setup-x86_64.exe
 install:
 - echo Updating Cygwin and installing build prerequisites
+- appveyor DownloadFile http://cygwin.com/%SETUP% -FileName %CYGWIN_ROOT%\%SETUP%
 - "%CYGWIN_ROOT%\\%SETUP% -qnNdO -R %CYGWIN_ROOT% -s %CYGWIN_MIRROR% -l %CACHE% -g -P \
 binutils,\
 bison,\
@@ -27,7 +28,7 @@ ImageMagick,\
 meson,\
 ninja,\
 pkg-config,\
-python38,\
+python39,\
 windowsdriproto,\
 xorgproto,\
 libepoxy-devel,\
@@ -63,12 +64,11 @@ libxcvt-devel,\
 libxkbfile-devel,\
 font-util,\
 khronos-opengl-registry,\
-python38-lxml,\
+python39-lxml,\
 xkbcomp-devel,\
 xkeyboard-config,\
 xtrans"
 - echo Install done
-- "%CYGWIN_ROOT%\\%SETUP% -qnNdO -R %CYGWIN_ROOT% -s %CYGWIN_MIRROR% -l %CACHE% -g"
 cache:
 - C:\cache
 - '%CYGWIN_ROOT%\home\%USERNAME%\.ccache'
