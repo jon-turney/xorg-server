@@ -309,28 +309,35 @@ void
 winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
 {
     /* Do nothing if window has not yet been given initial state */
-    if (!GetProp(wmMsg->hwndWindow, WIN_STATE_PROP))
+    int current_state = (intptr_t)GetProp(wmMsg->hwndWindow, WIN_STATE_PROP);
+    if (!current_state)
         return;
 
-    wmMsg->msg = WM_WM_CHANGE_STATE;
+    int state = -1;
     if (IsIconic(wmMsg->hwndWindow)) {
-        wmMsg->dwID = 3; // IconicState
-        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+        state = 3; // IconicState
     }
     else if (IsZoomed(wmMsg->hwndWindow)) {
-        wmMsg->dwID = 2; // ZoomState
-        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+        state = 2; // ZoomState
     }
     else if (IsWindowVisible(wmMsg->hwndWindow)) {
-        wmMsg->dwID = 1; // NormalState
-        winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
+        state = 1; // NormalState
      }
     else {
         /* Only the client, not the user can Withdraw windows, so it doesn't make
            much sense to handle that state here, and anything else is an
            unanticapted state. */
         ErrorF("winAdjustXWindowState - Unknown state for %p\n", wmMsg->hwndWindow);
+        return;
     }
+
+    /* Do nothing if window state isn't changing */
+    if (current_state == state)
+        return;
+
+    wmMsg->msg = WM_WM_CHANGE_STATE;
+    wmMsg->dwID = state;
+    winSendMessageToWM(s_pScreenPriv->pWMInfo, wmMsg);
 }
 
 /* Undocumented */
@@ -1350,6 +1357,11 @@ winChildWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_ASYNCMOVE:
         winAdjustWindowsWindow(pWin, hwnd);
         break;
+
+    case WM_GETDPISCALEDSIZE:
+        // We don't change the lParam SIZE, so the Window retains the same size
+        // in pixels (rather than getting linearly scaled by the dpi value)
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
