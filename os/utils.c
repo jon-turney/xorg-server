@@ -249,7 +249,7 @@ OsSignal(int sig, OsSigHandlerPtr handler)
 
 #ifndef LOCK_SERVER
 Bool
-LockServer(int)
+LockServer(int num)
 {
     return TRUE;
 }
