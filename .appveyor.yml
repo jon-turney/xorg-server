@@ -9,9 +9,6 @@ environment:
   CYGWIN_MIRROR: http://cygwin.mirror.constant.com
   CACHE: C:\cache
   matrix:
-  - BUILD: i686-pc-cygwin
-    CYGWIN_ROOT: C:\cygwin
-    SETUP: setup-x86.exe
   - BUILD: x86_64-pc-cygwin
     CYGWIN_ROOT: C:\cygwin64
     SETUP: setup-x86_64.exe
