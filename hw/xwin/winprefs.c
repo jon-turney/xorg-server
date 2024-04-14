@@ -866,15 +866,15 @@ LoadPreferences(void)
     /* Setup a DISPLAY environment variable, need to allocate on heap */
     /* because putenv doesn't copy the argument... */
     winGetDisplayName(szDisplay, 0);
-    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + strlen("DISPLAY=") + 1));
+    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + strlen("DISPLAY=") + 2));
     if (szEnvDisplay) {
-        snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
+        sprintf(szEnvDisplay, "DISPLAY=%s", szDisplay);
         putenv(szEnvDisplay);
     }
 
     /* Setup XWINLOGFILE environment variable */
-    szEnvLogFile = (char *) (malloc(strlen(g_pszLogFile) + strlen("XWINLOGFILE=") + 1));
-    snprintf(szEnvLogFile, 512, "XWINLOGFILE=%s", g_pszLogFile);
+    szEnvLogFile = (char *) (malloc(strlen(g_pszLogFile) + strlen("XWINLOGFILE=") + 2));
+    sprintf(szEnvLogFile, "XWINLOGFILE=%s", g_pszLogFile);
     putenv(szEnvLogFile);
 
     /* Replace any "%display%" in menu commands with display string */
