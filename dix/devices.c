@@ -963,6 +963,23 @@ FreeAllDeviceClasses(ClassesPtr classes)
 
 }
 
+static void
+FreePendingFrozenDeviceEvents(DeviceIntPtr dev)
+{
+    QdEventPtr qe, tmp;
+
+    if (!dev->deviceGrab.sync.frozen)
+        return;
+
+    /* Dequeue any frozen pending events */
+    xorg_list_for_each_entry_safe(qe, tmp, &syncEvents.pending, next) {
+        if (qe->device == dev) {
+            xorg_list_del(&qe->next);
+            free(qe);
+        }
+    }
+}
+
 /**
  * Close down a device and free all resources.
  * Once closed down, the driver will probably not expect you that you'll ever
@@ -1027,6 +1044,7 @@ CloseDevice(DeviceIntPtr dev)
         free(dev->last.touches[j].valuators);
     free(dev->last.touches);
     dev->config_info = NULL;
+    FreePendingFrozenDeviceEvents(dev);
     dixFreePrivates(dev->devPrivates, PRIVATE_DEVICE);
     free(dev);
 }
@@ -2654,6 +2672,8 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
     if (IsFloating(dev) && !master && dev->enabled)
         return Success;
 
+    input_lock();
+
     /* free the existing sprite. */
     if (IsFloating(dev) && dev->spriteInfo->paired == dev) {
         screen = miPointerGetScreen(dev);
@@ -2686,14 +2706,18 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
         dev->spriteInfo->paired = dev;
     }
     else {
+        DeviceIntPtr keyboard = GetMaster(dev, MASTER_KEYBOARD);
+
         dev->spriteInfo->sprite = master->spriteInfo->sprite;
         dev->spriteInfo->paired = master;
         dev->spriteInfo->spriteOwner = FALSE;
 
-        XkbPushLockedStateToSlaves(GetMaster(dev, MASTER_KEYBOARD), 0, 0);
+        if (keyboard)
+            XkbPushLockedStateToSlaves(keyboard, 0, 0);
         RecalculateMasterButtons(master);
     }
 
+    input_unlock();
     /* XXX: in theory, the MD should change back to its old, original
      * classes when the last SD is detached. Thanks to the XTEST devices,
      * we'll always have an SD attached until the MD is removed.

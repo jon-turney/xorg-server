@@ -1425,13 +1425,15 @@ RemoveHost(ClientPtr client, int family, unsigned length,       /* of bytes in p
     case FamilyChaos:
     case FamilyServerInterpreted:
         if ((len = CheckAddr(family, pAddr, length)) < 0) {
-            client->errorValue = length;
+            if (client)
+                client->errorValue = length;
             return BadValue;
         }
         break;
     case FamilyLocal:
     default:
-        client->errorValue = family;
+        if (client)
+            client->errorValue = family;
         return BadValue;
     }
     for (prev = &validhosts;

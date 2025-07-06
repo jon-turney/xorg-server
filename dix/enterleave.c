@@ -729,7 +729,7 @@ DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
         evcount += ((nval - 3) + 6)/6;
     }
 
-    BUG_RETURN(evcount <= ARRAY_SIZE(sev));
+    BUG_RETURN(evcount > ARRAY_SIZE(sev));
 
     FixDeviceStateNotify(dev, ev, k, b, v, first);
 
@@ -738,7 +738,7 @@ DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
         (ev - 1)->deviceid |= MORE_EVENTS;
         bev->type = DeviceButtonStateNotify;
         bev->deviceid = dev->id;
-        memcpy((char *) &bev->buttons[4], (char *) &b->down[4],
+        memcpy((char *) &bev->buttons[0], (char *) &b->down[4],
                DOWN_LENGTH - 4);
     }
 
