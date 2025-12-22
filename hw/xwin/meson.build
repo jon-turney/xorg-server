@@ -107,10 +107,10 @@ srcs_windows += [
     '../../mi/miinitext.h',
 ]
 
-convert = find_program('convert')
+magick = find_program('magick', 'convert')
 x_ico = custom_target(
     'xlogo-icon',
-    command: [convert, '-background', 'transparent', '-trim', '-define', 'icon:auto-resize', '@INPUT@', '@OUTPUT@'],
+    command: [magick, '-background', 'transparent', '@INPUT@', '-trim', '-define', 'icon:auto-resize', '@OUTPUT@'],
     input: 'X.svg',
     output: 'X.ico',
 )
